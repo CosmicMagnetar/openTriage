@@ -738,6 +738,20 @@ async def reply_to_issue(request: ReplyRequest, user: dict = Depends(require_mai
     return {"message": "Reply posted (mock)"}
 
 # AI Chat
+@api_router.get("/test-ai")
+async def test_ai(user: dict = Depends(get_current_user)):
+    """Simple endpoint to verify AI connectivity.
+    Returns a static response from the AI service.
+    """
+    try:
+        response = await ai_chat_service.chat(
+            message="Hello, AI!", history=[], context={}
+        )
+        return {"response": response}
+    except Exception as e:
+        logger.error(f"AI test endpoint error: {e}")
+        raise HTTPException(status_code=500, detail="AI service unavailable")
+
 @api_router.post("/chat")
 async def chat(request: ChatRequest, user: dict = Depends(get_current_user)):
     try:
