@@ -1,0 +1,63 @@
+import { FileText, LogOut } from 'lucide-react';
+import useAuthStore from '../../stores/authStore';
+
+const ContributorSidebar = () => {
+  const { user, logout } = useAuthStore();
+
+  return (
+    <div
+      data-testid="contributor-sidebar"
+      className="w-60 bg-slate-800/80 backdrop-blur-sm border-r border-slate-700 flex flex-col rounded-r-xl"
+    >
+      {/* Logo */}
+      <div className="p-6 border-b border-slate-700">
+        <div className="flex gap-2 items-end mb-3">
+          <div className="w-6 h-5 bg-red-500 rounded" />
+          <div className="w-6 h-8 bg-blue-500 rounded" />
+          <div className="w-6 h-12 bg-emerald-500 rounded" />
+        </div>
+        <h1 className="text-xl font-bold text-slate-200">OpenTriage</h1>
+        <p className="text-xs text-emerald-400 mt-1">Contributor</p>
+      </div>
+
+      {/* User Info */}
+      <div className="px-6 py-4 border-b border-slate-700">
+        <div className="flex items-center gap-3">
+          <img
+            src={user?.avatarUrl || 'https://github.com/ghost.png'}
+            alt={user?.username}
+            className="w-10 h-10 rounded-full"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-slate-200 truncate">
+              {user?.username}
+            </p>
+            <p className="text-xs text-slate-400">Contributor</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Menu */}
+      <nav className="flex-1 p-4">
+        <div className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+          <FileText className="w-5 h-5" />
+          <span className="font-medium">My Issues</span>
+        </div>
+      </nav>
+
+      {/* Logout */}
+      <div className="p-4 border-t border-slate-700">
+        <button
+          data-testid="logout-button"
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-all duration-300"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">Logout</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default ContributorSidebar;
