@@ -64,7 +64,7 @@ app = FastAPI()
 # ADD CORS MIDDLEWARE FIRST - BEFORE EVERYTHING ELSE
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://opentriage.onrender.com", FRONTEND_URL],
+    allow_origins=["http://localhost:3000", "https://opentriage.onrender.com","https://open-triage-lgdc49epc-cosmicmagnetars-projects.vercel.app", FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
