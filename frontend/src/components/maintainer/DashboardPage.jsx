@@ -14,14 +14,27 @@ const DashboardPage = () => {
   const [repositories, setRepositories] = useState([]);
   const [selectedRepo, setSelectedRepo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [autoSyncing, setAutoSyncing] = useState(false);
   const [showAddRepo, setShowAddRepo] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     loadData();
+
+    // Auto-fetch data every 30 seconds
+    const intervalId = setInterval(() => {
+      loadData(true); // Pass true to indicate auto-sync
+    }, 30000); // 30 seconds
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (isAutoSync = false) => {
+    if (isAutoSync) {
+      setAutoSyncing(true);
+    }
+
     try {
       const [summaryRes, issuesRes, reposRes] = await Promise.all([
         axios.get(`${API}/maintainer/dashboard-summary`),
@@ -44,6 +57,9 @@ const DashboardPage = () => {
       setRepositories([]);
     } finally {
       setLoading(false);
+      if (isAutoSync) {
+        setAutoSyncing(false);
+      }
     }
   };
 
@@ -65,10 +81,16 @@ const DashboardPage = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-slate-200 mb-2">
+            <h1 className="text-4xl font-bold text-slate-200 mb-2 flex items-center gap-3">
               Dashboard
+              {autoSyncing && (
+                <span className="text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-2 animate-pulse">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Syncing...
+                </span>
+              )}
             </h1>
-            <p className="text-slate-400">Monitor and triage repository issues</p>
+            <p className="text-slate-400">Monitor and triage repository issues • Auto-syncs every 30s</p>
           </div>
           <div className="flex gap-3">
             <button

@@ -11,16 +11,30 @@ const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 const MyIssuesDashboard = () => {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [autoSyncing, setAutoSyncing] = useState(false);
   const [showOpportunities, setShowOpportunities] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [dashboardStats, setDashboardStats] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
+
+    // Auto-fetch data every 30 seconds
+    const intervalId = setInterval(() => {
+      loadDashboardData(true); // Pass true to indicate auto-sync
+    }, 30000); // 30 seconds
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
   }, []);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
+  const loadDashboardData = async (isAutoSync = false) => {
+    if (!isAutoSync) {
+      setLoading(true);
+    } else {
+      setAutoSyncing(true);
+    }
+
     try {
       // Fetch both issues and dashboard summary
       const [issuesResponse, statsResponse] = await Promise.all([
@@ -31,15 +45,21 @@ const MyIssuesDashboard = () => {
       setIssues(issuesResponse.data);
       setDashboardStats(statsResponse.data);
 
-      if (issuesResponse.data.length === 0) {
+      if (issuesResponse.data.length === 0 && !isAutoSync) {
         toast.info('Fetching your issues from GitHub...');
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      if (!isAutoSync) {
+        toast.error('Failed to load dashboard data');
+      }
       setIssues([]);
     } finally {
-      setLoading(false);
+      if (!isAutoSync) {
+        setLoading(false);
+      } else {
+        setAutoSyncing(false);
+      }
     }
   };
 
@@ -75,9 +95,17 @@ const MyIssuesDashboard = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-slate-200 mb-2">My Contributions</h1>
+            <h1 className="text-4xl font-bold text-slate-200 mb-2 flex items-center gap-3">
+              My Contributions
+              {autoSyncing && (
+                <span className="text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-2 animate-pulse">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  Syncing...
+                </span>
+              )}
+            </h1>
             <p className="text-slate-400">
-              Track your issues and pull requests across all repositories
+              Track your issues and pull requests across all repositories • Auto-syncs every 30s
             </p>
           </div>
           <div className="flex gap-3">
