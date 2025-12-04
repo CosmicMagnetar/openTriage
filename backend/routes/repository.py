@@ -111,11 +111,33 @@ async def add_repository(request: AddRepoRequest, user: dict = Depends(get_curre
             raise HTTPException(status_code=400, detail="Invalid format. Use 'owner/repo'")
         owner, repo_name = parts
         
-        # Verify repository exists on GitHub
+        # Get user's GitHub access token for authenticated requests
+        user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
+        github_token = user_doc.get('githubAccessToken') if user_doc else None
+        
+        if not github_token:
+            raise HTTPException(
+                status_code=400, 
+                detail="GitHub access token not found. Please reconnect your GitHub account."
+            )
+        
+        # Verify repository exists on GitHub with authentication
         async with httpx.AsyncClient() as http_client:
-            response = await http_client.get(f"https://api.github.com/repos/{request.repoFullName}")
+            headers = {
+                "Authorization": f"Bearer {github_token}",
+                "Accept": "application/vnd.github+json"
+            }
+            response = await http_client.get(
+                f"https://api.github.com/repos/{request.repoFullName}",
+                headers=headers
+            )
             if response.status_code != 200:
-                raise HTTPException(status_code=400, detail="Repository not found")
+                error_detail = "Repository not found or you don't have access to it"
+                if response.status_code == 404:
+                    error_detail = f"Repository '{request.repoFullName}' not found on GitHub"
+                elif response.status_code == 403:
+                    error_detail = "Access forbidden. Check your GitHub permissions."
+                raise HTTPException(status_code=400, detail=error_detail)
             repo_data = response.json()
         
         # Check if already added
@@ -136,10 +158,6 @@ async def add_repository(request: AddRepoRequest, user: dict = Depends(get_curre
         repo_dict = repository.model_dump()
         repo_dict['createdAt'] = repo_dict['createdAt'].isoformat()
         await db.repositories.insert_one(repo_dict)
-        
-        # Get user's GitHub access token for authenticated requests
-        user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
-        github_token = user_doc.get('githubAccessToken') if user_doc else None
         
         # Start background import with authentication
         asyncio.create_task(import_repo_data(repository, request.repoFullName, github_token))
