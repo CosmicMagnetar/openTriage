@@ -38,6 +38,26 @@ const useAuthStore = create((set) => ({
     set({ token: null, user: null, role: null });
   },
 
+  updateRole: async (newRole) => {
+    try {
+      const response = await axios.post(`${API}/user/select-role`, { role: newRole });
+      const { token, role } = response.data;
+      
+      localStorage.setItem('token', token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      set(state => ({
+        token,
+        role,
+        user: { ...state.user, role }
+      }));
+      return true;
+    } catch (error) {
+      console.error('Failed to update role:', error);
+      return false;
+    }
+  },
+
   // Mock login for testing
   mockLogin: (role = 'MAINTAINER') => {
     const mockUser = {

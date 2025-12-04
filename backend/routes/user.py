@@ -25,6 +25,13 @@ async def select_role(request: SelectRoleRequest, user: dict = Depends(get_curre
         {"id": user['id']},
         {"$set": {"role": request.role.value, "updatedAt": datetime.now(timezone.utc).isoformat()}}
     )
-    if result.modified_count == 0:
-        raise HTTPException(status_code=400, detail="Failed to update role")
-    return {"message": "Role updated successfully", "role": request.role.value}
+    
+    # Create new token with updated role
+    from utils.jwt_utils import create_jwt_token
+    new_token = create_jwt_token(user['id'], request.role.value)
+    
+    return {
+        "message": "Role updated successfully", 
+        "role": request.role.value,
+        "token": new_token
+    }

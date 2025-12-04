@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, BarChart3, GitPullRequest, LogOut } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, GitPullRequest, LogOut, Settings } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
 
@@ -9,9 +9,10 @@ const Sidebar = () => {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: GitPullRequest, label: 'PR Management', path: '/pr-management' },
+    { icon: GitPullRequest, label: 'PR Management', path: '/prs' },
     { icon: FileText, label: 'Templates', path: '/templates' },
-    { icon: BarChart3, label: 'Metrics', path: '/metrics' }
+    { icon: BarChart3, label: 'Metrics', path: '/metrics' },
+    { icon: Settings, label: 'Settings', path: '/settings' }
   ];
 
   return (

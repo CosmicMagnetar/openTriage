@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import ContributorSidebar from './ContributorSidebar';
 import MyIssuesDashboard from './MyIssuesDashboard';
 import ContributorMetrics from './ContributorMetrics';
+import Settings from '../Settings';
 
 const ContributorLayout = () => {
   return (
@@ -11,6 +12,7 @@ const ContributorLayout = () => {
         <Routes>
           <Route path="/" element={<MyIssuesDashboard />} />
           <Route path="/metrics" element={<ContributorMetrics />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<MyIssuesDashboard />} />
         </Routes>
       </div>

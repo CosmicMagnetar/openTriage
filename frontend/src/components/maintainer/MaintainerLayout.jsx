@@ -3,7 +3,8 @@ import Sidebar from './Sidebar';
 import DashboardPage from './DashboardPage';
 import PRManagementPage from './PRManagementPage';
 import TemplatesPage from './TemplatesPage';
-import MetricsPage from './MetricsPage';
+import ContributorMetrics from '../contributor/ContributorMetrics';
+import Settings from '../Settings';
 import IssueDetailPanel from './IssueDetailPanel';
 import useIssueStore from '../../stores/issueStore';
 
@@ -21,7 +22,9 @@ const MaintainerLayout = () => {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/pr-management" element={<PRManagementPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
-          <Route path="/metrics" element={<MetricsPage />} />
+          <Route path="/metrics" element={<ContributorMetrics />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<DashboardPage />} />
         </Routes>
       </div>
 

@@ -1,4 +1,4 @@
-import { FileText, LogOut, BarChart3 } from 'lucide-react';
+import { FileText, LogOut, BarChart3, Settings } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
 
@@ -9,7 +9,8 @@ const ContributorSidebar = () => {
 
   const menuItems = [
     { icon: FileText, label: 'My Issues', path: '/' },
-    { icon: BarChart3, label: 'Metrics', path: '/metrics' }
+    { icon: BarChart3, label: 'Metrics', path: '/metrics' },
+    { icon: Settings, label: 'Settings', path: '/settings' }
   ];
 
   return (
