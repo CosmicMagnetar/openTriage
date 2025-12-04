@@ -70,10 +70,10 @@ const MyIssuesDashboard = () => {
   }
 
   return (
-    <div data-testid="contributor-dashboard" className="w-full h-full overflow-auto p-8">
+    <div data-testid="contributor-dashboard" className="w-full h-full overflow-auto p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-4xl font-bold text-slate-200 mb-2">My Contributions</h1>
             <p className="text-slate-400">
@@ -107,7 +107,7 @@ const MyIssuesDashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             icon={FileQuestion}
             label="Total Contributions"

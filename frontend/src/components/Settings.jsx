@@ -27,7 +27,7 @@ const Settings = () => {
     };
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
+        <div className="p-4 md:p-8 max-w-4xl mx-auto">
             <h1 className="text-3xl font-bold text-slate-200 mb-8">Settings</h1>
 
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
@@ -54,7 +54,7 @@ const Settings = () => {
 
                     {/* Role Switcher */}
                     <div className="bg-slate-900/50 rounded-lg p-6 border border-slate-700">
-                        <div className="flex items-start justify-between">
+                        <div className="flex flex-col md:flex-row items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-lg font-medium text-slate-200 flex items-center gap-2">
                                     <Shield className="w-5 h-5 text-blue-500" />

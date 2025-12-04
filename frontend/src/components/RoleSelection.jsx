@@ -29,7 +29,7 @@ const RoleSelection = ({ user, onRoleSelected }) => {
           <p className="text-slate-400">Choose your role to get started</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Maintainer */}
           <button
             data-testid="select-maintainer"

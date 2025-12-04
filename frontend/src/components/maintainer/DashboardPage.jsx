@@ -60,10 +60,10 @@ const DashboardPage = () => {
   }
 
   return (
-    <div data-testid="maintainer-dashboard" className="w-full h-full overflow-auto p-8">
+    <div data-testid="maintainer-dashboard" className="w-full h-full overflow-auto p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-4xl font-bold text-slate-200 mb-2">
               Dashboard
@@ -98,7 +98,7 @@ const DashboardPage = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <SummaryCard
             icon={FolderGit2}
             label="Repositories"
@@ -139,8 +139,8 @@ const DashboardPage = () => {
               <button
                 onClick={() => setSelectedRepo(null)}
                 className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${selectedRepo === null
-                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                    : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:border-blue-500'
+                  ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                  : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:border-blue-500'
                   }`}
               >
                 All Repositories
@@ -150,8 +150,8 @@ const DashboardPage = () => {
                   key={repo.id}
                   onClick={() => setSelectedRepo(repo.id)}
                   className={`px-4 py-2 border rounded-lg text-sm transition-all ${selectedRepo === repo.id
-                      ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                      : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:border-blue-500'
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                    : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:border-blue-500'
                     }`}
                 >
                   <FolderGit2 className="w-4 h-4 inline mr-2" />

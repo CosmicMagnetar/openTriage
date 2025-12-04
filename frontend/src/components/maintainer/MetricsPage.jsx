@@ -34,7 +34,7 @@ const MetricsPage = () => {
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
-    <div data-testid="metrics-page" className="w-full h-full overflow-auto p-8">
+    <div data-testid="metrics-page" className="w-full h-full overflow-auto p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         <div>
           <h1 className="text-4xl font-bold text-slate-200 mb-2">Metrics</h1>
@@ -73,7 +73,7 @@ const MetricsPage = () => {
           </div>
 
           {/* Classification & Sentiment */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Issues by Classification */}
             <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
               <h2 className="text-xl font-bold text-slate-200 mb-6">
