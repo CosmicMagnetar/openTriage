@@ -13,33 +13,49 @@ const MyIssuesDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showOpportunities, setShowOpportunities] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState(null);
 
   useEffect(() => {
-    loadIssues();
+    loadDashboardData();
   }, []);
 
-  const loadIssues = async () => {
+  const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API}/contributor/my-issues`);
-      setIssues(response.data);
-      if (response.data.length === 0) {
+      // Fetch both issues and dashboard summary
+      const [issuesResponse, statsResponse] = await Promise.all([
+        axios.get(`${API}/contributor/my-issues`),
+        axios.get(`${API}/contributor/dashboard-summary`)
+      ]);
+
+      setIssues(issuesResponse.data);
+      setDashboardStats(statsResponse.data);
+
+      if (issuesResponse.data.length === 0) {
         toast.info('Fetching your issues from GitHub...');
       }
     } catch (error) {
-      console.error('Error loading issues:', error);
-      toast.error('Failed to load issues');
+      console.error('Error loading dashboard data:', error);
+      toast.error('Failed to load dashboard data');
       setIssues([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const stats = {
-    total: issues.length,
-    prs: issues.filter(i => i.isPR).length,
+  const loadIssues = async () => {
+    await loadDashboardData();
+  };
+
+  const stats = dashboardStats || {
+    totalContributions: issues.length,
+    totalPRs: issues.filter(i => i.isPR).length,
+    openPRs: issues.filter(i => i.isPR && i.state === 'open').length,
+    mergedPRs: issues.filter(i => i.isPR && i.state === 'closed').length,
+    totalIssues: issues.filter(i => !i.isPR).length,
     openIssues: issues.filter(i => !i.isPR && i.state === 'open').length,
-    criticalBugs: issues.filter(i => i.triage?.classification === 'CRITICAL_BUG').length
+    closedIssues: issues.filter(i => !i.isPR && i.state === 'closed').length,
+    repositoriesContributed: 0
   };
 
   if (loading) {
@@ -95,25 +111,25 @@ const MyIssuesDashboard = () => {
           <StatCard
             icon={FileQuestion}
             label="Total Contributions"
-            value={stats.total}
+            value={stats.totalContributions}
             color="emerald"
           />
           <StatCard
             icon={GitPullRequest}
-            label="Pull Requests"
-            value={stats.prs}
+            label="Open PRs"
+            value={stats.openPRs}
             color="purple"
           />
           <StatCard
-            icon={AlertCircle}
-            label="Open Issues"
-            value={stats.openIssues}
+            icon={GitPullRequest}
+            label="Merged PRs"
+            value={stats.mergedPRs}
             color="blue"
           />
           <StatCard
             icon={AlertCircle}
-            label="Critical Bugs Found"
-            value={stats.criticalBugs}
+            label="Repositories"
+            value={stats.repositoriesContributed}
             color="red"
           />
         </div>
@@ -139,13 +155,13 @@ const MyIssuesDashboard = () => {
               <h2 className="text-2xl font-bold text-slate-200">Your Issues & PRs</h2>
               <div className="flex gap-2">
                 <button className="px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-sm font-medium">
-                  All ({stats.total})
+                  All ({stats.totalContributions})
                 </button>
                 <button className="px-4 py-2 bg-slate-800 text-slate-400 border border-slate-700 rounded-lg text-sm font-medium hover:border-emerald-500 transition-all">
-                  PRs ({stats.prs})
+                  PRs ({stats.totalPRs})
                 </button>
                 <button className="px-4 py-2 bg-slate-800 text-slate-400 border border-slate-700 rounded-lg text-sm font-medium hover:border-emerald-500 transition-all">
-                  Issues ({stats.total - stats.prs})
+                  Issues ({stats.totalIssues})
                 </button>
               </div>
             </div>
@@ -184,9 +200,8 @@ const StatCard = ({ icon: Icon, label, value, color }) => {
 
   return (
     <div
-      className={`bg-slate-800/80 backdrop-blur-sm border rounded-xl p-6 transition-all duration-300 hover:scale-[1.02] ${
-        colors[color]
-      }`}
+      className={`bg-slate-800/80 backdrop-blur-sm border rounded-xl p-6 transition-all duration-300 hover:scale-[1.02] ${colors[color]
+        }`}
     >
       <div className="flex items-center gap-3 mb-3">
         <Icon className="w-6 h-6" />

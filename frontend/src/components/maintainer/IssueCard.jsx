@@ -61,9 +61,8 @@ const IssueCard = ({ issue }) => {
         {/* Classification Badge */}
         {triage && (
           <div
-            className={`px-4 py-2 rounded-lg border font-medium text-sm whitespace-nowrap ${
-              classificationColors[triage.classification] || classificationColors.NEEDS_INFO
-            }`}
+            className={`px-4 py-2 rounded-lg border font-medium text-sm whitespace-nowrap ${classificationColors[triage.classification] || classificationColors.NEEDS_INFO
+              }`}
           >
             {triage.classification.replace('_', ' ')}
           </div>

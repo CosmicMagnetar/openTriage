@@ -1,5 +1,5 @@
-import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react';
-import { useState } from 'react';
+import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import useIssueStore from '../../stores/issueStore';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -10,6 +10,49 @@ const IssueDetailPanel = () => {
   const { selectedIssue, clearSelectedIssue } = useIssueStore();
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+
+  // Fetch templates on mount
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await axios.get(`${API}/maintainer/templates`);
+      setTemplates(response.data || []);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    }
+  };
+
+  // Fetch comments when issue is selected
+  useEffect(() => {
+    if (selectedIssue?.id) {
+      fetchComments();
+    }
+  }, [selectedIssue?.id]);
+
+  const fetchComments = async () => {
+    if (!selectedIssue?.owner || !selectedIssue?.repo) {
+      // Issue doesn't have GitHub metadata, skip fetching
+      return;
+    }
+
+    setLoadingComments(true);
+    try {
+      const response = await axios.get(`${API}/maintainer/issues/${selectedIssue.id}/comments`);
+      setComments(response.data.comments || []);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      // Don't show error toast, just fail silently
+    } finally {
+      setLoadingComments(false);
+    }
+  };
 
   if (!selectedIssue) return null;
 
@@ -20,16 +63,54 @@ const IssueDetailPanel = () => {
 
     setSending(true);
     try {
-      await axios.post(`${API}/maintainer/action/reply`, {
+      const response = await axios.post(`${API}/maintainer/action/reply`, {
         issueId: selectedIssue.id,
         message: reply
       });
-      toast.success('Reply sent successfully (mock)');
+
+      // Show success with GitHub comment URL
+      if (response.data.commentUrl) {
+        toast.success(
+          <div>
+            <p>Reply posted to GitHub!</p>
+            <a
+              href={response.data.commentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 underline text-sm"
+            >
+              View on GitHub →
+            </a>
+          </div>
+        );
+      } else {
+        toast.success('Reply posted successfully!');
+      }
+
       setReply('');
+      setSelectedTemplate('');
+      // Refresh comments after posting
+      fetchComments();
     } catch (error) {
-      toast.error('Failed to send reply');
+      console.error('Reply error:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to send reply';
+      toast.error(errorMessage);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleTemplateSelect = (e) => {
+    const templateId = e.target.value;
+    setSelectedTemplate(templateId);
+
+    if (templateId) {
+      const template = templates.find(t => t.id === templateId);
+      if (template) {
+        setReply(template.body);
+      }
+    } else {
+      setReply('');
     }
   };
 
@@ -123,12 +204,99 @@ const IssueDetailPanel = () => {
           </div>
         )}
 
+        {/* Chat Conversation */}
+        {(selectedIssue.owner && selectedIssue.repo) && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Conversation ({comments.length})
+              </h3>
+              <button
+                onClick={fetchComments}
+                disabled={loadingComments}
+                className="text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+                title="Refresh comments"
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingComments ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {loadingComments ? (
+                <div className="text-center py-4 text-slate-500 text-sm">
+                  Loading comments...
+                </div>
+              ) : comments.length === 0 ? (
+                <div className="text-center py-4 text-slate-500 text-sm">
+                  No comments yet. Be the first to reply!
+                </div>
+              ) : (
+                comments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className="bg-slate-900/50 border border-slate-700 rounded-lg p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <img
+                        src={comment.user?.avatar_url || 'https://github.com/ghost.png'}
+                        alt={comment.user?.login || 'User'}
+                        className="w-8 h-8 rounded-full"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-slate-300">
+                            {comment.user?.login || 'Unknown'}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {new Date(comment.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-300 whitespace-pre-wrap break-words">
+                          {comment.body}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Quick Reply */}
         <div>
           <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             Quick Reply
           </h3>
+
+          {/* Template Selector */}
+          {templates.length > 0 && (
+            <div className="mb-3">
+              <label className="text-xs text-slate-500 mb-1 block">
+                Use Template (optional)
+              </label>
+              <select
+                value={selectedTemplate}
+                onChange={handleTemplateSelect}
+                className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+              >
+                <option value="">Manual Reply</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <textarea
             data-testid="reply-textarea"
             value={reply}

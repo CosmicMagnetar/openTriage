@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, BarChart3, LogOut } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, GitPullRequest, LogOut } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
 
@@ -9,6 +9,7 @@ const Sidebar = () => {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+    { icon: GitPullRequest, label: 'PR Management', path: '/pr-management' },
     { icon: FileText, label: 'Templates', path: '/templates' },
     { icon: BarChart3, label: 'Metrics', path: '/metrics' }
   ];
@@ -56,11 +57,10 @@ const Sidebar = () => {
               key={item.path}
               data-testid={`nav-${item.label.toLowerCase()}`}
               onClick={() => navigate(item.path)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-all duration-300 ${
-                isActive
-                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                  : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-all duration-300 ${isActive
+                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                : 'text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span className="font-medium">{item.label}</span>

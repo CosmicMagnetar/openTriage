@@ -1,8 +1,16 @@
-import { FileText, LogOut } from 'lucide-react';
+import { FileText, LogOut, BarChart3 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
 
 const ContributorSidebar = () => {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const menuItems = [
+    { icon: FileText, label: 'My Issues', path: '/' },
+    { icon: BarChart3, label: 'Metrics', path: '/metrics' }
+  ];
 
   return (
     <div
@@ -38,11 +46,25 @@ const ContributorSidebar = () => {
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 p-4">
-        <div className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-          <FileText className="w-5 h-5" />
-          <span className="font-medium">My Issues</span>
-        </div>
+      <nav className="flex-1 p-4 space-y-2">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+
+          return (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-300 ${isActive
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
+                }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* Logout */}

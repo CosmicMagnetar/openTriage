@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import DashboardPage from './DashboardPage';
+import PRManagementPage from './PRManagementPage';
 import TemplatesPage from './TemplatesPage';
 import MetricsPage from './MetricsPage';
 import IssueDetailPanel from './IssueDetailPanel';
@@ -18,6 +19,7 @@ const MaintainerLayout = () => {
       <div className="flex-1 overflow-hidden">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/pr-management" element={<PRManagementPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/metrics" element={<MetricsPage />} />
         </Routes>

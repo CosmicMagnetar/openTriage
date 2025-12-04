@@ -9,12 +9,12 @@ const AIChat = ({ onClose }) => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Hi! I\'m your AI assistant powered by Gemini. I can help you understand your issues, PRs, and triage data. Ask me anything!'
+      content: 'Hello! I\'m your Maintainer Copilot. I can help you triage issues, draft replies, analyze PRs, and manage your repositories efficiently. How can I assist you today?'
     }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sessionId] = useState(() => `session-${Date.now()}`);
+  const [sessionId] = useState(() => `maintainer-session-${Date.now()}`);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -36,7 +36,10 @@ const AIChat = ({ onClose }) => {
     try {
       const response = await axios.post(`${API}/chat`, {
         message: userMessage,
-        sessionId: sessionId
+        sessionId: sessionId,
+        context: {
+          role: 'maintainer'
+        }
       });
 
       setMessages((prev) => [
@@ -93,9 +96,8 @@ const AIChat = ({ onClose }) => {
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`flex gap-3 ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              }`}
+              className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'
+                }`}
             >
               {message.role === 'assistant' && (
                 <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -103,11 +105,10 @@ const AIChat = ({ onClose }) => {
                 </div>
               )}
               <div
-                className={`max-w-[70%] rounded-lg p-3 ${
-                  message.role === 'user'
+                className={`max-w-[70%] rounded-lg p-3 ${message.role === 'user'
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-700 text-slate-200'
-                }`}
+                  }`}
               >
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">
                   {message.content}

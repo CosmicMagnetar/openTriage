@@ -16,7 +16,7 @@ const AuthPage = () => {
             <div className="w-10 h-16 bg-blue-500 rounded" />
             <div className="w-10 h-24 bg-emerald-500 rounded" />
           </div>
-          
+
           <h1 className="text-3xl font-bold text-slate-200">OpenTriage</h1>
           <p className="text-slate-400 text-center">
             AI-powered issue triage for open-source repositories
@@ -30,7 +30,7 @@ const AuthPage = () => {
             <Github className="w-5 h-5" />
             Sign in with GitHub
           </button>
-          
+
           <p className="text-xs text-slate-500 text-center mt-4">
             Connect your GitHub account to start triaging issues with AI
           </p>

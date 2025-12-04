@@ -138,11 +138,10 @@ const DashboardPage = () => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedRepo(null)}
-                className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${
-                  selectedRepo === null
+                className={`px-4 py-2 border rounded-lg text-sm font-medium transition-all ${selectedRepo === null
                     ? 'bg-blue-500/20 border-blue-500 text-blue-400'
                     : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:border-blue-500'
-                }`}
+                  }`}
               >
                 All Repositories
               </button>
@@ -150,11 +149,10 @@ const DashboardPage = () => {
                 <button
                   key={repo.id}
                   onClick={() => setSelectedRepo(repo.id)}
-                  className={`px-4 py-2 border rounded-lg text-sm transition-all ${
-                    selectedRepo === repo.id
+                  className={`px-4 py-2 border rounded-lg text-sm transition-all ${selectedRepo === repo.id
                       ? 'bg-blue-500/20 border-blue-500 text-blue-400'
                       : 'bg-slate-800/80 border-slate-700 text-slate-300 hover:border-blue-500'
-                  }`}
+                    }`}
                 >
                   <FolderGit2 className="w-4 h-4 inline mr-2" />
                   {repo.name}
@@ -223,9 +221,8 @@ const SummaryCard = ({ icon: Icon, label, value, color }) => {
   return (
     <div
       data-testid={`summary-card-${label.toLowerCase().replace(/\s+/g, '-')}`}
-      className={`bg-slate-800/80 backdrop-blur-sm border rounded-xl p-6 transition-all duration-300 hover:scale-[1.02] ${
-        colors[color]
-      }`}
+      className={`bg-slate-800/80 backdrop-blur-sm border rounded-xl p-6 transition-all duration-300 hover:scale-[1.02] ${colors[color]
+        }`}
     >
       <div className="flex items-center gap-3 mb-3">
         <Icon className="w-6 h-6" />
