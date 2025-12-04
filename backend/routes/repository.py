@@ -20,11 +20,11 @@ class AddRepoRequest(BaseModel):
     repoFullName: str
 
 
-async def import_repo_data(repository: Repository, repo_full_name: str):
+async def import_repo_data(repository: Repository, repo_full_name: str, github_access_token: str = None):
     """Background task to import issues and PRs from a repository."""
     try:
         logger.info(f"Starting import for {repo_full_name}...")
-        data = await github_service.fetch_repo_issues(repo_full_name)
+        data = await github_service.fetch_repo_issues(repo_full_name, github_access_token)
         logger.info(f"Fetched {len(data['issues'])} issues and {len(data['prs'])} PRs from GitHub")
         
         # Extract owner and repo from full name
@@ -137,8 +137,12 @@ async def add_repository(request: AddRepoRequest, user: dict = Depends(get_curre
         repo_dict['createdAt'] = repo_dict['createdAt'].isoformat()
         await db.repositories.insert_one(repo_dict)
         
-        # Start background import
-        asyncio.create_task(import_repo_data(repository, request.repoFullName))
+        # Get user's GitHub access token for authenticated requests
+        user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
+        github_token = user_doc.get('githubAccessToken') if user_doc else None
+        
+        # Start background import with authentication
+        asyncio.create_task(import_repo_data(repository, request.repoFullName, github_token))
         
         return {"message": "Repository added!", "repository": repo_dict}
     except HTTPException:

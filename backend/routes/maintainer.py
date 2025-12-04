@@ -78,6 +78,10 @@ async def get_issues(user: dict = Depends(require_maintainer)):
     repos = await db.repositories.find({"userId": user['id']}, {"_id": 0}).to_list(1000)
     repo_ids = [r['id'] for r in repos]
     
+    # Get user's GitHub access token for authenticated requests
+    user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
+    github_token = user_doc.get('githubAccessToken') if user_doc else None
+    
     # Background task: Sync issue/PR states from GitHub and import new ones
     try:
         for repo in repos:
@@ -86,7 +90,7 @@ async def get_issues(user: dict = Depends(require_maintainer)):
             if repo_full_name and '/' in repo_full_name:
                 try:
                     owner, repo_name = repo_full_name.split('/')
-                    data = await github_service.fetch_repo_issues(repo_full_name)
+                    data = await github_service.fetch_repo_issues(repo_full_name, github_token)
                     
                     # Process both issues and PRs
                     for gh_item in data.get('issues', []) + data.get('prs', []):

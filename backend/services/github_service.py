@@ -339,14 +339,18 @@ class GitHubService:
                 detail=f"Failed to fetch comments for issue #{issue_number} in {owner}/{repo}: {str(e)}"
             )
     
-    async def fetch_repo_issues(self, repo_full_name: str, include_prs: bool = True) -> Dict:
+    async def fetch_repo_issues(self, repo_full_name: str, github_access_token: Optional[str] = None, include_prs: bool = True) -> Dict:
 
         """Fetch issues and PRs from a GitHub repository."""
         try:
             async with httpx.AsyncClient() as client:
                 issues_url = f"{self.base_url}/repos/{repo_full_name}/issues"
                 params = {"state": "all", "per_page": 100}
-                response = await client.get(issues_url, params=params, timeout=30.0)
+                headers = {"Accept": "application/vnd.github+json"}
+                if github_access_token:
+                    headers["Authorization"] = f"Bearer {github_access_token}"
+                
+                response = await client.get(issues_url, params=params, headers=headers, timeout=30.0)
                 
                 if response.status_code != 200:
                     raise HTTPException(
@@ -371,7 +375,7 @@ class GitHubService:
             logger.error(f"GitHub fetch error: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
-    async def fetch_user_activity(self, username: str) -> Dict:
+    async def fetch_user_activity(self, username: str, github_access_token: Optional[str] = None) -> Dict:
         """Fetch a user's GitHub activity (issues and PRs)."""
         try:
             async with httpx.AsyncClient() as client:
@@ -382,7 +386,11 @@ class GitHubService:
                     "sort": "created",
                     "order": "desc"
                 }
-                response = await client.get(search_url, params=params, timeout=30.0)
+                headers = {"Accept": "application/vnd.github+json"}
+                if github_access_token:
+                    headers["Authorization"] = f"Bearer {github_access_token}"
+                
+                response = await client.get(search_url, params=params, headers=headers, timeout=30.0)
                 
                 if response.status_code != 200:
                     logger.error(f"GitHub search error: {response.text}")

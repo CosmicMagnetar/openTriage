@@ -69,8 +69,12 @@ async def get_my_issues(user: dict = Depends(get_current_user)):
     issues = await db.issues.find({"authorName": user['username']}, {"_id": 0}).sort("createdAt", -1).to_list(1000)
     logger.info(f"Found {len(issues)} issues in DB for {user['username']}")
     
+    # Get user's GitHub access token for authenticated requests
+    user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
+    github_token = user_doc.get('githubAccessToken') if user_doc else None
+    
     logger.info(f"Fetching latest issues for {user['username']} from GitHub API...")
-    data = await github_service.fetch_user_activity(user['username'])
+    data = await github_service.fetch_user_activity(user['username'], github_token)
     logger.info(f"GitHub API returned {len(data['issues'])} issues and {len(data['prs'])} PRs")
     
     # Import new issues
