@@ -2,6 +2,7 @@ import { FileText, LogOut, BarChart3, Settings, Menu, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import useAuthStore from '../../stores/authStore';
+import Logo from '../Logo';
 
 const ContributorSidebar = () => {
   const { user, logout } = useAuthStore();
@@ -46,12 +47,8 @@ const ContributorSidebar = () => {
       >
         {/* Logo */}
         <div className="p-6 border-b border-slate-700">
-          <div className="flex gap-2 items-end mb-3">
-            <div className="w-6 h-5 bg-red-500 rounded" />
-            <div className="w-6 h-8 bg-blue-500 rounded" />
-            <div className="w-6 h-12 bg-emerald-500 rounded" />
-          </div>
-          <h1 className="text-xl font-bold text-slate-200">OpenTriage</h1>
+          <Logo size="md" />
+          <h1 className="text-xl font-bold text-slate-200 mt-3">OpenTriage</h1>
           <p className="text-xs text-emerald-400 mt-1">Contributor</p>
         </div>
 

@@ -99,10 +99,15 @@ async def get_issues(user: dict = Depends(require_maintainer)):
                         )
                         
                         if existing:
-                            # Update existing
+                            # Update existing with all metadata
                             await db.issues.update_one(
                                 {"githubIssueId": gh_item['id']},
-                                {"$set": {"state": gh_item['state']}},
+                                {"$set": {
+                                    "title": gh_item['title'],
+                                    "body": gh_item.get('body') or '',
+                                    "state": gh_item['state'],
+                                    "htmlUrl": gh_item.get('html_url', '')
+                                }},
                                 upsert=False
                             )
                         else:

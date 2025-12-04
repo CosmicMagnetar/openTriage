@@ -1,5 +1,6 @@
 import { Github } from 'lucide-react';
 import { toast } from 'sonner';
+import Logo from './Logo';
 
 const AuthPage = () => {
   const handleGitHubLogin = () => {
@@ -11,11 +12,7 @@ const AuthPage = () => {
     <div className="w-full h-screen bg-slate-900 flex items-center justify-center">
       <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-8 w-full max-w-md shadow-2xl">
         <div className="flex flex-col items-center gap-6">
-          <div className="flex gap-3 items-end mb-4">
-            <div className="w-10 h-8 bg-red-500 rounded" />
-            <div className="w-10 h-16 bg-blue-500 rounded" />
-            <div className="w-10 h-24 bg-emerald-500 rounded" />
-          </div>
+          <Logo size="lg" />
 
           <h1 className="text-3xl font-bold text-slate-200">OpenTriage</h1>
           <p className="text-slate-400 text-center">

@@ -97,7 +97,19 @@ async def get_my_issues(user: dict = Depends(get_current_user)):
             issue_dict = issue.model_dump()
             issue_dict['createdAt'] = issue_dict['createdAt'].isoformat()
             existing = await db.issues.find_one({"githubIssueId": issue.githubIssueId}, {"_id": 0})
-            if not existing:
+            if existing:
+                # Update existing issue with latest metadata
+                await db.issues.update_one(
+                    {"githubIssueId": issue.githubIssueId},
+                    {"$set": {
+                        "title": gh_issue['title'],
+                        "body": gh_issue.get('body') or '',
+                        "state": gh_issue['state'],
+                        "htmlUrl": gh_issue.get('html_url', '')
+                    }},
+                    upsert=False
+                )
+            else:
                 await db.issues.insert_one(issue_dict)
                 asyncio.create_task(classify_and_store(issue))
                 logger.info(f"Imported new issue #{issue.number} from {repo_name}")
@@ -129,7 +141,19 @@ async def get_my_issues(user: dict = Depends(get_current_user)):
             pr_dict = pr.model_dump()
             pr_dict['createdAt'] = pr_dict['createdAt'].isoformat()
             existing = await db.issues.find_one({"githubIssueId": pr.githubIssueId}, {"_id": 0})
-            if not existing:
+            if existing:
+                # Update existing PR with latest metadata
+                await db.issues.update_one(
+                    {"githubIssueId": pr.githubIssueId},
+                    {"$set": {
+                        "title": gh_pr['title'],
+                        "body": gh_pr.get('body') or '',
+                        "state": gh_pr['state'],
+                        "htmlUrl": gh_pr.get('html_url', '')
+                    }},
+                    upsert=False
+                )
+            else:
                 await db.issues.insert_one(pr_dict)
                 asyncio.create_task(classify_and_store(pr))
                 logger.info(f"Imported new PR #{pr.number} from {repo_name}")
