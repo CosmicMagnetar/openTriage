@@ -20,7 +20,7 @@ const MaintainerLayout = () => {
       <div className="flex-1 overflow-hidden">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/pr-management" element={<PRManagementPage />} />
+          <Route path="/prs" element={<PRManagementPage />} />
           <Route path="/templates" element={<TemplatesPage />} />
           <Route path="/metrics" element={<ContributorMetrics />} />
           <Route path="/settings" element={<Settings />} />

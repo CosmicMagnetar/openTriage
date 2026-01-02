@@ -160,6 +160,239 @@ You are acting as a **Contributor's Mentor**. Your goal is to encourage, guide, 
         except Exception as e:
             logger.error(f"AI chat error: {e}")
             return "I'm sorry, I encountered an error. Please try again."
+    
+    async def analyze_pr(
+        self,
+        pr_title: str,
+        pr_body: str,
+        diff: str,
+        files_changed: List[str]
+    ) -> dict:
+        """
+        Analyze a PR for code quality, security issues, and best practices.
+        
+        Args:
+            pr_title: PR title
+            pr_body: PR description
+            diff: Git diff content (truncated if too long)
+            files_changed: List of changed file paths
+            
+        Returns:
+            Dict with analysis results
+        """
+        try:
+            # Truncate diff if too long (keep first 8000 chars to fit in context)
+            truncated_diff = diff[:8000] if len(diff) > 8000 else diff
+            was_truncated = len(diff) > 8000
+            
+            system_message = """You are an expert code reviewer. Analyze the PR and provide constructive feedback.
+Be specific, actionable, and prioritize important issues. Focus on:
+1. Code quality and best practices
+2. Potential bugs or logic errors
+3. Security vulnerabilities
+4. Performance considerations
+5. Readability and maintainability"""
+
+            prompt = f"""Analyze this Pull Request:
+
+**Title:** {pr_title}
+**Description:** {pr_body or 'No description provided'}
+**Files Changed:** {', '.join(files_changed[:20])}
+
+**Diff:**
+```
+{truncated_diff}
+```
+{"(Note: Diff was truncated due to length)" if was_truncated else ""}
+
+Provide your analysis in this format:
+SUMMARY: (1-2 sentence overview)
+QUALITY_SCORE: (1-10)
+ISSUES: (bullet list of concerns, or "None found")
+SUGGESTIONS: (bullet list of improvements)
+SECURITY: (any security concerns, or "No issues detected")
+VERDICT: (APPROVE, REQUEST_CHANGES, or NEEDS_DISCUSSION)"""
+
+            response = self.client.chat.completions.create(
+                model="meta-llama/llama-3.3-70b-instruct:free",
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.5,
+                max_tokens=1500
+            )
+            
+            response_text = response.choices[0].message.content
+            
+            # Parse the response
+            result = {
+                'summary': '',
+                'qualityScore': 7,
+                'issues': [],
+                'suggestions': [],
+                'security': 'No issues detected',
+                'verdict': 'NEEDS_DISCUSSION',
+                'rawAnalysis': response_text
+            }
+            
+            lines = response_text.strip().split('\n')
+            current_section = None
+            
+            for line in lines:
+                line_upper = line.upper().strip()
+                if line_upper.startswith('SUMMARY:'):
+                    result['summary'] = line.split(':', 1)[1].strip() if ':' in line else ''
+                elif line_upper.startswith('QUALITY_SCORE:'):
+                    try:
+                        score = line.split(':', 1)[1].strip().split('/')[0].strip()
+                        result['qualityScore'] = int(score) if score.isdigit() else 7
+                    except:
+                        result['qualityScore'] = 7
+                elif line_upper.startswith('ISSUES:'):
+                    current_section = 'issues'
+                    content = line.split(':', 1)[1].strip() if ':' in line else ''
+                    if content and content.lower() != 'none found':
+                        result['issues'].append(content)
+                elif line_upper.startswith('SUGGESTIONS:'):
+                    current_section = 'suggestions'
+                elif line_upper.startswith('SECURITY:'):
+                    current_section = 'security'
+                    result['security'] = line.split(':', 1)[1].strip() if ':' in line else 'No issues detected'
+                elif line_upper.startswith('VERDICT:'):
+                    verdict = line.split(':', 1)[1].strip().upper() if ':' in line else 'NEEDS_DISCUSSION'
+                    if 'APPROVE' in verdict:
+                        result['verdict'] = 'APPROVE'
+                    elif 'REQUEST' in verdict or 'CHANGES' in verdict:
+                        result['verdict'] = 'REQUEST_CHANGES'
+                    else:
+                        result['verdict'] = 'NEEDS_DISCUSSION'
+                elif line.strip().startswith('- ') or line.strip().startswith('• '):
+                    item = line.strip()[2:].strip()
+                    if current_section == 'issues':
+                        result['issues'].append(item)
+                    elif current_section == 'suggestions':
+                        result['suggestions'].append(item)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"AI PR analysis error: {e}")
+            return {
+                'summary': 'Unable to analyze PR',
+                'qualityScore': 0,
+                'issues': [],
+                'suggestions': [],
+                'security': 'Analysis failed',
+                'verdict': 'NEEDS_DISCUSSION',
+                'rawAnalysis': f'Error: {str(e)}'
+            }
+    
+    async def summarize_pr(
+        self,
+        pr_title: str,
+        pr_body: str,
+        diff: str,
+        files_changed: List[str],
+        comments: List[dict] = None
+    ) -> str:
+        """
+        Generate a detailed summary of a PR including what it does and its impact.
+        """
+        try:
+            truncated_diff = diff[:6000] if len(diff) > 6000 else diff
+            
+            comments_text = ""
+            if comments:
+                comments_text = "\n**Discussion:**\n" + "\n".join([
+                    f"- {c.get('user', {}).get('login', 'Unknown')}: {c.get('body', '')[:200]}"
+                    for c in comments[:5]
+                ])
+            
+            prompt = f"""Provide a detailed summary of this Pull Request for a maintainer:
+
+**Title:** {pr_title}
+**Description:** {pr_body or 'No description provided'}
+**Files Changed ({len(files_changed)}):** {', '.join(files_changed[:15])}{'...' if len(files_changed) > 15 else ''}
+{comments_text}
+
+**Diff Preview:**
+```
+{truncated_diff}
+```
+
+Write a comprehensive summary covering:
+1. What this PR does (purpose and functionality)
+2. Key changes made
+3. Potential impact on the codebase
+4. Any notable patterns or concerns
+
+Keep it clear and actionable for a maintainer reviewing this PR."""
+
+            response = self.client.chat.completions.create(
+                model="meta-llama/llama-3.3-70b-instruct:free",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that summarizes code changes for maintainers."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.6,
+                max_tokens=1000
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            logger.error(f"AI PR summary error: {e}")
+            return f"Unable to generate summary: {str(e)}"
+    
+    async def generate_comment_suggestion(
+        self,
+        pr_title: str,
+        pr_body: str,
+        context: str,
+        comment_type: str = "review"
+    ) -> str:
+        """
+        Generate a suggested comment based on the PR context.
+        
+        Args:
+            pr_title: PR title
+            pr_body: PR description
+            context: Additional context (e.g., specific file, issue, or concern)
+            comment_type: Type of comment - "review", "approval", "request_changes", "question"
+        """
+        try:
+            type_prompts = {
+                "review": "Write a constructive code review comment. Be specific and helpful.",
+                "approval": "Write an approval comment that is encouraging and mentions what was done well.",
+                "request_changes": "Write a polite but clear comment requesting specific changes.",
+                "question": "Write a clarifying question about the implementation."
+            }
+            
+            prompt = f"""PR Title: {pr_title}
+PR Description: {pr_body or 'No description'}
+
+Context: {context}
+
+{type_prompts.get(comment_type, type_prompts['review'])}
+
+Write a professional GitHub comment (1-3 paragraphs). Be constructive and specific."""
+
+            response = self.client.chat.completions.create(
+                model="meta-llama/llama-3.3-70b-instruct:free",
+                messages=[
+                    {"role": "system", "content": "You are a helpful code review assistant. Write professional, constructive GitHub comments."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=500
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            logger.error(f"AI comment suggestion error: {e}")
+            return "Unable to generate suggestion. Please try again."
 
 
 # Singleton instances

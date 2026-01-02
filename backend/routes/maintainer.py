@@ -383,3 +383,218 @@ async def comment_on_pr(request: CommentOnPRRequest, user: dict = Depends(requir
     except Exception as e:
         logger.error(f"Error commenting on PR: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# PR Analysis AI Endpoints
+class AnalyzePRRequest(BaseModel):
+    owner: str
+    repo: str
+    prNumber: int
+
+
+class SuggestCommentRequest(BaseModel):
+    prTitle: str
+    prBody: Optional[str] = ""
+    context: str
+    commentType: str = "review"  # review, approval, request_changes, question
+
+
+@router.post("/maintainer/pr/analyze")
+async def analyze_pr(request: AnalyzePRRequest, user: dict = Depends(require_maintainer)):
+    """Analyze a PR using AI - fetches diff and provides code review."""
+    try:
+        # Get user's GitHub access token
+        user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
+        if not user_doc or not user_doc.get('githubAccessToken'):
+            raise HTTPException(
+                status_code=400,
+                detail="GitHub access token not found. Please reconnect your GitHub account."
+            )
+        
+        github_token = user_doc['githubAccessToken']
+        
+        # Fetch PR details and diff from GitHub
+        import httpx
+        async with httpx.AsyncClient() as client:
+            # Get PR details
+            pr_response = await client.get(
+                f"https://api.github.com/repos/{request.owner}/{request.repo}/pulls/{request.prNumber}",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github+json"
+                },
+                timeout=30.0
+            )
+            
+            if pr_response.status_code != 200:
+                raise HTTPException(
+                    status_code=pr_response.status_code,
+                    detail=f"Failed to fetch PR: {pr_response.text}"
+                )
+            
+            pr_data = pr_response.json()
+            
+            # Get PR diff
+            diff_response = await client.get(
+                f"https://api.github.com/repos/{request.owner}/{request.repo}/pulls/{request.prNumber}",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github.v3.diff"
+                },
+                timeout=30.0
+            )
+            
+            diff = diff_response.text if diff_response.status_code == 200 else ""
+            
+            # Get files changed
+            files_response = await client.get(
+                f"https://api.github.com/repos/{request.owner}/{request.repo}/pulls/{request.prNumber}/files",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github+json"
+                },
+                timeout=30.0
+            )
+            
+            files_changed = []
+            if files_response.status_code == 200:
+                files_changed = [f.get('filename', '') for f in files_response.json()]
+        
+        # Analyze with AI
+        from services.ai_service import ai_chat_service
+        analysis = await ai_chat_service.analyze_pr(
+            pr_title=pr_data.get('title', ''),
+            pr_body=pr_data.get('body', ''),
+            diff=diff,
+            files_changed=files_changed
+        )
+        
+        return {
+            "prNumber": request.prNumber,
+            "prTitle": pr_data.get('title', ''),
+            "prAuthor": pr_data.get('user', {}).get('login', ''),
+            "filesChanged": len(files_changed),
+            "additions": pr_data.get('additions', 0),
+            "deletions": pr_data.get('deletions', 0),
+            "analysis": analysis
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing PR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/maintainer/pr/summarize")
+async def summarize_pr(request: AnalyzePRRequest, user: dict = Depends(require_maintainer)):
+    """Generate a detailed summary of a PR."""
+    try:
+        # Get user's GitHub access token
+        user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
+        if not user_doc or not user_doc.get('githubAccessToken'):
+            raise HTTPException(
+                status_code=400,
+                detail="GitHub access token not found. Please reconnect your GitHub account."
+            )
+        
+        github_token = user_doc['githubAccessToken']
+        
+        import httpx
+        async with httpx.AsyncClient() as client:
+            # Get PR details
+            pr_response = await client.get(
+                f"https://api.github.com/repos/{request.owner}/{request.repo}/pulls/{request.prNumber}",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github+json"
+                },
+                timeout=30.0
+            )
+            
+            if pr_response.status_code != 200:
+                raise HTTPException(
+                    status_code=pr_response.status_code,
+                    detail=f"Failed to fetch PR: {pr_response.text}"
+                )
+            
+            pr_data = pr_response.json()
+            
+            # Get PR diff
+            diff_response = await client.get(
+                f"https://api.github.com/repos/{request.owner}/{request.repo}/pulls/{request.prNumber}",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github.v3.diff"
+                },
+                timeout=30.0
+            )
+            
+            diff = diff_response.text if diff_response.status_code == 200 else ""
+            
+            # Get files changed
+            files_response = await client.get(
+                f"https://api.github.com/repos/{request.owner}/{request.repo}/pulls/{request.prNumber}/files",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github+json"
+                },
+                timeout=30.0
+            )
+            
+            files_changed = []
+            if files_response.status_code == 200:
+                files_changed = [f.get('filename', '') for f in files_response.json()]
+            
+            # Get comments
+            comments_response = await client.get(
+                f"https://api.github.com/repos/{request.owner}/{request.repo}/issues/{request.prNumber}/comments",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github+json"
+                },
+                timeout=30.0
+            )
+            
+            comments = comments_response.json() if comments_response.status_code == 200 else []
+        
+        # Generate summary with AI
+        from services.ai_service import ai_chat_service
+        summary = await ai_chat_service.summarize_pr(
+            pr_title=pr_data.get('title', ''),
+            pr_body=pr_data.get('body', ''),
+            diff=diff,
+            files_changed=files_changed,
+            comments=comments
+        )
+        
+        return {
+            "prNumber": request.prNumber,
+            "prTitle": pr_data.get('title', ''),
+            "summary": summary
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error summarizing PR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/maintainer/pr/suggest-comment")
+async def suggest_comment(request: SuggestCommentRequest, user: dict = Depends(require_maintainer)):
+    """Generate an AI-suggested comment for a PR."""
+    try:
+        from services.ai_service import ai_chat_service
+        suggestion = await ai_chat_service.generate_comment_suggestion(
+            pr_title=request.prTitle,
+            pr_body=request.prBody or "",
+            context=request.context,
+            comment_type=request.commentType
+        )
+        
+        return {"suggestion": suggestion}
+        
+    except Exception as e:
+        logger.error(f"Error generating comment suggestion: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
