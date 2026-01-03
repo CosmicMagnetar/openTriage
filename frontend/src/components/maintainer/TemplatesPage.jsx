@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, FileText } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -204,12 +205,13 @@ const TemplateModal = ({ template, onClose, onSave }) => {
             <label className="block text-sm font-medium text-slate-400 mb-2">
               Template Body
             </label>
-            <textarea
+            <AISuggestTextarea
               data-testid="template-body-input"
               value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Thank you for reporting this issue..."
-              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+              onChange={setBody}
+              contextType="template"
+              placeholder="Thank you for reporting this issue... (AI suggestions appear after a pause)"
+              className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
               rows={8}
             />
           </div>

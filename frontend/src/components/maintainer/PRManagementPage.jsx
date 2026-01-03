@@ -6,6 +6,7 @@ import {
     GitBranch, Plus, Minus, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 import Logo from '../Logo';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
@@ -617,12 +618,13 @@ const PRManagementPage = () => {
                             </div>
 
                             {/* Comment Text */}
-                            <textarea
+                            <AISuggestTextarea
                                 value={commentText}
-                                onChange={(e) => setCommentText(e.target.value)}
+                                onChange={setCommentText}
+                                contextType="pr_comment"
                                 rows={6}
-                                placeholder="Write your comment here..."
-                                className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 resize-none"
+                                placeholder="Write your comment here... (AI suggestions appear after a pause)"
+                                className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-3 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
                             />
 
                             {/* Post Button */}

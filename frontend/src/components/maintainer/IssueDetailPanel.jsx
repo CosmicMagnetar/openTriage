@@ -1,4 +1,5 @@
 import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw } from 'lucide-react';
+import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 import { useState, useEffect } from 'react';
 import useIssueStore from '../../stores/issueStore';
 import axios from 'axios';
@@ -297,12 +298,13 @@ const IssueDetailPanel = () => {
             </div>
           )}
 
-          <textarea
+          <AISuggestTextarea
             data-testid="reply-textarea"
             value={reply}
-            onChange={(e) => setReply(e.target.value)}
-            placeholder="Type your reply..."
-            className="w-full bg-slate-900/50 border border-slate-600 rounded-lg p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+            onChange={setReply}
+            contextType="issue_reply"
+            placeholder="Type your reply... (AI suggestions appear after a pause)"
+            className="w-full bg-slate-900/50 border border-slate-600 rounded-lg p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
             rows={4}
           />
           <button

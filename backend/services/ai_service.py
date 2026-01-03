@@ -393,6 +393,81 @@ Write a professional GitHub comment (1-3 paragraphs). Be constructive and specif
         except Exception as e:
             logger.error(f"AI comment suggestion error: {e}")
             return "Unable to generate suggestion. Please try again."
+    
+    async def generate_inline_suggestion(
+        self,
+        text: str,
+        context_type: str = "general",
+        max_tokens: int = 50
+    ) -> str:
+        """
+        Generate a short inline text completion suggestion (Copilot-style).
+        
+        Args:
+            text: Current text being typed
+            context_type: Type of content (issue_reply, pr_comment, template, general)
+            max_tokens: Maximum tokens for the suggestion
+        
+        Returns:
+            Suggested text continuation
+        """
+        try:
+            # Don't suggest for very short text
+            if len(text.strip()) < 5:
+                return ""
+            
+            # Context-specific system prompts
+            context_prompts = {
+                "issue_reply": "You are helping a maintainer write a reply to a GitHub issue. Continue the text naturally and professionally.",
+                "pr_comment": "You are helping a maintainer write a code review comment. Continue the text with constructive, specific feedback.",
+                "template": "You are helping create a response template for GitHub issues/PRs. Continue with clear, reusable language.",
+                "general": "You are helping write text for open source project management. Continue naturally."
+            }
+            
+            system_message = context_prompts.get(context_type, context_prompts["general"])
+            system_message += """
+
+IMPORTANT RULES:
+- Only provide the continuation text, NOT the original text
+- Keep suggestions concise (1-2 sentences max)
+- Match the tone and style of the existing text
+- Do not add any explanations or meta-commentary
+- If the text seems complete, return an empty string"""
+
+            prompt = f"""Continue this text naturally. Only output the continuation, nothing else:
+
+"{text}"
+
+Continuation:"""
+
+            response = self.client.chat.completions.create(
+                model="meta-llama/llama-3.3-70b-instruct:free",
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=max_tokens
+            )
+            
+            suggestion = response.choices[0].message.content.strip()
+            
+            # Clean up the suggestion
+            # Remove quotes if the model wrapped it
+            if suggestion.startswith('"') and suggestion.endswith('"'):
+                suggestion = suggestion[1:-1]
+            if suggestion.startswith("'") and suggestion.endswith("'"):
+                suggestion = suggestion[1:-1]
+            
+            # Don't return if it's just repeating the input
+            if text.strip().endswith(suggestion.strip()[:20]):
+                return ""
+                
+            return suggestion
+            
+        except Exception as e:
+            logger.error(f"AI inline suggestion error: {e}")
+            return ""
 
 
 # Singleton instances

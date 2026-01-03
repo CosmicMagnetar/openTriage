@@ -18,6 +18,12 @@ class ChatRequest(BaseModel):
     context: Optional[dict] = None
 
 
+class SuggestionRequest(BaseModel):
+    text: str
+    contextType: Optional[str] = "general"  # issue_reply, pr_comment, template, general
+
+
+
 @router.get("/test-ai")
 async def test_ai(user: dict = Depends(get_current_user)):
     """Test AI service endpoint."""
@@ -82,3 +88,21 @@ async def get_chat_history(sessionId: str, user: dict = Depends(get_current_user
     if not history_doc:
         raise HTTPException(status_code=404, detail="Chat history not found")
     return {"messages": history_doc.get("messages", [])}
+
+
+@router.post("/suggest")
+async def get_inline_suggestion(request: SuggestionRequest, user: dict = Depends(get_current_user)):
+    """
+    Get inline AI text suggestion based on current input.
+    Used for Copilot-style autocomplete in textareas.
+    """
+    try:
+        suggestion = await ai_chat_service.generate_inline_suggestion(
+            text=request.text,
+            context_type=request.contextType
+        )
+        return {"suggestion": suggestion}
+    except Exception as e:
+        logger.error(f"Suggestion error: {e}")
+        return {"suggestion": ""}
+
