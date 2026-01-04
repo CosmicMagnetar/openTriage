@@ -421,6 +421,7 @@ Write a professional GitHub comment (1-3 paragraphs). Be constructive and specif
                 "issue_reply": "You are helping a maintainer write a reply to a GitHub issue. Continue the text naturally and professionally.",
                 "pr_comment": "You are helping a maintainer write a code review comment. Continue the text with constructive, specific feedback.",
                 "template": "You are helping create a response template for GitHub issues/PRs. Continue with clear, reusable language.",
+                "contributor_reply": "You are helping a contributor write a reply to a GitHub issue or PR. Continue with a humble, thankful, and eager-to-learn tone. Be polite but not overly formal.",
                 "general": "You are helping write text for open source project management. Continue naturally."
             }
             
@@ -468,6 +469,64 @@ Continuation:"""
         except Exception as e:
             logger.error(f"AI inline suggestion error: {e}")
             return ""
+    
+    async def generate_contributor_reply_suggestion(
+        self,
+        issue_title: str,
+        issue_body: str,
+        context: str,
+        suggestion_type: str = "clarify"
+    ) -> str:
+        """
+        Generate a suggested reply for a contributor with friendly, learning-focused tone.
+        
+        Args:
+            issue_title: Issue or PR title
+            issue_body: Issue or PR description
+            context: Additional context (e.g., maintainer's previous comment)
+            suggestion_type: Type of reply - "clarify", "update", "thank", "question"
+        """
+        try:
+            type_prompts = {
+                "clarify": "Write a polite reply clarifying your implementation or providing more details.",
+                "update": "Write a brief update explaining what you've done or changed.",
+                "thank": "Write a grateful reply thanking the maintainer for their feedback.",
+                "question": "Write a polite question asking for more guidance or clarification."
+            }
+            
+            system_message = """You are helping a contributor write a reply to a GitHub issue or PR.
+The contributor is likely new to open source or learning, so:
+- Be humble and receptive to feedback
+- Express gratitude when appropriate
+- Be clear but not overconfident
+- Show willingness to learn and improve
+- Keep the tone friendly and professional
+- Don't be too formal or stiff"""
+
+            prompt = f"""Issue/PR Title: {issue_title}
+Issue/PR Description: {issue_body or 'No description'}
+
+Context (recent discussion): {context}
+
+{type_prompts.get(suggestion_type, type_prompts['clarify'])}
+
+Write a helpful GitHub comment (1-2 paragraphs) from a contributor's perspective. Be polite and constructive."""
+
+            response = self.client.chat.completions.create(
+                model="meta-llama/llama-3.3-70b-instruct:free",
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=400
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            logger.error(f"AI contributor reply suggestion error: {e}")
+            return "Unable to generate suggestion. Please try again."
 
 
 # Singleton instances

@@ -173,3 +173,133 @@ async def get_my_issues(user: dict = Depends(get_current_user)):
     
     logger.info(f"Returning {len(issues)} total issues/PRs for {user['username']}")
     return issues
+
+
+# Pydantic models for request bodies
+from pydantic import BaseModel
+from typing import Optional
+
+
+class ContributorReplyRequest(BaseModel):
+    issueId: str
+    message: str
+
+
+class ContributorSuggestReplyRequest(BaseModel):
+    issueTitle: str
+    issueBody: Optional[str] = ""
+    context: str
+    suggestionType: str = "clarify"  # 'clarify', 'update', 'thank', 'question'
+
+
+from fastapi import HTTPException
+
+
+@router.post("/contributor/action/reply")
+async def contributor_reply_to_issue(request: ContributorReplyRequest, user: dict = Depends(get_current_user)):
+    """Reply to an issue by posting a comment on GitHub (contributor version)."""
+    try:
+        # Fetch the issue from database
+        issue = await db.issues.find_one({"id": request.issueId}, {"_id": 0})
+        if not issue:
+            raise HTTPException(status_code=404, detail="Issue not found")
+        
+        # Validate issue has required GitHub metadata
+        if not issue.get('owner') or not issue.get('repo') or not issue.get('number'):
+            raise HTTPException(
+                status_code=400, 
+                detail="Issue missing GitHub metadata (owner, repo, or number)"
+            )
+        
+        # Get user's GitHub access token
+        user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
+        if not user_doc or not user_doc.get('githubAccessToken'):
+            raise HTTPException(
+                status_code=400,
+                detail="GitHub access token not found. Please reconnect your GitHub account."
+            )
+        
+        # Post comment to GitHub
+        comment_result = await github_service.comment_on_issue(
+            github_access_token=user_doc['githubAccessToken'],
+            owner=issue['owner'],
+            repo=issue['repo'],
+            issue_number=issue['number'],
+            comment_text=request.message
+        )
+        
+        logger.info(f"Contributor {user['username']} posted comment to issue #{issue['number']} in {issue['owner']}/{issue['repo']}")
+        
+        return {
+            "message": "Reply posted successfully",
+            "commentId": comment_result.get('id'),
+            "commentUrl": comment_result.get('html_url'),
+            "createdAt": comment_result.get('created_at')
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error posting contributor reply to issue {request.issueId}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/contributor/issues/{issue_id}/comments")
+async def get_contributor_issue_comments(issue_id: str, user: dict = Depends(get_current_user)):
+    """Fetch all comments for a GitHub issue (contributor version)."""
+    try:
+        # Fetch the issue from database
+        issue = await db.issues.find_one({"id": issue_id}, {"_id": 0})
+        if not issue:
+            raise HTTPException(status_code=404, detail="Issue not found")
+        
+        # Validate issue has required GitHub metadata
+        if not issue.get('owner') or not issue.get('repo') or not issue.get('number'):
+            raise HTTPException(
+                status_code=400,
+                detail="Issue missing GitHub metadata (owner, repo, or number)"
+            )
+        
+        # Get user's GitHub access token
+        user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
+        if not user_doc or not user_doc.get('githubAccessToken'):
+            raise HTTPException(
+                status_code=400,
+                detail="GitHub access token not found. Please reconnect your GitHub account."
+            )
+        
+        # Fetch comments from GitHub
+        comments = await github_service.fetch_issue_comments(
+            github_access_token=user_doc['githubAccessToken'],
+            owner=issue['owner'],
+            repo=issue['repo'],
+            issue_number=issue['number']
+        )
+        
+        return {
+            "issueId": issue_id,
+            "comments": comments
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching comments for issue {issue_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/contributor/suggest-reply")
+async def suggest_contributor_reply(request: ContributorSuggestReplyRequest, user: dict = Depends(get_current_user)):
+    """Generate an AI-suggested reply for a contributor (friendly, learning-focused tone)."""
+    try:
+        from services.ai_service import ai_chat_service
+        suggestion = await ai_chat_service.generate_contributor_reply_suggestion(
+            issue_title=request.issueTitle,
+            issue_body=request.issueBody or "",
+            context=request.context,
+            suggestion_type=request.suggestionType
+        )
+        
+        return {"suggestion": suggestion}
+        
+    except Exception as e:
+        logger.error(f"Error generating contributor reply suggestion: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

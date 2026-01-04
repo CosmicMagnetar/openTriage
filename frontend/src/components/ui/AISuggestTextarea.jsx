@@ -159,9 +159,9 @@ const AISuggestTextarea = React.forwardRef(({
                 </div>
             )}
 
-            {/* AI Suggestion popup */}
+            {/* AI Suggestion popup - appears ABOVE the textarea */}
             {suggestion && (
-                <div className="absolute left-0 right-0 mt-1 z-10 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="absolute left-0 right-0 bottom-full mb-2 z-50 animate-in fade-in slide-in-from-bottom-1 duration-200">
                     <div className="bg-slate-800/95 backdrop-blur-sm border border-slate-600 rounded-lg p-3 shadow-xl">
                         {/* Header */}
                         <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700">

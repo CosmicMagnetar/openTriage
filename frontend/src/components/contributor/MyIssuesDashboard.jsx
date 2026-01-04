@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import ParticipantIssueCard from './ParticipantIssueCard';
 import OpportunitiesPanel from './OpportunitiesPanel';
+import OrganizationsPanel from './OrganizationsPanel';
 import ContributorAIChat from './ContributorAIChat';
-import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, Bot } from 'lucide-react';
+import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, Bot, ChevronDown, ArrowUpDown, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
@@ -13,8 +14,14 @@ const MyIssuesDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [autoSyncing, setAutoSyncing] = useState(false);
   const [showOpportunities, setShowOpportunities] = useState(false);
+  const [showOrganizations, setShowOrganizations] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [dashboardStats, setDashboardStats] = useState(null);
+
+  // Filtering and sorting state
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'prs', 'issues'
+  const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest', 'repo'
+  const [selectedRepo, setSelectedRepo] = useState('all');
 
   useEffect(() => {
     loadDashboardData();
@@ -66,6 +73,43 @@ const MyIssuesDashboard = () => {
   const loadIssues = async () => {
     await loadDashboardData();
   };
+
+  // Get unique repositories for the dropdown
+  const repositories = useMemo(() => {
+    const repos = [...new Set(issues.map(i => i.repoName).filter(Boolean))];
+    return repos.sort();
+  }, [issues]);
+
+  // Filter and sort issues
+  const filteredAndSortedIssues = useMemo(() => {
+    let filtered = [...issues];
+
+    // Apply type filter
+    if (activeFilter === 'prs') {
+      filtered = filtered.filter(i => i.isPR);
+    } else if (activeFilter === 'issues') {
+      filtered = filtered.filter(i => !i.isPR);
+    }
+
+    // Apply repository filter
+    if (selectedRepo !== 'all') {
+      filtered = filtered.filter(i => i.repoName === selectedRepo);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      if (sortBy === 'newest') {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      } else if (sortBy === 'oldest') {
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      } else if (sortBy === 'repo') {
+        return (a.repoName || '').localeCompare(b.repoName || '');
+      }
+      return 0;
+    });
+
+    return filtered;
+  }, [issues, activeFilter, sortBy, selectedRepo]);
 
   const stats = dashboardStats || {
     totalContributions: issues.length,
@@ -124,6 +168,14 @@ const MyIssuesDashboard = () => {
               Opportunities
             </button>
             <button
+              data-testid="organizations-button"
+              onClick={() => setShowOrganizations(true)}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
+            >
+              <Building2 className="w-5 h-5" />
+              Organizations
+            </button>
+            <button
               data-testid="ai-assistant-button"
               onClick={() => setShowChat(true)}
               className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
@@ -179,24 +231,103 @@ const MyIssuesDashboard = () => {
           </div>
         ) : (
           <div>
-            <div className="flex items-center justify-between mb-4">
+            {/* Filter and Sort Controls */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
               <h2 className="text-2xl font-bold text-slate-200">Your Issues & PRs</h2>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-sm font-medium">
-                  All ({stats.totalContributions})
-                </button>
-                <button className="px-4 py-2 bg-slate-800 text-slate-400 border border-slate-700 rounded-lg text-sm font-medium hover:border-emerald-500 transition-all">
-                  PRs ({stats.totalPRs})
-                </button>
-                <button className="px-4 py-2 bg-slate-800 text-slate-400 border border-slate-700 rounded-lg text-sm font-medium hover:border-emerald-500 transition-all">
-                  Issues ({stats.totalIssues})
-                </button>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Type Filter Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    data-testid="filter-all"
+                    onClick={() => setActiveFilter('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === 'all'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
+                      }`}
+                  >
+                    All ({stats.totalContributions})
+                  </button>
+                  <button
+                    data-testid="filter-prs"
+                    onClick={() => setActiveFilter('prs')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === 'prs'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
+                      }`}
+                  >
+                    PRs ({stats.totalPRs})
+                  </button>
+                  <button
+                    data-testid="filter-issues"
+                    onClick={() => setActiveFilter('issues')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === 'issues'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
+                      }`}
+                  >
+                    Issues ({stats.totalIssues})
+                  </button>
+                </div>
+
+                {/* Repository Filter */}
+                <div className="relative">
+                  <select
+                    data-testid="repo-filter"
+                    value={selectedRepo}
+                    onChange={(e) => setSelectedRepo(e.target.value)}
+                    className="appearance-none bg-slate-800 text-slate-300 border border-slate-700 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                  >
+                    <option value="all">All Repositories</option>
+                    {repositories.map(repo => (
+                      <option key={repo} value={repo}>{repo}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
+
+                {/* Sort Dropdown */}
+                <div className="relative">
+                  <select
+                    data-testid="sort-by"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="appearance-none bg-slate-800 text-slate-300 border border-slate-700 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="repo">By Repository</option>
+                  </select>
+                  <ArrowUpDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
               </div>
             </div>
+
+            {/* Filtered Results Count */}
+            {(activeFilter !== 'all' || selectedRepo !== 'all') && (
+              <div className="mb-4 text-sm text-slate-400">
+                Showing {filteredAndSortedIssues.length} of {issues.length} items
+                {selectedRepo !== 'all' && <span> in <span className="text-emerald-400">{selectedRepo}</span></span>}
+              </div>
+            )}
+
+            {/* Issues Grid */}
             <div className="grid gap-4">
-              {issues.map((issue) => (
-                <ParticipantIssueCard key={issue.id} issue={issue} />
-              ))}
+              {filteredAndSortedIssues.length > 0 ? (
+                filteredAndSortedIssues.map((issue) => (
+                  <ParticipantIssueCard key={issue.id} issue={issue} />
+                ))
+              ) : (
+                <div className="bg-slate-800/50 rounded-xl p-8 text-center">
+                  <p className="text-slate-400">No items match your current filters</p>
+                  <button
+                    onClick={() => { setActiveFilter('all'); setSelectedRepo('all'); }}
+                    className="mt-3 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -205,6 +336,14 @@ const MyIssuesDashboard = () => {
       {/* Opportunities Panel */}
       {showOpportunities && (
         <OpportunitiesPanel onClose={() => setShowOpportunities(false)} />
+      )}
+
+      {/* Organizations Panel */}
+      {showOrganizations && (
+        <OrganizationsPanel
+          onClose={() => setShowOrganizations(false)}
+          contributedRepos={[...new Set(issues.map(i => i.repoName).filter(Boolean))]}
+        />
       )}
 
       {/* AI Chat */}
