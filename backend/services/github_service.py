@@ -412,6 +412,32 @@ class GitHubService:
         except Exception as e:
             logger.error(f"GitHub user activity fetch error: {e}")
             return {"issues": [], "prs": []}
+    
+    async def fetch_repository_readme(self, repo_full_name: str, github_access_token: Optional[str] = None) -> str:
+        """
+        Fetch the README content for a repository.
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                url = f"{self.base_url}/repos/{repo_full_name}/readme"
+                headers = {"Accept": "application/vnd.github.raw+json"}
+                if github_access_token:
+                    headers["Authorization"] = f"Bearer {github_access_token}"
+                
+                response = await client.get(url, headers=headers, timeout=30.0)
+                
+                if response.status_code == 404:
+                    return ""
+                
+                if response.status_code != 200:
+                    logger.error(f"Failed to fetch README for {repo_full_name}: {response.text}")
+                    return ""
+                
+                return response.text
+                
+        except Exception as e:
+            logger.error(f"README fetch error for {repo_full_name}: {e}")
+            return ""
 
 
 # Singleton instance

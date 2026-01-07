@@ -6,3 +6,8 @@ python-dotenv
 PyJWT
 httpx
 openai
+pyspark>=3.5.0
+py4j>=0.10.9
+pymongo>=4.0.0
+pandas>=2.0.0
+pyarrow>=14.0.0

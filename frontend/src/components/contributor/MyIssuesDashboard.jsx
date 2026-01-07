@@ -175,14 +175,7 @@ const MyIssuesDashboard = () => {
               <Building2 className="w-5 h-5" />
               Organizations
             </button>
-            <button
-              data-testid="ai-assistant-button"
-              onClick={() => setShowChat(true)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
-            >
-              <Bot className="w-5 h-5" />
-              AI Assistant
-            </button>
+
           </div>
         </div>
 
@@ -242,8 +235,8 @@ const MyIssuesDashboard = () => {
                     data-testid="filter-all"
                     onClick={() => setActiveFilter('all')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === 'all'
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
                       }`}
                   >
                     All ({stats.totalContributions})
@@ -252,8 +245,8 @@ const MyIssuesDashboard = () => {
                     data-testid="filter-prs"
                     onClick={() => setActiveFilter('prs')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === 'prs'
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
                       }`}
                   >
                     PRs ({stats.totalPRs})
@@ -262,8 +255,8 @@ const MyIssuesDashboard = () => {
                     data-testid="filter-issues"
                     onClick={() => setActiveFilter('issues')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === 'issues'
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
                       }`}
                   >
                     Issues ({stats.totalIssues})
@@ -353,6 +346,15 @@ const MyIssuesDashboard = () => {
           issues={issues}
         />
       )}
+
+      {/* AI Assistant FAB */}
+      <button
+        data-testid="ai-assistant-fab"
+        onClick={() => setShowChat(true)}
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-full shadow-lg hover:shadow-emerald-500/25 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group"
+      >
+        <Bot className="w-7 h-7 group-hover:rotate-12 transition-transform duration-300" />
+      </button>
     </div>
   );
 };

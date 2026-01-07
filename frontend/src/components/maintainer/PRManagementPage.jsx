@@ -518,8 +518,8 @@ const PRManagementPage = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full border border-emerald-500/30">
-                                                ✨ AI Generated
+                                            <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full border border-emerald-500/30 flex items-center gap-1">
+                                                <Sparkles className="w-3 h-3" /> AI Generated
                                             </span>
                                         </div>
                                     </div>

@@ -178,3 +178,79 @@ async def get_repositories(user: dict = Depends(get_current_user)):
         if 'createdAt' in repo and isinstance(repo['createdAt'], datetime):
             repo['createdAt'] = repo['createdAt'].isoformat()
     return repos
+
+
+@router.get("/repositories/maintainer")
+async def get_maintainer_repositories(user: dict = Depends(get_current_user)):
+    """Get repositories where the user is the maintainer/owner.
+    These are repos the user has explicitly added to track.
+    """
+    repos = await db.repositories.find({"userId": user['id']}, {"_id": 0}).to_list(1000)
+    result = []
+    for repo in repos:
+        if 'createdAt' in repo and isinstance(repo['createdAt'], datetime):
+            repo['createdAt'] = repo['createdAt'].isoformat()
+        repo['role'] = 'maintainer'
+        result.append(repo)
+    return {"repos": result, "count": len(result)}
+
+
+@router.get("/repositories/contributor")
+async def get_contributor_repositories(user: dict = Depends(get_current_user)):
+    """Get repositories where the user has contributed PRs but is not the owner.
+    Fetches from issues/PRs collection where user is author but repo is not theirs.
+    """
+    username = user.get('username', '')
+    user_id = user.get('id', '')
+    
+    # Get user's own repo IDs to exclude
+    own_repos = await db.repositories.find({"userId": user_id}, {"id": 1, "_id": 0}).to_list(1000)
+    own_repo_ids = {r['id'] for r in own_repos}
+    
+    # Find unique repos from user's PRs that aren't their own
+    pipeline = [
+        {
+            "$match": {
+                "authorName": username,
+                "isPR": True
+            }
+        },
+        {
+            "$group": {
+                "_id": {
+                    "repoId": "$repoId",
+                    "repoName": "$repoName",
+                    "owner": "$owner",
+                    "repo": "$repo"
+                },
+                "pr_count": {"$sum": 1},
+                "last_pr_at": {"$max": "$createdAt"}
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "repoId": "$_id.repoId",
+                "repoName": "$_id.repoName",
+                "owner": "$_id.owner",
+                "repo": "$_id.repo",
+                "pr_count": 1,
+                "last_pr_at": 1
+            }
+        },
+        {"$sort": {"pr_count": -1}}
+    ]
+    
+    contributed_repos = await db.issues.aggregate(pipeline).to_list(1000)
+    
+    # Filter out user's own repos
+    result = []
+    for repo in contributed_repos:
+        if repo.get('repoId') not in own_repo_ids:
+            if isinstance(repo.get('last_pr_at'), datetime):
+                repo['last_pr_at'] = repo['last_pr_at'].isoformat()
+            repo['role'] = 'contributor'
+            repo['name'] = repo.get('repoName', f"{repo.get('owner')}/{repo.get('repo')}")
+            result.append(repo)
+    
+    return {"repos": result, "count": len(result)}

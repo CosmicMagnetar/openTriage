@@ -1,4 +1,4 @@
-import { LayoutDashboard, FileText, BarChart3, GitPullRequest, LogOut, Settings, Menu, X } from 'lucide-react';
+import { LayoutDashboard, FileText, BarChart3, GitPullRequest, LogOut, Settings, Menu, X, ShieldAlert, Eye, Archive, Sparkles, Cookie } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import useAuthStore from '../../stores/authStore';
@@ -13,8 +13,8 @@ const Sidebar = () => {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: GitPullRequest, label: 'PR Management', path: '/prs' },
-    { icon: FileText, label: 'Templates', path: '/templates' },
-    { icon: BarChart3, label: 'Metrics', path: '/metrics' },
+    { icon: Eye, label: 'Maintainer Hub', path: '/hub' }, // Includes Templates & Hype
+    { icon: LayoutDashboard, label: 'Profile', path: '/profile' }, // Includes Metrics
     { icon: Settings, label: 'Settings', path: '/settings' }
   ];
 
@@ -72,7 +72,7 @@ const Sidebar = () => {
         </div>
 
         {/* Menu */}
-        <nav className="flex-1 p-4">
+        <nav className="flex-1 p-4 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;

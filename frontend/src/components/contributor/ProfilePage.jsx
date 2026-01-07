@@ -1,0 +1,388 @@
+import { useState, useEffect } from 'react';
+import { User, Code, GitBranch, Save, Plus, X, RefreshCw, Users, Flame, Trophy, Calendar, BarChart3 } from 'lucide-react';
+import { profileApi, gamificationApi, trophyApi } from '../../services/api';
+import useAuthStore from '../../stores/authStore';
+import { toast } from 'sonner';
+import StreakDisplay from './StreakDisplay';
+import TrophyCabinet from './TrophyCabinet';
+import ContributionCalendar from './ContributionCalendar';
+import MentorMatchPanel from './MentorMatchPanel';
+import ContributorMetrics from './ContributorMetrics';
+
+const ProfilePage = () => {
+    const { user } = useAuthStore();
+    const [activeTab, setActiveTab] = useState('overview');
+    const [profile, setProfile] = useState(null);
+    const [repos, setRepos] = useState([]);
+    const [connectedRepos, setConnectedRepos] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [skillInput, setSkillInput] = useState('');
+
+    // Editable fields
+    const [bio, setBio] = useState('');
+    const [skills, setSkills] = useState([]);
+    const [availableForMentoring, setAvailableForMentoring] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            loadProfile();
+        }
+    }, [user]);
+
+    const loadProfile = async () => {
+        try {
+            setLoading(true);
+            const [profileData, reposData, connectedData] = await Promise.all([
+                profileApi.getProfile(user.username).catch(() => null),
+                profileApi.getUserRepos(user.username).catch(() => ({ repos: [] })),
+                profileApi.getConnectedRepos(user.id).catch(() => ({ repos: [] }))
+            ]);
+
+            if (profileData) {
+                setProfile(profileData);
+                setBio(profileData.bio || '');
+                setSkills(profileData.skills || []);
+                setAvailableForMentoring(profileData.available_for_mentoring || false);
+            }
+
+            setRepos(reposData.repos || []);
+            setConnectedRepos(connectedData.repos || []);
+        } catch (error) {
+            console.error('Failed to load profile:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const saveProfile = async () => {
+        try {
+            setSaving(true);
+            // Use username for consistency with getProfile
+            await profileApi.updateProfile(user.username, {
+                bio,
+                skills,
+                available_for_mentoring: availableForMentoring
+            });
+            toast.success('Profile saved successfully');
+        } catch (error) {
+            console.error('Failed to save profile:', error);
+            toast.error('Failed to save profile');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const addSkill = () => {
+        if (skillInput.trim() && !skills.includes(skillInput.trim())) {
+            setSkills([...skills, skillInput.trim()]);
+            setSkillInput('');
+        }
+    };
+
+    const removeSkill = (skill) => {
+        setSkills(skills.filter(s => s !== skill));
+    };
+
+    const connectRepo = async (repoName) => {
+        try {
+            await profileApi.connectRepo(user.id, repoName);
+            setConnectedRepos([...connectedRepos, repoName]);
+            toast.success(`Connected ${repoName}`);
+        } catch (error) {
+            toast.error('Failed to connect repository');
+        }
+    };
+
+    const disconnectRepo = async (repoName) => {
+        try {
+            await profileApi.disconnectRepo(user.id, repoName);
+            setConnectedRepos(connectedRepos.filter(r => r !== repoName));
+            toast.success(`Disconnected ${repoName}`);
+        } catch (error) {
+            toast.error('Failed to disconnect repository');
+        }
+    };
+
+    const tabs = [
+        { id: 'overview', label: 'Overview', icon: User },
+        { id: 'activity', label: 'Activity', icon: Calendar },
+        { id: 'metrics', label: 'Metrics', icon: BarChart3 },
+        { id: 'repos', label: 'Repositories', icon: GitBranch },
+        { id: 'mentorship', label: 'Mentorship', icon: Users },
+    ];
+
+    if (loading) {
+        return (
+            <div className="h-full overflow-y-auto p-6">
+                <div className="max-w-4xl mx-auto">
+                    <div className="animate-pulse space-y-6">
+                        <div className="h-32 bg-slate-700 rounded-xl"></div>
+                        <div className="h-64 bg-slate-700 rounded-xl"></div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-full overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                    <div className="flex items-start gap-6">
+                        <img
+                            src={user?.avatarUrl || `https://github.com/${user?.username}.png`}
+                            alt={user?.username}
+                            className="w-24 h-24 rounded-full border-4 border-slate-600"
+                            onError={(e) => e.target.src = 'https://github.com/ghost.png'}
+                        />
+                        <div className="flex-1">
+                            <h1 className="text-2xl font-bold text-slate-200">@{user?.username}</h1>
+                            <p className="text-slate-400 mt-1">{bio || 'No bio yet'}</p>
+
+                            {/* Quick Stats */}
+                            <div className="flex items-center gap-6 mt-4">
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Flame className="w-4 h-4 text-orange-400" />
+                                    <span className="text-slate-300">{profile?.github_stats?.current_streak || 0} day streak</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Trophy className="w-4 h-4 text-yellow-400" />
+                                    <span className="text-slate-300">{profile?.trophy_count || 0} trophies</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Code className="w-4 h-4 text-blue-400" />
+                                    <span className="text-slate-300">{skills.length} skills</span>
+                                </div>
+                            </div>
+
+                            {/* Skills */}
+                            {skills.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    {skills.slice(0, 6).map((skill, i) => (
+                                        <span key={i} className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs">
+                                            {skill}
+                                        </span>
+                                    ))}
+                                    {skills.length > 6 && (
+                                        <span className="px-2 py-1 bg-slate-600 text-slate-400 rounded-full text-xs">
+                                            +{skills.length - 6} more
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-2 border-b border-slate-700 pb-2">
+                    {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors
+                          ${activeTab === tab.id
+                                        ? 'bg-slate-700 text-slate-200'
+                                        : 'text-slate-400 hover:text-slate-200'}`}
+                            >
+                                <Icon className="w-4 h-4" />
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Tab Content */}
+                <div className="space-y-6">
+                    {activeTab === 'overview' && (
+                        <>
+                            {/* Streak */}
+                            <StreakDisplay />
+
+                            {/* Profile Editor */}
+                            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                                <h2 className="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                                    <User className="w-5 h-5 text-emerald-400" />
+                                    Edit Profile
+                                </h2>
+
+                                {/* Bio */}
+                                <div className="mb-4">
+                                    <label className="block text-sm text-slate-400 mb-2">Bio</label>
+                                    <textarea
+                                        value={bio}
+                                        onChange={(e) => setBio(e.target.value)}
+                                        placeholder="Tell others about yourself..."
+                                        rows={3}
+                                        className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-slate-200 
+                              placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none"
+                                    />
+                                </div>
+
+                                {/* Skills */}
+                                <div className="mb-4">
+                                    <label className="block text-sm text-slate-400 mb-2">Skills</label>
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {skills.map((skill, i) => (
+                                            <span key={i} className="flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
+                                                {skill}
+                                                <button onClick={() => removeSkill(skill)} className="hover:text-red-400">
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={skillInput}
+                                            onChange={(e) => setSkillInput(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                                            placeholder="Add a skill (e.g., React, Python)"
+                                            className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-sm
+                                text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                        />
+                                        <button
+                                            onClick={addSkill}
+                                            className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Mentoring Toggle */}
+                                <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                        <p className="text-slate-200 font-medium">Available for Mentoring</p>
+                                        <p className="text-xs text-slate-500">Allow others to find you as a potential mentor</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setAvailableForMentoring(!availableForMentoring)}
+                                        className={`w-12 h-6 rounded-full transition-colors relative
+                              ${availableForMentoring ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform
+                                  ${availableForMentoring ? 'translate-x-7' : 'translate-x-1'}`} />
+                                    </button>
+                                </div>
+
+                                {/* Save Button */}
+                                <button
+                                    onClick={saveProfile}
+                                    disabled={saving}
+                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg
+                            hover:bg-emerald-600 disabled:opacity-50 transition-colors"
+                                >
+                                    {saving ? (
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Save className="w-4 h-4" />
+                                    )}
+                                    Save Profile
+                                </button>
+                            </div>
+
+                            {/* Trophies Mini View */}
+                            <TrophyCabinet />
+                        </>
+                    )}
+
+                    {activeTab === 'activity' && (
+                        <>
+                            <StreakDisplay />
+                            <ContributionCalendar />
+                        </>
+                    )}
+
+                    {activeTab === 'repos' && (
+                        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                            <h2 className="text-lg font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                                <GitBranch className="w-5 h-5 text-purple-400" />
+                                Connected Repositories
+                                <span className="text-xs text-slate-500 ml-auto">
+                                    These repos will be monitored for cookie-licking
+                                </span>
+                            </h2>
+
+                            {/* Connected Repos */}
+                            {connectedRepos.length > 0 && (
+                                <div className="mb-6">
+                                    <h3 className="text-sm text-slate-400 mb-2">Monitoring</h3>
+                                    <div className="space-y-2">
+                                        {connectedRepos.map((repo, i) => (
+                                            <div key={i} className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                                                <span className="text-emerald-400">{repo}</span>
+                                                <button
+                                                    onClick={() => disconnectRepo(repo)}
+                                                    className="text-slate-400 hover:text-red-400 text-sm"
+                                                >
+                                                    Disconnect
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Available Repos */}
+                            <h3 className="text-sm text-slate-400 mb-2">Your Repositories</h3>
+                            {repos.length > 0 ? (
+                                <div className="space-y-2 max-h-96 overflow-y-auto">
+                                    {repos.filter(r => !connectedRepos.includes(r.name)).map((repo, i) => (
+                                        <div key={i} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-slate-200 font-medium truncate">{repo.name}</p>
+                                                <p className="text-xs text-slate-500 truncate">{repo.description || 'No description'}</p>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-xs text-slate-500">{repo.language}</span>
+                                                <button
+                                                    onClick={() => connectRepo(repo.name)}
+                                                    className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded text-sm hover:bg-purple-500/30"
+                                                >
+                                                    Connect
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 bg-slate-700/20 rounded-lg">
+                                    <GitBranch className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                                    <p className="text-slate-400 mb-2">No repositories found</p>
+                                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                                        Your public GitHub repositories should appear here. If you have private repos or this seems incorrect, try refreshing the page.
+                                    </p>
+                                    <button
+                                        onClick={loadProfile}
+                                        className="mt-4 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors text-sm inline-flex items-center gap-2"
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        Refresh
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === 'mentorship' && (
+                        <MentorMatchPanel />
+                    )}
+
+                    {activeTab === 'metrics' && (
+                        <div className="bg-slate-800/20 rounded-xl overflow-hidden">
+                            <ContributorMetrics />
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default ProfilePage;

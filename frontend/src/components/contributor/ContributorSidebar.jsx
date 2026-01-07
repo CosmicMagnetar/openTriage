@@ -1,4 +1,4 @@
-import { FileText, LogOut, BarChart3, Settings, Menu, X } from 'lucide-react';
+import { FileText, LogOut, BarChart3, Settings, Menu, X, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import useAuthStore from '../../stores/authStore';
@@ -12,6 +12,7 @@ const ContributorSidebar = () => {
 
   const menuItems = [
     { icon: FileText, label: 'My Issues', path: '/' },
+    { icon: User, label: 'Profile', path: '/profile' },
     { icon: BarChart3, label: 'Metrics', path: '/metrics' },
     { icon: Settings, label: 'Settings', path: '/settings' }
   ];
@@ -70,7 +71,7 @@ const ContributorSidebar = () => {
         </div>
 
         {/* Menu */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;

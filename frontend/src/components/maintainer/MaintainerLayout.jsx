@@ -2,8 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import DashboardPage from './DashboardPage';
 import PRManagementPage from './PRManagementPage';
-import TemplatesPage from './TemplatesPage';
-import ContributorMetrics from '../contributor/ContributorMetrics';
+import MaintainerPortal from './MaintainerPortal';
+import ProfilePage from '../contributor/ProfilePage';
 import Settings from '../Settings';
 import IssueDetailPanel from './IssueDetailPanel';
 import useIssueStore from '../../stores/issueStore';
@@ -21,8 +21,8 @@ const MaintainerLayout = () => {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/prs" element={<PRManagementPage />} />
-          <Route path="/templates" element={<TemplatesPage />} />
-          <Route path="/metrics" element={<ContributorMetrics />} />
+          <Route path="/hub" element={<MaintainerPortal />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>

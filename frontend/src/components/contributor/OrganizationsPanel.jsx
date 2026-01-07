@@ -6,6 +6,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
     const [selectedCategory, setSelectedCategory] = useState('all');
 
     // Popular open source organizations to discover
+    // Popular open source organizations to discover
     const organizations = [
         {
             name: 'Apache Software Foundation',
@@ -15,7 +16,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'foundation',
             projects: ['Kafka', 'Spark', 'Hadoop', 'Airflow'],
             howToConnect: 'Join mailing lists, attend ApacheCon, contribute to any Apache project.',
-            icon: '🪶'
+            domain: 'apache.org'
         },
         {
             name: 'Cloud Native Computing Foundation',
@@ -25,7 +26,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'foundation',
             projects: ['Kubernetes', 'Prometheus', 'Envoy', 'Helm'],
             howToConnect: 'Join CNCF Slack, attend KubeCon, start with good-first-issues.',
-            icon: '☁️'
+            domain: 'cncf.io'
         },
         {
             name: 'Mozilla',
@@ -35,7 +36,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'company',
             projects: ['Firefox', 'Rust', 'MDN Web Docs', 'Servo'],
             howToConnect: 'Join Mozilla Community, pick bugs on Bugzilla, attend Mozilla Festival.',
-            icon: '🦊'
+            domain: 'mozilla.org'
         },
         {
             name: 'The Linux Foundation',
@@ -45,7 +46,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'foundation',
             projects: ['Linux Kernel', 'Node.js', 'Let\'s Encrypt', 'GraphQL'],
             howToConnect: 'Apply for LFX Mentorship, join project mailing lists, attend Linux conferences.',
-            icon: '🐧'
+            domain: 'linuxfoundation.org'
         },
         {
             name: 'Google Open Source',
@@ -55,7 +56,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'company',
             projects: ['TensorFlow', 'Angular', 'Go', 'Flutter'],
             howToConnect: 'Apply for GSoC, join project communities, check good-first-issues.',
-            icon: '🔍'
+            domain: 'google.com'
         },
         {
             name: 'Microsoft Open Source',
@@ -65,7 +66,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'company',
             projects: ['VS Code', 'TypeScript', '.NET', 'Terminal'],
             howToConnect: 'Join VS Code community, contribute via GitHub, attend Microsoft events.',
-            icon: '💠'
+            domain: 'microsoft.com'
         },
         {
             name: 'Meta Open Source',
@@ -75,7 +76,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'company',
             projects: ['React', 'PyTorch', 'Jest', 'Docusaurus'],
             howToConnect: 'Check React community, join Discord servers, look for good-first-issues.',
-            icon: '∞'
+            domain: 'meta.com'
         },
         {
             name: 'Python Software Foundation',
@@ -85,7 +86,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'foundation',
             projects: ['CPython', 'pip', 'PyPI', 'Python Docs'],
             howToConnect: 'Join python-dev mailing list, contribute to CPython, mentor at PyCon.',
-            icon: '🐍'
+            domain: 'python.org'
         },
         {
             name: 'Rust Foundation',
@@ -95,7 +96,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'foundation',
             projects: ['Rust', 'Cargo', 'rustup', 'rust-analyzer'],
             howToConnect: 'Join Rust Discord/Zulip, look for E-easy issues, attend RustConf.',
-            icon: '🦀'
+            domain: 'rust-lang.org'
         },
         {
             name: 'GitLab',
@@ -105,7 +106,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
             category: 'company',
             projects: ['GitLab', 'GitLab Runner', 'Omnibus', 'Charts'],
             howToConnect: 'Check GitLab Contributing Guide, join community forum, pick issues.',
-            icon: '🦊'
+            domain: 'gitlab.com'
         }
     ];
 
@@ -181,8 +182,8 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
                                         key={cat.id}
                                         onClick={() => setSelectedCategory(cat.id)}
                                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedCategory === cat.id
-                                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                                : 'bg-slate-700 text-slate-400 border border-slate-600 hover:border-emerald-500'
+                                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                            : 'bg-slate-700 text-slate-400 border border-slate-600 hover:border-emerald-500'
                                             }`}
                                     >
                                         <Icon className="w-4 h-4" />
@@ -238,7 +239,7 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
                                     className="bg-slate-700/30 border border-slate-700 rounded-xl p-6 hover:border-emerald-500/50 transition-all"
                                 >
                                     <div className="flex items-start gap-4">
-                                        <div className="text-4xl">{org.icon}</div>
+                                        <OrganizationIcon domain={org.domain} name={org.name} />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-4 mb-3">
                                                 <div>
@@ -314,6 +315,29 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
                     </div>
                 </div>
             </div>
+        </div>
+    );
+};
+
+const OrganizationIcon = ({ domain, name }) => {
+    const [error, setError] = useState(false);
+
+    if (!domain || error) {
+        return (
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
+                <Building2 className="w-7 h-7 text-emerald-400" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
+            <img
+                src={`https://logo.clearbit.com/${domain}`}
+                alt={`${name} logo`}
+                className="w-full h-full object-contain p-2"
+                onError={() => setError(true)}
+            />
         </div>
     );
 };

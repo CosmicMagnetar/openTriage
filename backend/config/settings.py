@@ -31,6 +31,13 @@ class Settings:
         "https://opentriage.onrender.com",
         "https://open-triage-lgdc49epc-cosmicmagnetars-projects.vercel.app"
     ]
+    
+    # Spark Configuration
+    SPARK_APP_NAME: str = os.environ.get('SPARK_APP_NAME', 'OpenTriage')
+    SPARK_MASTER: str = os.environ.get('SPARK_MASTER', 'local[*]')
+    SPARK_DRIVER_MEMORY: str = os.environ.get('SPARK_DRIVER_MEMORY', '4g')
+    SPARK_EXECUTOR_MEMORY: str = os.environ.get('SPARK_EXECUTOR_MEMORY', '2g')
+    SPARK_LOG_LEVEL: str = os.environ.get('SPARK_LOG_LEVEL', 'WARN')
 
 
 settings = Settings()
