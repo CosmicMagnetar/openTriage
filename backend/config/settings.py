@@ -29,6 +29,7 @@ class Settings:
     ALLOWED_ORIGINS: list = [
         "http://localhost:3000",
         "https://opentriage.onrender.com",
+        "https://open-triage.vercel.app",
         "https://open-triage-lgdc49epc-cosmicmagnetars-projects.vercel.app"
     ]
     

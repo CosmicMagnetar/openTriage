@@ -343,6 +343,15 @@ export const profileApi = {
   
   getConnectedRepos: (userId) =>
     apiRequest(`/api/profile/${userId}/connected-repos`),
+  
+  getFeaturedBadges: (username) =>
+    apiRequest(`/api/profile/${username}/featured-badges`),
+  
+  updateFeaturedBadges: (username, badgeIds) =>
+    apiRequest(`/api/profile/${username}/featured-badges`, {
+      method: 'PUT',
+      body: JSON.stringify({ badge_ids: badgeIds }),
+    }),
 };
 
 // ============ Repository API ============

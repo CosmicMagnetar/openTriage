@@ -8,6 +8,7 @@ import TrophyCabinet from './TrophyCabinet';
 import ContributionCalendar from './ContributionCalendar';
 import MentorMatchPanel from './MentorMatchPanel';
 import ContributorMetrics from './ContributorMetrics';
+import FeaturedBadges from './FeaturedBadges';
 
 const ProfilePage = () => {
     const { user } = useAuthStore();
@@ -18,6 +19,8 @@ const ProfilePage = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [skillInput, setSkillInput] = useState('');
+    const [allBadges, setAllBadges] = useState([]);
+    const [featuredBadges, setFeaturedBadges] = useState([]);
 
     // Editable fields
     const [bio, setBio] = useState('');
@@ -33,11 +36,16 @@ const ProfilePage = () => {
     const loadProfile = async () => {
         try {
             setLoading(true);
-            const [profileData, reposData, connectedData] = await Promise.all([
+            const [profileData, reposData, connectedData, badgesData, featuredData] = await Promise.all([
                 profileApi.getProfile(user.username).catch(() => null),
                 profileApi.getUserRepos(user.username).catch(() => ({ repos: [] })),
-                profileApi.getConnectedRepos(user.id).catch(() => ({ repos: [] }))
+                profileApi.getConnectedRepos(user.id).catch(() => ({ repos: [] })),
+                gamificationApi.getUserBadges(user.username).catch(() => ({ all_badges: [] })),
+                profileApi.getFeaturedBadges(user.username).catch(() => ({ badges: [] }))
             ]);
+
+            setAllBadges(badgesData.all_badges || []);
+            setFeaturedBadges(featuredData.badges || []);
 
             if (profileData) {
                 setProfile(profileData);
@@ -141,15 +149,21 @@ const ProfilePage = () => {
                             <h1 className="text-2xl font-bold text-slate-200">@{user?.username}</h1>
                             <p className="text-slate-400 mt-1">{bio || 'No bio yet'}</p>
 
+                            {/* Featured Badges */}
+                            <div className="mt-4">
+                                <FeaturedBadges
+                                    featuredBadges={featuredBadges}
+                                    allBadges={allBadges}
+                                    onUpdate={(newFeatured) => setFeaturedBadges(newFeatured)}
+                                    username={user?.username}
+                                />
+                            </div>
+
                             {/* Quick Stats */}
                             <div className="flex items-center gap-6 mt-4">
                                 <div className="flex items-center gap-2 text-sm">
                                     <Flame className="w-4 h-4 text-orange-400" />
                                     <span className="text-slate-300">{profile?.github_stats?.current_streak || 0} day streak</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Trophy className="w-4 h-4 text-yellow-400" />
-                                    <span className="text-slate-300">{profile?.trophy_count || 0} trophies</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                     <Code className="w-4 h-4 text-blue-400" />

@@ -335,3 +335,72 @@ async def get_connected_repos(user_id: str):
 
 # Import for timedelta
 from datetime import timedelta
+from pydantic import BaseModel
+
+
+class FeaturedBadgesUpdate(BaseModel):
+    badge_ids: List[str] = []
+
+
+@router.get("/{username}/featured-badges")
+async def get_featured_badges(username: str):
+    """Get user's featured badges for profile display."""
+    profile = await db.profiles.find_one({
+        "$or": [{"username": username}, {"user_id": username}]
+    })
+    
+    if not profile:
+        return {"badges": []}
+    
+    featured_ids = profile.get("featured_badge_ids", [])
+    
+    if not featured_ids:
+        return {"badges": []}
+    
+    # Get badge details from badges_service
+    from services.badges_service import badges_service
+    
+    try:
+        user_badges = await badges_service.get_user_badges("", username)
+        all_badges = user_badges.get("all_badges", [])
+        
+        # Filter to only featured badges, maintaining order
+        featured_badges = []
+        for badge_id in featured_ids[:3]:  # Max 3 featured
+            for badge_item in all_badges:
+                if badge_item.get("badge", {}).get("id") == badge_id and badge_item.get("earned"):
+                    featured_badges.append(badge_item)
+                    break
+        
+        return {"badges": featured_badges}
+    except Exception as e:
+        print(f"Error fetching featured badges: {e}")
+        return {"badges": []}
+
+
+@router.put("/{username}/featured-badges")
+async def update_featured_badges(username: str, update: FeaturedBadgesUpdate):
+    """Update user's featured badges selection (max 3)."""
+    badge_ids = update.badge_ids[:3]  # Limit to 3
+    
+    result = await db.profiles.update_one(
+        {"$or": [{"username": username}, {"user_id": username}]},
+        {
+            "$set": {
+                "featured_badge_ids": badge_ids,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    if result.matched_count == 0:
+        # Create profile with featured badges
+        await db.profiles.insert_one({
+            "username": username,
+            "user_id": username,
+            "featured_badge_ids": badge_ids,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+    
+    return {"success": True, "message": "Featured badges updated", "badge_ids": badge_ids}
