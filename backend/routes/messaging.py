@@ -13,12 +13,31 @@ router = APIRouter(prefix="/messaging", tags=["Messaging"])
 async def get_chat_history(other_user_id: str, current_user: dict = Depends(get_current_user)):
     """Fetch chat history between current user and other user."""
     current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+    current_username = current_user.get("username", "")
+    
+    # Also get the other user's possible identifiers
+    other_user = await db.users.find_one(
+        {"$or": [{"id": other_user_id}, {"username": other_user_id}]},
+        {"_id": 0, "id": 1, "username": 1}
+    )
+    
+    # Build list of IDs to match
+    my_ids = [current_user_id]
+    if current_username:
+        my_ids.append(current_username)
+    
+    other_ids = [other_user_id]
+    if other_user:
+        if other_user.get("id"):
+            other_ids.append(str(other_user["id"]))
+        if other_user.get("username"):
+            other_ids.append(other_user["username"])
     
     # Find messages where (sender=me AND receiver=other) OR (sender=other AND receiver=me)
     cursor = db.messages.find({
         "$or": [
-            {"sender_id": current_user_id, "receiver_id": other_user_id},
-            {"sender_id": other_user_id, "receiver_id": current_user_id}
+            {"sender_id": {"$in": my_ids}, "receiver_id": {"$in": other_ids}},
+            {"sender_id": {"$in": other_ids}, "receiver_id": {"$in": my_ids}}
         ]
     }).sort("timestamp", 1)
     
@@ -50,11 +69,30 @@ async def poll_messages(
 ):
     """Poll for new messages from a specific user."""
     current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+    current_username = current_user.get("username", "")
+    
+    # Also get the other user's possible identifiers
+    other_user = await db.users.find_one(
+        {"$or": [{"id": other_user_id}, {"username": other_user_id}]},
+        {"_id": 0, "id": 1, "username": 1}
+    )
+    
+    # Build list of IDs to match
+    my_ids = [current_user_id]
+    if current_username:
+        my_ids.append(current_username)
+    
+    other_ids = [other_user_id]
+    if other_user:
+        if other_user.get("id"):
+            other_ids.append(str(other_user["id"]))
+        if other_user.get("username"):
+            other_ids.append(other_user["username"])
     
     query = {
         "$or": [
-            {"sender_id": current_user_id, "receiver_id": other_user_id},
-            {"sender_id": other_user_id, "receiver_id": current_user_id}
+            {"sender_id": {"$in": my_ids}, "receiver_id": {"$in": other_ids}},
+            {"sender_id": {"$in": other_ids}, "receiver_id": {"$in": my_ids}}
         ]
     }
     
