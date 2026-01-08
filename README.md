@@ -199,6 +199,13 @@ Curated learning resources tailored to your tech stack and contribution areas.
 
 ## Architecture
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/CosmicMagnetar/openTriage/main/frontend/public/architecture.png" alt="OpenTriage Architecture" width="800" />
+</p>
+
+<details>
+<summary><strong>View Text Diagram</strong></summary>
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              OPENTRIAGE PLATFORM                            │
@@ -234,6 +241,8 @@ Curated learning resources tailored to your tech stack and contribution areas.
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+</details>
 
 ---
 
