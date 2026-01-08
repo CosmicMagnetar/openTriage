@@ -1,109 +1,229 @@
-# OpenTriage
+<p align="center">
+  <img src="https://raw.githubusercontent.com/CosmicMagnetar/openTriage/main/frontend/public/logo.png" alt="OpenTriage Logo" width="120" />
+</p>
 
-OpenTriage is an intelligent, AI-powered assistant designed to streamline open source development for both maintainers and contributors. It leverages advanced Large Language Models (LLMs) to automate issue triaging, provide smart chat assistance, and offer insightful metrics.
+<h1 align="center">OpenTriage</h1>
 
-## Key Features
+<p align="center">
+  <strong>AI-Powered Intelligence for Open Source Communities</strong>
+</p>
 
-- **AI-Powered Triage**: Automatically classifies issues and Pull Requests (Bug, Feature, etc.), generates summaries, and analyzes sentiment to prioritize critical items.
-- **Smart Assistant**:
-  - **Maintainer Copilot**: Assists maintainers by drafting replies, suggesting labels, and analyzing PRs for quality and security.
-  - **Contributor Mentor**: Guides new contributors through the contribution process, helps identify suitable issues, and provides constructive feedback.
-- **Unified Dashboard**: A central hub to manage repositories, track contribution metrics, and visualize project impact.
-- **GitHub Integration**: Seamless synchronization with GitHub issues and pull requests for real-time updates.
-- **Spark Analytics**: High-performance data processing for gamification, sentiment analysis, and contribution metrics.
+<p align="center">
+  <a href="#-key-features">Features</a> •
+  <a href="#-screenshots">Screenshots</a> •
+  <a href="#-tech-stack">Tech Stack</a> •
+  <a href="#-getting-started">Getting Started</a> •
+  <a href="#-contributing">Contributing</a>
+</p>
 
-## Tech Stack
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" />
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome" />
+  <img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+" />
+  <img src="https://img.shields.io/badge/node-18+-green.svg" alt="Node 18+" />
+</p>
 
-- **Frontend**: React, Vite, Tailwind CSS, Radix UI, Recharts, Zustand
-- **Backend**: Python, FastAPI, MongoDB (Motor)
-- **AI**: OpenAI API (via OpenRouter), Llama 3.3, Gemini 2.0
-- **Analytics**: Apache Spark for high-performance data processing
+---
 
-## Project Structure
+## 🎯 What is OpenTriage?
+
+OpenTriage is a **next-generation platform** that transforms how open source communities collaborate. By leveraging advanced AI and real-time analytics, it bridges the gap between maintainers and contributors, making open source development more efficient, rewarding, and inclusive.
+
+Whether you're a maintainer drowning in issues or a contributor looking for the perfect project to join, OpenTriage has you covered.
+
+---
+
+## ✨ Key Features
+
+### 🤖 **AI-Powered Assistance**
+
+| Feature | Description |
+|---------|-------------|
+| **Smart Triage** | Automatically classifies issues/PRs (Bug, Feature, Documentation), generates summaries, and analyzes sentiment to prioritize critical items |
+| **Maintainer Copilot** | AI assistant that drafts replies, suggests labels, analyzes PRs for quality and security, and provides context-aware code insights |
+| **Contributor Mentor** | Guides new contributors through contribution workflows, helps identify suitable issues based on skills, and provides constructive feedback |
+| **RAG-Powered Chat** | Repository-aware chatbot that understands your project's documentation, README, and codebase to provide accurate answers |
+
+### 📊 **Advanced Analytics with Apache Spark**
+
+| Feature | Description |
+|---------|-------------|
+| **Invisible Labor Dashboard** | Quantifies often-overlooked contributions: code reviews, mentorship, triage work, and community support |
+| **Sentiment Analysis** | Real-time monitoring of community health through issue/PR comment sentiment analysis |
+| **Contribution Streaks** | GitHub-style impact calendar with streak tracking and activity heatmaps |
+| **Gamification Engine** | XP system, badges, trophies, and leaderboards to recognize and reward contributors |
+
+### 🛡️ **Smart Issue Management**
+
+| Feature | Description |
+|---------|-------------|
+| **Cookie-Licking Detection** | Automatically monitors claimed issues and releases them if no progress is detected—ensuring issues don't get stuck |
+| **Mentor Matching** | AI-powered matching system that connects new contributors with experienced mentors based on skills and interests |
+| **Hype Generator** | Creates engaging social media posts and release notes to boost project visibility |
+| **Resource Vault** | Curated learning resources tailored to your tech stack and contribution areas |
+
+### 🎮 **Gamification & Recognition**
+
+| Feature | Description |
+|---------|-------------|
+| **Dynamic Badges** | LeetCode-style achievement system with tiered badges (Bronze → Silver → Gold → Diamond) |
+| **Trophy Cabinet** | Showcase your open source achievements with collectible trophies |
+| **Contribution Calendar** | Visual representation of your impact over time |
+| **Leaderboards** | Community rankings based on various contribution metrics |
+
+---
+
+## 🖼️ Screenshots
+
+> *Coming soon! The dashboard features a modern, dark-themed UI with glassmorphic elements and smooth animations.*
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React 18** with Vite for blazing-fast development
+- **Tailwind CSS** for utility-first styling
+- **Radix UI** for accessible component primitives
+- **Zustand** for lightweight state management
+- **Recharts** for beautiful data visualizations
+- **React Router** for client-side routing
+
+### Backend
+- **FastAPI** for high-performance async APIs
+- **MongoDB** with Motor for async database operations
+- **Pydantic** for data validation
+- **JWT** for secure authentication
+
+### AI & Analytics
+- **OpenAI GPT-4 / Llama 3.3 / Gemini 2.0** via OpenRouter
+- **Apache Spark** for distributed data processing
+- **Custom RAG Pipeline** for repository-aware AI responses
+
+---
+
+## 📁 Project Structure
 
 ```
 opentriage/
 ├── backend/
-│   ├── config/       # Application settings, database configuration
-│   ├── models/       # Pydantic models and data schemas
-│   ├── routes/       # API endpoint handlers (FastAPI routers)
-│   ├── services/     # Business logic, AI services, and integrations
-│   ├── utils/        # Helper functions and shared utilities
-│   └── server.py     # Application entry point
+│   ├── config/           # Application settings, database configuration
+│   ├── models/           # Pydantic models and data schemas
+│   ├── routes/           # FastAPI router definitions
+│   │   ├── auth.py       # GitHub OAuth authentication
+│   │   ├── contributor.py # Contributor dashboard APIs
+│   │   ├── maintainer.py # Maintainer portal APIs
+│   │   ├── mentor.py     # Mentorship endpoints
+│   │   ├── profile.py    # User profile management
+│   │   ├── spark.py      # Analytics endpoints
+│   │   └── ...
+│   ├── services/         # Core business logic
+│   │   ├── ai_service.py              # LLM integration
+│   │   ├── badges_service.py          # Badge system
+│   │   ├── cookie_licking_service.py  # Claim monitoring
+│   │   ├── gamification_engine.py     # XP & streaks
+│   │   ├── github_service.py          # GitHub API wrapper
+│   │   ├── invisible_labor_analytics.py # Hidden contribution metrics
+│   │   ├── mentor_matching_service.py # Mentor-mentee matching
+│   │   ├── rag_chatbot_service.py     # RAG-powered chat
+│   │   ├── spark_sentiment_pipeline.py # Sentiment analysis
+│   │   └── ...
+│   ├── spark_manager.py  # Apache Spark session management
+│   └── server.py         # Application entry point
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── pages/        # Page-level components
-│   │   ├── services/     # API client and service functions
-│   │   ├── stores/       # Zustand state management
-│   │   └── utils/        # Frontend utilities
+│   │   ├── components/
+│   │   │   ├── contributor/  # Contributor dashboard components
+│   │   │   ├── maintainer/   # Maintainer portal components
+│   │   │   └── ui/           # Shared UI components
+│   │   ├── services/         # API client and service functions
+│   │   ├── stores/           # Zustand state management
+│   │   └── hooks/            # Custom React hooks
 │   └── index.html
 │
-└── tests/            # Test files
+└── tests/                # Test suites
 ```
 
-## Getting Started
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- Python (v3.10 or higher)
-- MongoDB
-- Git
+- **Node.js** v18 or higher
+- **Python** v3.10 or higher
+- **MongoDB** (local or cloud instance)
+- **Git**
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/CosmicMagnetar/openTriage.git
-   cd opentriage
-   ```
+#### 1️⃣ Clone the Repository
 
-2. **Backend Setup**
-   Navigate to the backend directory and set up the Python environment:
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+```bash
+git clone https://github.com/CosmicMagnetar/openTriage.git
+cd opentriage
+```
 
-   **Configuration**:
-   Create a `.env` file in the `backend` directory with the following variables:
-   ```env
-   MONGO_URL=mongodb://localhost:27017
-   DB_NAME=opentriage
-   GITHUB_CLIENT_ID=your_github_client_id
-   GITHUB_CLIENT_SECRET=your_github_client_secret
-   JWT_SECRET=your_jwt_secret
-   OPENROUTER_API_KEY=your_openrouter_api_key
-   ```
+#### 2️⃣ Backend Setup
 
-   Run the server:
-   ```bash
-   uvicorn server:app --reload
-   ```
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-3. **Frontend Setup**
-   Open a new terminal, navigate to the frontend directory, and start the development server:
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+Create a `.env` file in the `backend` directory:
 
-   **Frontend Environment**:
-   Create a `.env` file in the `frontend` directory:
-   ```env
-   VITE_BACKEND_URL=http://localhost:8000
-   ```
+```env
+# Database
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=opentriage
 
-   For production deployment, set `VITE_BACKEND_URL` to your Render backend URL.
+# GitHub OAuth
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
 
-## Spark Configuration
+# Security
+JWT_SECRET=your_jwt_secret
 
-OpenTriage uses Apache Spark for high-performance analytics. Configure Spark by adding these optional environment variables to your backend `.env`:
+# AI Services
+OPENROUTER_API_KEY=your_openrouter_api_key
+```
+
+Start the server:
+
+```bash
+uvicorn server:app --reload --port 8000
+```
+
+#### 3️⃣ Frontend Setup
+
+```bash
+cd frontend
+npm install
+```
+
+Create a `.env` file in the `frontend` directory:
+
+```env
+VITE_BACKEND_URL=http://localhost:8000
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+---
+
+## ⚡ Spark Configuration
+
+OpenTriage uses Apache Spark for high-performance analytics. Add these optional environment variables to your backend `.env`:
 
 ```env
 SPARK_APP_NAME=OpenTriage
@@ -115,37 +235,70 @@ SPARK_LOG_LEVEL=WARN
 
 ### Performance Tuning
 
-For optimal performance on machines with limited resources, adjust these settings:
-
 | Setting | Low Memory (8GB) | Standard (16GB) | High Performance (32GB+) |
-|---------|------------------|-----------------|--------------------------|
+|---------|:----------------:|:---------------:|:------------------------:|
 | `SPARK_DRIVER_MEMORY` | 2g | 4g | 8g |
 | `SPARK_EXECUTOR_MEMORY` | 1g | 2g | 4g |
 
 The Spark session manager automatically configures:
-- Adaptive query execution for dynamic optimization
-- Kryo serialization for faster data transfer
-- Off-heap memory for improved GC performance
-- Arrow optimization for Pandas integration
+- ✅ Adaptive query execution for dynamic optimization
+- ✅ Kryo serialization for faster data transfer
+- ✅ Off-heap memory for improved GC performance
+- ✅ Arrow optimization for Pandas integration
 
-## Contributing
+---
 
-Contributions are welcome! Here's how you can help:
+## 🤝 Contributing
 
-1. **Find an Issue**: Look for issues labeled `good first issue` or `help wanted`
-2. **Fork and Branch**: Create a feature branch from `main`
-3. **Code Style**: Follow existing patterns in the codebase
-4. **Test**: Ensure your changes don't break existing functionality
-5. **Submit PR**: Write a clear description of your changes
+Contributions are what make the open source community amazing! Here's how you can help:
+
+### Quick Start
+
+1. **Find an Issue** — Look for `good first issue` or `help wanted` labels
+2. **Fork & Branch** — Create a feature branch from `main`
+3. **Code** — Follow existing patterns and conventions
+4. **Test** — Ensure your changes don't break existing functionality
+5. **Submit PR** — Write a clear description of your changes
 
 ### Where to Add Files
 
-- **New API endpoints**: Add to `backend/routes/`, register in `routes/__init__.py`
-- **Business logic**: Add to `backend/services/`
-- **Data models**: Add to `backend/models/`
-- **React components**: Add to `frontend/src/components/`
-- **API client functions**: Add to `frontend/src/services/api.js`
+| Type | Location |
+|------|----------|
+| New API endpoints | `backend/routes/` → register in `routes/__init__.py` |
+| Business logic | `backend/services/` |
+| Data models | `backend/models/` |
+| React components | `frontend/src/components/` |
+| API client functions | `frontend/src/services/api.js` |
+| State management | `frontend/src/stores/` |
 
-## License
+### Development Guidelines
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- Use meaningful commit messages
+- Keep PRs focused and reasonably sized
+- Add comments for complex logic
+- Update documentation as needed
+
+---
+
+## 🔗 Links
+
+- **Live Demo**: Coming soon
+- **Documentation**: Coming soon
+- **Issues**: [GitHub Issues](https://github.com/CosmicMagnetar/openTriage/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/CosmicMagnetar/openTriage/discussions)
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+---
+
+<p align="center">
+  Made with ❤️ for the Open Source Community
+</p>
+
+<p align="center">
+  <sub>If you find this project useful, please consider giving it a ⭐</sub>
+</p>
