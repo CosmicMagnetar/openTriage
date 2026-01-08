@@ -139,18 +139,97 @@ async def mark_messages_read(other_user_id: str, current_user: dict = Depends(ge
     return {"marked_read": result.modified_count}
 
 
+@router.post("/seed-test-messages")
+async def seed_test_messages(current_user: dict = Depends(get_current_user)):
+    """Seed test messages for current user to demo chat functionality."""
+    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+    current_username = current_user.get("username", "")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Create test conversation with a mock mentor
+    test_messages = [
+        {
+            "id": str(uuid.uuid4()),
+            "sender_id": "test_mentor_123",
+            "receiver_id": current_user_id,
+            "content": "Hey! Welcome to OpenTriage. I'm here to help you get started with open source contributions.",
+            "timestamp": (now - timedelta(hours=2)).isoformat(),
+            "read": False
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sender_id": current_user_id,
+            "receiver_id": "test_mentor_123",
+            "content": "Thanks! I'm excited to start contributing.",
+            "timestamp": (now - timedelta(hours=1, minutes=55)).isoformat(),
+            "read": True
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sender_id": "test_mentor_123",
+            "receiver_id": current_user_id,
+            "content": "Great! Have you checked out the 'good first issue' labels? Those are perfect for beginners.",
+            "timestamp": (now - timedelta(hours=1, minutes=50)).isoformat(),
+            "read": False
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sender_id": current_user_id,
+            "receiver_id": "test_mentor_123",
+            "content": "Yes! I found one that looks interesting. Should I just comment that I want to work on it?",
+            "timestamp": (now - timedelta(minutes=30)).isoformat(),
+            "read": True
+        },
+        {
+            "id": str(uuid.uuid4()),
+            "sender_id": "test_mentor_123",
+            "receiver_id": current_user_id,
+            "content": "Exactly! Just comment 'I'd like to work on this' and wait for the maintainer to assign it to you. Let me know if you need any help!",
+            "timestamp": (now - timedelta(minutes=25)).isoformat(),
+            "read": False
+        }
+    ]
+    
+    # Create a test user entry for the mock mentor
+    await db.users.update_one(
+        {"id": "test_mentor_123"},
+        {"$set": {
+            "id": "test_mentor_123",
+            "username": "test_mentor",
+            "avatarUrl": "https://github.com/github.png"
+        }},
+        upsert=True
+    )
+    
+    # Insert test messages
+    await db.messages.insert_many(test_messages)
+    
+    return {
+        "success": True,
+        "message": f"Created {len(test_messages)} test messages with test_mentor",
+        "messages_count": len(test_messages)
+    }
+
+
 @router.get("/conversations")
 async def get_conversations(current_user: dict = Depends(get_current_user)):
     """Get list of all conversation contacts with last message preview."""
     current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+    current_username = current_user.get("username", "")
+    
+    # Build list of all possible IDs for current user
+    my_ids = [current_user_id]
+    if current_username:
+        my_ids.append(current_username)
     
     # Get all unique users we've messaged with
     pipeline = [
         {
             "$match": {
                 "$or": [
-                    {"sender_id": current_user_id},
-                    {"receiver_id": current_user_id}
+                    {"sender_id": {"$in": my_ids}},
+                    {"receiver_id": {"$in": my_ids}}
                 ]
             }
         },
@@ -161,7 +240,7 @@ async def get_conversations(current_user: dict = Depends(get_current_user)):
             "$group": {
                 "_id": {
                     "$cond": [
-                        {"$eq": ["$sender_id", current_user_id]},
+                        {"$in": ["$sender_id", my_ids]},
                         "$receiver_id",
                         "$sender_id"
                     ]
@@ -172,7 +251,7 @@ async def get_conversations(current_user: dict = Depends(get_current_user)):
                     "$sum": {
                         "$cond": [
                             {"$and": [
-                                {"$eq": ["$receiver_id", current_user_id]},
+                                {"$in": ["$receiver_id", my_ids]},
                                 {"$eq": ["$read", False]}
                             ]},
                             1, 0

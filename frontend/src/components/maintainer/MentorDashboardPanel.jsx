@@ -152,8 +152,8 @@ const MentorDashboardPanel = () => {
                         key={tab.id}
                         onClick={() => { setActiveTab(tab.id); setSelectedChat(null); }}
                         className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${activeTab === tab.id
-                                ? 'text-purple-400 border-b-2 border-purple-500 bg-purple-500/10'
-                                : 'text-slate-400 hover:text-slate-200'
+                            ? 'text-purple-400 border-b-2 border-purple-500 bg-purple-500/10'
+                            : 'text-slate-400 hover:text-slate-200'
                             }`}
                     >
                         {tab.label}
@@ -301,12 +301,12 @@ const MentorDashboardPanel = () => {
                             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                 {chatMessages.length > 0 ? (
                                     chatMessages.map(msg => {
-                                        const isMe = msg.sender_id === user?.id;
+                                        const isMe = msg.sender_id === user?.id || msg.sender_id === user?.username;
                                         return (
                                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-[70%] rounded-xl px-3 py-2 text-sm ${isMe
-                                                        ? 'bg-purple-600 text-white rounded-br-none'
-                                                        : 'bg-slate-700 text-slate-200 rounded-bl-none'
+                                                    ? 'bg-purple-600 text-white rounded-br-none'
+                                                    : 'bg-slate-700 text-slate-200 rounded-bl-none'
                                                     }`}>
                                                     {msg.content}
                                                 </div>

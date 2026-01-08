@@ -168,12 +168,12 @@ const MessagesPage = () => {
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {messages.length > 0 ? (
                                 messages.map(msg => {
-                                    const isMe = msg.sender_id === user?.id;
+                                    const isMe = msg.sender_id === user?.id || msg.sender_id === user?.username;
                                     return (
                                         <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-[70%] rounded-2xl px-4 py-2 ${isMe
-                                                    ? 'bg-blue-600 text-white rounded-br-none'
-                                                    : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
+                                                ? 'bg-blue-600 text-white rounded-br-none'
+                                                : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
                                                 }`}>
                                                 <p>{msg.content}</p>
                                                 <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-slate-500'}`}>
