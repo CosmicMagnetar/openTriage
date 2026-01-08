@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from bson import ObjectId
 
 from config.database import db
 from models.messaging import Message, SendMessageRequest
@@ -135,11 +136,18 @@ async def poll_messages(
 @router.get("/unread-count")
 async def get_unread_count(current_user: dict = Depends(get_current_user)):
     """Get count of unread messages for the current user."""
-    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+    # Get all identifiers for current user
+    current_ids = [
+        current_user.get("id"),  # UUID
+        current_user.get("username"),
+        str(current_user.get("_id", "")), # ObjectId
+        str(current_user.get("githubId", "")) # GitHub ID
+    ]
+    current_ids = [i for i in current_ids if i]
     
-    # Count unread messages where current user is the receiver
+    # Count unread messages where current user is the receiver (match any of aliases)
     count = await db.messages.count_documents({
-        "receiver_id": current_user_id,
+        "receiver_id": {"$in": current_ids},
         "read": False
     })
     
@@ -149,12 +157,43 @@ async def get_unread_count(current_user: dict = Depends(get_current_user)):
 @router.post("/mark-read/{other_user_id}")
 async def mark_messages_read(other_user_id: str, current_user: dict = Depends(get_current_user)):
     """Mark all messages from a specific user as read."""
-    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+    # Get all identifiers for current user
+    current_ids = [
+        current_user.get("id"),  # UUID
+        current_user.get("username"),
+        str(current_user.get("_id", "")), # ObjectId
+        str(current_user.get("githubId", "")) # GitHub ID
+    ]
+    current_ids = [i for i in current_ids if i]
+    
+    # Get all identifiers for other user
+    search_criteria = [
+        {"id": other_user_id}, 
+        {"username": other_user_id},
+        {"_id": other_user_id}
+    ]
+    if other_user_id.isdigit():
+        search_criteria.append({"githubId": int(other_user_id)})
+        
+    other_user = await db.users.find_one(
+        {"$or": search_criteria},
+        {"_id": 1, "id": 1, "username": 1, "githubId": 1}
+    )
+    
+    other_ids = [other_user_id]
+    if other_user:
+        other_ids.extend([
+            other_user.get("id"),
+            other_user.get("username"),
+            str(other_user.get("_id", "")),
+            str(other_user.get("githubId", ""))
+        ])
+    other_ids = [i for i in set(other_ids) if i]
     
     result = await db.messages.update_many(
         {
-            "sender_id": other_user_id,
-            "receiver_id": current_user_id,
+            "sender_id": {"$in": other_ids},
+            "receiver_id": {"$in": current_ids},
             "read": False
         },
         {"$set": {"read": True}}
@@ -292,8 +331,9 @@ async def get_conversations(current_user: dict = Depends(get_current_user)):
     
     results = await db.messages.aggregate(pipeline).to_list(length=50)
     
-    # Enrich with user info
-    conversations = []
+    # Enrich and deduplicate by username
+    conversations_map = {}
+    
     for r in results:
         other_user_id = r["_id"]
         # Try to resolve user info with robust lookup
@@ -304,20 +344,41 @@ async def get_conversations(current_user: dict = Depends(get_current_user)):
         ]
         if str(other_user_id).isdigit():
             search_criteria.append({"githubId": int(other_user_id)})
+        
+        # Add proper ObjectId lookup if valid
+        if ObjectId.is_valid(other_user_id):
+            search_criteria.append({"_id": ObjectId(other_user_id)})
             
         user_info = await db.users.find_one(
             {"$or": search_criteria},
-            {"_id": 0, "username": 1, "avatarUrl": 1}
+            {"_id": 0, "id": 1, "username": 1, "avatarUrl": 1}
         )
         
-        conversations.append({
-            "user_id": other_user_id,
-            "username": user_info.get("username", other_user_id) if user_info else other_user_id,
-            "avatar_url": user_info.get("avatarUrl") if user_info else None,
-            "last_message": r.get("last_message", "")[:50],
-            "last_timestamp": r.get("last_timestamp"),
-            "unread_count": r.get("unread_count", 0)
-        })
+        username = user_info.get("username", other_user_id) if user_info else str(other_user_id)
+        
+        if username not in conversations_map:
+            conversations_map[username] = {
+                "user_id": user_info.get("id") if user_info else other_user_id, # Prefer UUID if available
+                "username": username,
+                "avatar_url": user_info.get("avatarUrl") if user_info else None,
+                "last_message": r.get("last_message", "")[:50],
+                "last_timestamp": r.get("last_timestamp"),
+                "unread_count": r.get("unread_count", 0)
+            }
+        else:
+            # Merge with existing entry
+            existing = conversations_map[username]
+            # Update last message if this one is newer
+            if r.get("last_timestamp") > existing["last_timestamp"]:
+                existing["last_message"] = r.get("last_message", "")[:50]
+                existing["last_timestamp"] = r.get("last_timestamp")
+            
+            # Sum unread counts
+            existing["unread_count"] += r.get("unread_count", 0)
+    
+    # Convert map to list and sort
+    conversations = list(conversations_map.values())
+    conversations.sort(key=lambda x: x["last_timestamp"], reverse=True)
     
     return {"conversations": conversations}
 
@@ -389,7 +450,18 @@ async def accept_mentorship_request(action: MentorshipRequestAction, current_use
     # Verify this user is the mentor
     if request.get("mentor_id") != current_user_id and request.get("mentor_username") != username:
         raise HTTPException(status_code=403, detail="Not authorized to accept this request")
+
+    # Check that mentee hasn't reached the limit (5)
+    active_count = await db.mentorships.count_documents({
+        "mentee_id": request.get("mentee_id"),
+        "status": "active"
+    })
     
+    if active_count >= 5:
+        # Optional: Cancel this request since they are full?
+        # For now, just error out so the mentor knows
+        raise HTTPException(status_code=400, detail="This mentee has reached the maximum number of mentors (5).")
+
     # Update request status
     await db.mentorship_requests.update_one(
         {"id": action.request_id},
@@ -407,6 +479,25 @@ async def accept_mentorship_request(action: MentorshipRequestAction, current_use
         "status": "active"
     }
     await db.mentorships.insert_one(mentorship)
+    
+    # Auto-cancel other pending requests if limit reached (active_count + 1 >= 5)
+    if active_count + 1 >= 5:
+        mentee_id = request.get("mentee_id")
+        # Find other pending requests for this mentee
+        await db.mentorship_requests.update_many(
+            {
+                "mentee_id": mentee_id,
+                "status": "pending",
+                "id": {"$ne": action.request_id} # Don't touch the one we just accepted (though status changed already)
+            },
+            {
+                "$set": {
+                    "status": "cancelled", 
+                    "cancelled_reason": "Mentee reached maximum mentor limit",
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
     
     # Send welcome message if provided
     if action.message:

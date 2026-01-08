@@ -300,3 +300,33 @@ async def analyze_tech_stack(username: str):
     except Exception as e:
         logger.error(f"Tech stack analysis error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/my-mentors")
+async def get_my_mentors(current_user: dict = Depends(get_current_user)):
+    """Get list of active mentors for the current user."""
+    try:
+        current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+        mentors = await mentor_matching_service.get_active_mentorships(current_user_id)
+        return mentors
+    except Exception as e:
+        logger.error(f"Get my mentors error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/disconnect/{mentor_id}")
+async def disconnect_mentor_endpoint(mentor_id: str, current_user: dict = Depends(get_current_user)):
+    """Disconnect from a mentor."""
+    try:
+        current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+        success = await mentor_matching_service.disconnect_mentor(current_user_id, mentor_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Active mentorship not found")
+            
+        return {"success": True, "message": "Disconnected from mentor"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Disconnect mentor error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

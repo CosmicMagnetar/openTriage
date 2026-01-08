@@ -438,6 +438,15 @@ class MentorMatchingService:
             if mentor_profile:
                 mentor_info = {"id": mentor_profile.get("user_id"), "username": mentor_profile.get("username")}
         
+        # Check max active mentors limit
+        active_count = await db.mentorships.count_documents({
+            "mentee_id": mentee_id,
+            "status": "active"
+        })
+        
+        if active_count >= 5:
+            raise ValueError("You have reached the maximum limit of 5 active mentors. Please disconnect from a mentor before requesting a new one.")
+
         request = MentorshipRequest(
             mentee_id=mentee_id,
             mentee_username=mentee_info.get("username", "") if mentee_info else "",
@@ -480,6 +489,63 @@ class MentorMatchingService:
                     }
                 }
             )
+
+
+    async def get_active_mentorships(self, mentee_id: str) -> List[Dict[str, Any]]:
+        """Get active mentorships for a mentee."""
+        from config.database import db
+        
+        cursor = db.mentorships.find({
+            "mentee_id": mentee_id,
+            "status": "active"
+        })
+        
+        mentorships = await cursor.to_list(length=100)
+        
+        result = []
+        for m in mentorships:
+            # Get mentor profile info
+            mentor_profile = await self.get_mentor_profile(m["mentor_id"])
+            mentor_data = {
+                "user_id": m["mentor_id"],
+                "username": m["mentor_username"],
+                "avatar_url": None, # Will need to fetch from users collection if not in profile
+                "tech_stack": [],
+                "started_at": m["created_at"]
+            }
+            
+            if mentor_profile:
+                mentor_data["avatar_url"] = mentor_profile.avatar_url
+                mentor_data["tech_stack"] = mentor_profile.tech_stack
+                mentor_data["bio"] = mentor_profile.bio
+            else:
+                 # Fallback to users collection for avatar
+                user = await db.users.find_one({"id": m["mentor_id"]}, {"_id": 0, "avatarUrl": 1})
+                if user:
+                    mentor_data["avatar_url"] = user.get("avatarUrl")
+            
+            result.append(mentor_data)
+            
+        return result
+
+    async def disconnect_mentor(self, mentee_id: str, mentor_id: str) -> bool:
+        """Disconnect a mentorship."""
+        from config.database import db
+        
+        result = await db.mentorships.update_one(
+            {
+                "mentee_id": mentee_id,
+                "mentor_id": mentor_id,
+                "status": "active"
+            },
+            {
+                "$set": {
+                    "status": "disconnected",
+                    "disconnected_at": datetime.now(timezone.utc).isoformat()
+                }
+            }
+        )
+        return result.modified_count > 0
 
 
 # Singleton instance

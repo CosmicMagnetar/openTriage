@@ -70,6 +70,14 @@ export const mentorApi = {
   
   analyzeTechStack: (username) =>
     apiRequest(`/api/mentor/tech-stack/${username}`),
+
+  getMyMentors: () =>
+    apiRequest('/api/mentor/my-mentors'),
+
+  disconnectMentor: (mentorId) =>
+    apiRequest(`/api/mentor/disconnect/${mentorId}`, {
+      method: 'DELETE',
+    }),
 };
 
 // ============ Trophy API ============

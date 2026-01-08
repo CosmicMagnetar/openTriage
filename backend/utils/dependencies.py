@@ -10,9 +10,14 @@ async def get_current_user(authorization: str = Header(None)) -> dict:
         raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
     token = authorization.replace('Bearer ', '')
     payload = verify_jwt_token(token)
-    user = await db.users.find_one({"id": payload['user_id']}, {"_id": 0})
+    user = await db.users.find_one({"id": payload['user_id']})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    
+    # Convert _id to string for consistent handling
+    if "_id" in user:
+        user["_id"] = str(user["_id"])
+        
     return user
 
 
