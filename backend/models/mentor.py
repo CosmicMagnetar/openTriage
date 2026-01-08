@@ -78,7 +78,9 @@ class MentorshipRequest(BaseModel):
     """Request from a mentee to connect with a mentor."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     mentee_id: str
+    mentee_username: str = ""
     mentor_id: str
+    mentor_username: str = ""
     issue_id: Optional[str] = None
     message: str = ""
     status: str = "pending"  # pending, accepted, declined

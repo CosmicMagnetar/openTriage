@@ -247,6 +247,19 @@ class MentorMatchingService:
             skill_set = set(s.lower() for s in skill_filter)
             mentors = [m for m in mentors if skill_set & set(t.lower() for t in m.tech_stack)]
         
+        # Get all pending requests for this user
+        pending_requests = await db.mentorship_requests.find({
+            "$or": [
+                {"mentee_id": user_id},
+                {"mentee_username": username}
+            ],
+            "status": "pending"
+        }).to_list(length=100)
+        pending_mentor_ids = set()
+        for pr in pending_requests:
+            pending_mentor_ids.add(pr.get("mentor_id", ""))
+            pending_mentor_ids.add(pr.get("mentor_username", ""))
+        
         # Calculate compatibility scores
         matches = []
         for mentor in mentors:
@@ -270,6 +283,11 @@ class MentorMatchingService:
                 match_dict['tech_stack'] = mentor.tech_stack
                 match_dict['availability_hours'] = mentor.availability_hours_per_week
                 match_dict['avatar_url'] = mentor.avatar_url
+                # Check if there's a pending request for this mentor
+                match_dict['has_pending_request'] = (
+                    mentor.user_id in pending_mentor_ids or 
+                    mentor.username in pending_mentor_ids
+                )
                 matches.append(match_dict)
         
         # Sort by score and return top matches
@@ -400,9 +418,31 @@ class MentorMatchingService:
         from config.database import db
         from models.mentor import MentorshipRequest
         
+        # Lookup usernames for both mentee and mentor
+        mentee_info = await db.users.find_one(
+            {"$or": [{"id": mentee_id}, {"username": mentee_id}]},
+            {"_id": 0, "id": 1, "username": 1}
+        )
+        
+        mentor_info = await db.users.find_one(
+            {"$or": [{"id": mentor_id}, {"username": mentor_id}]},
+            {"_id": 0, "id": 1, "username": 1}
+        )
+        
+        # Also check mentor_profiles for mentor info
+        if not mentor_info:
+            mentor_profile = await db.mentor_profiles.find_one(
+                {"$or": [{"user_id": mentor_id}, {"username": mentor_id}]},
+                {"_id": 0, "user_id": 1, "username": 1}
+            )
+            if mentor_profile:
+                mentor_info = {"id": mentor_profile.get("user_id"), "username": mentor_profile.get("username")}
+        
         request = MentorshipRequest(
             mentee_id=mentee_id,
+            mentee_username=mentee_info.get("username", "") if mentee_info else "",
             mentor_id=mentor_id,
+            mentor_username=mentor_info.get("username", "") if mentor_info else "",
             issue_id=issue_id,
             message=message
         )

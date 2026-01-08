@@ -172,17 +172,91 @@ async def request_mentorship(
     Request mentorship from a mentor.
     """
     try:
+        logger.info(f"Mentorship request: mentee_id={mentee_id}, mentor_id={request.mentor_id}")
         result = await mentor_matching_service.request_mentorship(
             mentee_id=mentee_id,
             mentor_id=request.mentor_id,
             issue_id=request.issue_id,
             message=request.message
         )
-        
+        logger.info(f"Mentorship request created: {result}")
         return result
     except Exception as e:
         logger.error(f"Mentorship request error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/seed-test-mentor")
+async def seed_test_mentor(current_user: dict = Depends(get_current_user)):
+    """
+    Seed a test mentor profile and pending request for testing.
+    """
+    from config.database import db
+    from datetime import datetime, timezone
+    import uuid
+    
+    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+    current_username = current_user.get("username", "")
+    
+    # Create a test mentor profile
+    test_mentor = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user_id,
+        "username": current_username,
+        "tech_stack": ["python", "javascript", "react"],
+        "languages": ["python", "javascript"],
+        "frameworks": ["fastapi", "react"],
+        "expertise_level": "intermediate",
+        "availability_hours_per_week": 5,
+        "is_active": True,
+        "bio": f"Test mentor profile for {current_username}",
+        "mentee_count": 0,
+        "sessions_completed": 0,
+        "avg_rating": 4.5,
+        "total_ratings": 2,
+        "max_mentees": 3,
+        "preferred_topics": ["web dev", "open source"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.mentor_profiles.update_one(
+        {"username": current_username},
+        {"$set": test_mentor},
+        upsert=True
+    )
+    
+    # Create a pending mentorship request FROM a test user TO the current user
+    test_request = {
+        "id": str(uuid.uuid4()),
+        "mentee_id": "test_mentee_123",
+        "mentee_username": "eager_learner",
+        "mentor_id": current_user_id,
+        "mentor_username": current_username,
+        "message": "Hi! I'd love to learn from you about open source contributions.",
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.mentorship_requests.insert_one(test_request)
+    
+    # Also create the test mentee user
+    await db.users.update_one(
+        {"id": "test_mentee_123"},
+        {"$set": {
+            "id": "test_mentee_123",
+            "username": "eager_learner",
+            "avatarUrl": "https://github.com/github.png"
+        }},
+        upsert=True
+    )
+    
+    return {
+        "success": True,
+        "message": "Created test mentor profile and pending request",
+        "mentor_profile": test_mentor["id"],
+        "pending_request": test_request["id"]
+    }
 
 
 @router.post("/rate")
