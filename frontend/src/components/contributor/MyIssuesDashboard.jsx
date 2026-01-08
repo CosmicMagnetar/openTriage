@@ -3,8 +3,7 @@ import axios from 'axios';
 import ParticipantIssueCard from './ParticipantIssueCard';
 import OpportunitiesPanel from './OpportunitiesPanel';
 import OrganizationsPanel from './OrganizationsPanel';
-import ContributorAIChat from './ContributorAIChat';
-import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, Bot, ChevronDown, ArrowUpDown, Building2 } from 'lucide-react';
+import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, ChevronDown, ArrowUpDown, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
@@ -13,10 +12,9 @@ const MyIssuesDashboard = () => {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [autoSyncing, setAutoSyncing] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState(null);
   const [showOpportunities, setShowOpportunities] = useState(false);
   const [showOrganizations, setShowOrganizations] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [dashboardStats, setDashboardStats] = useState(null);
 
   // Filtering and sorting state
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'prs', 'issues'
@@ -338,23 +336,6 @@ const MyIssuesDashboard = () => {
           contributedRepos={[...new Set(issues.map(i => i.repoName).filter(Boolean))]}
         />
       )}
-
-      {/* AI Chat */}
-      {showChat && (
-        <ContributorAIChat
-          onClose={() => setShowChat(false)}
-          issues={issues}
-        />
-      )}
-
-      {/* AI Assistant FAB */}
-      <button
-        data-testid="ai-assistant-fab"
-        onClick={() => setShowChat(true)}
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-full shadow-lg hover:shadow-emerald-500/25 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group"
-      >
-        <Bot className="w-7 h-7 group-hover:rotate-12 transition-transform duration-300" />
-      </button>
     </div>
   );
 };

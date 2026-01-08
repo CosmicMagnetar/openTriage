@@ -48,7 +48,7 @@ const MaintainerPortal = () => {
     };
 
     return (
-        <div className="p-6 h-screen overflow-y-auto bg-slate-900">
+        <div className="p-6 h-screen overflow-y-auto">
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-slate-200 mb-2">Maintainer Hub</h1>

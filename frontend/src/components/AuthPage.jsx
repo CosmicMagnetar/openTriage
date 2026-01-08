@@ -9,7 +9,7 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="w-full h-screen bg-slate-900 flex items-center justify-center">
+    <div className="w-full h-screen bg-[hsl(220,13%,5%)] flex items-center justify-center">
       <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-8 w-full max-w-md shadow-2xl">
         <div className="flex flex-col items-center gap-6">
           <Logo size="lg" />

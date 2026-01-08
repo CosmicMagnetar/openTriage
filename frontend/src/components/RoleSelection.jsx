@@ -22,7 +22,7 @@ const RoleSelection = ({ user, onRoleSelected }) => {
   };
 
   return (
-    <div className="w-full h-screen bg-slate-900 flex items-center justify-center">
+    <div className="w-full h-screen bg-[hsl(220,13%,5%)] flex items-center justify-center">
       <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-8 w-full max-w-2xl shadow-2xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-slate-200 mb-2">Welcome to OpenTriage!</h1>

@@ -1,15 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Bot, User } from 'lucide-react';
+import { X, Send, Bot, User, Sparkles, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
+// Quick actions for maintainers
+const QUICK_ACTIONS = [
+  'Help me triage issues',
+  'Draft a polite reply',
+  'Analyze recent PRs',
+  'Summarize open issues'
+];
+
 const AIChat = ({ onClose }) => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: 'Hello! I\'m your Maintainer Copilot. I can help you triage issues, draft replies, analyze PRs, and manage your repositories efficiently. How can I assist you today?'
+      content: 'Hello! I\'m your Maintainer Copilot. I can help you triage issues, draft replies, analyze PRs, and manage your repositories. How can I assist you today?'
     }
   ]);
   const [input, setInput] = useState('');
@@ -68,75 +76,71 @@ const AIChat = ({ onClose }) => {
   return (
     <div
       data-testid="ai-chat-panel"
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed bottom-24 right-6 z-50 w-[400px] h-[500px] flex flex-col pointer-events-none"
     >
-      <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl h-[600px] flex flex-col overflow-hidden shadow-2xl">
-        {/* Header */}
-        <div className="p-4 border-b border-slate-700 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-blue-500/10">
+      <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg w-full h-full flex flex-col overflow-hidden shadow-xl pointer-events-auto animate-in fade-in zoom-in-95 slide-in-from-bottom-10 origin-bottom-right duration-200">
+        {/* Header - Clean */}
+        <div className="px-4 py-3 border-b border-[hsl(220,13%,15%)] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-full flex items-center justify-center">
-              <Bot className="w-6 h-6 text-white" />
+            <div className="w-8 h-8 bg-[hsl(142,70%,45%)] rounded-lg flex items-center justify-center">
+              <Bot className="w-5 h-5 text-black" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-200">AI Assistant</h2>
-              <p className="text-xs text-slate-400">Powered by Gemini via OpenRouter</p>
+              <h2 className="text-sm font-medium text-[hsl(210,11%,85%)] flex items-center gap-2">
+                Maintainer Copilot
+                <Sparkles className="w-3 h-3 text-[hsl(142,70%,55%)]" />
+              </h2>
+              <p className="text-[10px] text-[hsl(210,11%,45%)]">AI Assistant</p>
             </div>
           </div>
           <button
             data-testid="close-chat-button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
+            className="text-[hsl(210,11%,45%)] hover:text-[hsl(210,11%,75%)] p-1.5 transition-colors"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-auto p-4 space-y-4">
+        <div className="flex-1 overflow-auto px-4 py-3 space-y-3">
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+              className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {message.role === 'assistant' && (
-                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-5 h-5 text-white" />
+                <div className="w-6 h-6 bg-[hsl(142,70%,45%)] rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-3.5 h-3.5 text-black" />
                 </div>
               )}
               <div
-                className={`max-w-[70%] rounded-lg p-3 ${message.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-700 text-slate-200'
+                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${message.role === 'user'
+                    ? 'bg-[hsl(142,70%,45%)] text-black'
+                    : 'bg-[hsl(220,13%,12%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,80%)]'
                   }`}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                <p className="leading-relaxed whitespace-pre-wrap">
                   {message.content}
                 </p>
               </div>
               {message.role === 'user' && (
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-6 h-6 bg-[hsl(220,13%,15%)] rounded-lg flex items-center justify-center flex-shrink-0">
+                  <User className="w-3.5 h-3.5 text-[hsl(210,11%,60%)]" />
                 </div>
               )}
             </div>
           ))}
           {loading && (
-            <div className="flex gap-3 justify-start">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-blue-500 rounded-full flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
+            <div className="flex gap-2 justify-start">
+              <div className="w-6 h-6 bg-[hsl(142,70%,45%)] rounded-lg flex items-center justify-center">
+                <Bot className="w-3.5 h-3.5 text-black" />
               </div>
-              <div className="bg-slate-700 rounded-lg p-3">
+              <div className="bg-[hsl(220,13%,12%)] border border-[hsl(220,13%,18%)] rounded-lg p-2.5">
                 <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
-                  <div
-                    className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                    style={{ animationDelay: '0.1s' }}
-                  />
-                  <div
-                    className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"
-                    style={{ animationDelay: '0.2s' }}
-                  />
+                  <div className="w-1.5 h-1.5 bg-[hsl(142,70%,45%)] rounded-full animate-bounce" />
+                  <div className="w-1.5 h-1.5 bg-[hsl(142,70%,45%)] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <div className="w-1.5 h-1.5 bg-[hsl(142,70%,45%)] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                 </div>
               </div>
             </div>
@@ -144,8 +148,26 @@ const AIChat = ({ onClose }) => {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Quick actions - only show at start */}
+        {messages.length === 1 && (
+          <div className="px-4 pb-2">
+            <p className="text-[10px] text-[hsl(210,11%,40%)] mb-1.5">Suggestions:</p>
+            <div className="flex flex-wrap gap-1">
+              {QUICK_ACTIONS.map((action, i) => (
+                <button
+                  key={i}
+                  onClick={() => setInput(action)}
+                  className="text-[11px] px-2 py-1 rounded border bg-[hsl(220,13%,10%)] border-[hsl(220,13%,18%)] text-[hsl(210,11%,55%)] hover:text-[hsl(210,11%,75%)] hover:border-[hsl(220,13%,25%)] transition-colors"
+                >
+                  {action}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Input */}
-        <div className="p-4 border-t border-slate-700 bg-slate-900/50">
+        <div className="px-4 py-3 border-t border-[hsl(220,13%,15%)]">
           <div className="flex gap-2">
             <input
               data-testid="chat-input"
@@ -153,17 +175,17 @@ const AIChat = ({ onClose }) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask me anything about your issues..."
+              placeholder="Ask me anything..."
               disabled={loading}
-              className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+              className="flex-1 bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(220,13%,28%)] transition-colors disabled:opacity-50"
             />
             <button
               data-testid="send-message-button"
               onClick={handleSend}
               disabled={!input.trim() || loading}
-              className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 text-white px-4 py-2 rounded-lg transition-all duration-300 active:scale-[0.98] disabled:scale-100"
+              className="p-2 bg-[hsl(142,70%,45%)] text-black rounded-lg hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] transition-colors"
             >
-              <Send className="w-5 h-5" />
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
             </button>
           </div>
         </div>

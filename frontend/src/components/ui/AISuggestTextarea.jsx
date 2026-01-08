@@ -20,6 +20,8 @@ const AISuggestTextarea = React.forwardRef(({
     value,
     onChange,
     contextType = "general",
+    conversationHistory = [],
+    issueContext = null,
     placeholder,
     rows = 4,
     debounceMs = 500,
@@ -44,9 +46,9 @@ const AISuggestTextarea = React.forwardRef(({
         }
     };
 
-    // Fetch suggestion from API
+    // Fetch suggestion from API with conversation context
     const fetchSuggestion = useCallback(async (text) => {
-        if (!text || text.trim().length < 5) {
+        if (!text || text.trim().length < 3) {
             setSuggestion("");
             return;
         }
@@ -59,9 +61,20 @@ const AISuggestTextarea = React.forwardRef(({
 
         setLoading(true);
         try {
+            // Build context from conversation history
+            const historyContext = conversationHistory
+                .slice(-5)
+                .map(m => `${m.sender === 'user' ? 'You' : 'Them'}: ${m.content?.slice(0, 150) || ''}`)
+                .join('\n');
+
             const response = await axios.post(
                 `${API}/suggest`,
-                { text, contextType },
+                {
+                    text,
+                    contextType,
+                    conversationHistory: historyContext || '',
+                    issueContext: issueContext || null
+                },
                 { signal: abortControllerRef.current.signal }
             );
 
@@ -78,7 +91,7 @@ const AISuggestTextarea = React.forwardRef(({
         } finally {
             setLoading(false);
         }
-    }, [contextType]);
+    }, [contextType, conversationHistory, issueContext]);
 
     // Handle input change with debounce
     const handleChange = (e) => {

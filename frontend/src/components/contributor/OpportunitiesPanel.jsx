@@ -1,4 +1,4 @@
-import { X, ExternalLink, Calendar, Award, Users, GraduationCap, Code, Laptop, Rocket, Palette, Lightbulb } from 'lucide-react';
+import { ExternalLink, Calendar, Award, Users, GraduationCap, Code, Laptop, Rocket, Palette, Lightbulb, TrendingUp, X } from 'lucide-react';
 
 const OpportunitiesPanel = ({ onClose }) => {
   const opportunities = [
@@ -65,102 +65,118 @@ const OpportunitiesPanel = ({ onClose }) => {
   ];
 
   const colorClasses = {
-    emerald: 'border-emerald-500/30 bg-emerald-500/10',
-    blue: 'border-blue-500/30 bg-blue-500/10',
-    purple: 'border-purple-500/30 bg-purple-500/10',
-    yellow: 'border-yellow-500/30 bg-yellow-500/10',
-    slate: 'border-slate-500/30 bg-slate-500/10'
+    emerald: 'border-[hsl(142,70%,45%,0.3)] bg-[hsl(142,70%,45%,0.1)] hover:border-[hsl(142,70%,45%,0.5)]',
+    blue: 'border-blue-500/30 bg-blue-500/10 hover:border-blue-500/50',
+    purple: 'border-purple-500/30 bg-purple-500/10 hover:border-purple-500/50',
+    yellow: 'border-yellow-500/30 bg-yellow-500/10 hover:border-yellow-500/50',
+    slate: 'border-[hsl(220,13%,25%)] bg-[hsl(220,13%,12%)] hover:border-[hsl(220,13%,35%)]'
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-auto">
-      <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-5xl max-h-[90vh] overflow-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-slate-800 border-b border-slate-700 p-6 flex items-center justify-between z-10">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto bg-[hsl(220,13%,5%)] rounded-xl border border-[hsl(220,13%,14%)] shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 text-[hsl(210,11%,60%)] hover:text-[hsl(210,11%,90%)] hover:bg-[hsl(220,13%,10%)] rounded-lg transition-all z-10"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="p-6 md:p-8 space-y-8">
+          {/* Header */}
           <div>
-            <h2 className="text-3xl font-bold text-slate-200 mb-2">Open Source Opportunities</h2>
-            <p className="text-slate-400">Programs to kickstart your open source journey</p>
+            <h1 className="text-3xl font-bold text-[hsl(210,11%,90%)] mb-2 flex items-center gap-3">
+              <TrendingUp className="w-8 h-8 text-[hsl(142,70%,55%)]" />
+              Open Source Opportunities
+            </h1>
+            <p className="text-[hsl(210,11%,60%)]">
+              Curated list of mentorship programs and internships for open source contributors
+            </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {opportunities.map((opp, index) => {
-            const IconComponent = opp.icon;
-            return (
-              <div
-                key={index}
-                className={`border rounded-xl p-6 transition-all duration-300 hover:scale-[1.01] ${colorClasses[opp.color]}`}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-slate-700/50 rounded-lg flex items-center justify-center">
-                    <IconComponent className="w-7 h-7 text-slate-200" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-xl font-bold text-slate-200 mb-2">{opp.name}</h3>
-                        <p className="text-sm text-slate-400">{opp.description}</p>
-                      </div>
-                      <a
-                        href={opp.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-300 whitespace-nowrap"
-                      >
-                        Visit Site
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
+          {/* Content */}
+          <div className="grid gap-6">
+            {opportunities.map((opp, index) => {
+              const IconComponent = opp.icon;
+              return (
+                <div
+                  key={index}
+                  className={`border rounded-xl p-6 transition-all duration-300 hover:scale-[1.01] ${colorClasses[opp.color]}`}
+                >
+                  <div className="flex flex-col md:flex-row gap-6">
+                    <div className="w-14 h-14 bg-[hsl(220,13%,10%)] rounded-xl flex items-center justify-center border border-[hsl(220,13%,18%)] flex-shrink-0">
+                      <IconComponent className="w-8 h-8 text-[hsl(210,11%,80%)]" />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-slate-400">
-                        <Calendar className="w-4 h-4" />
-                        <span>{opp.timeline}</span>
+                    <div className="flex-1">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between mb-4 gap-4">
+                        <div>
+                          <h3 className="text-xl font-bold text-[hsl(210,11%,90%)] mb-1">{opp.name}</h3>
+                          <p className="text-sm text-[hsl(210,11%,60%)]">{opp.description}</p>
+                        </div>
+                        <a
+                          href={opp.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,16%)] text-[hsl(210,11%,80%)] px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all border border-[hsl(220,13%,18%)] w-fit"
+                        >
+                          Visit Site
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-400">
-                        <Users className="w-4 h-4" />
-                        <span>{opp.eligibility}</span>
-                      </div>
-                    </div>
 
-                    <div>
-                      <p className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-2">
-                        <Award className="w-4 h-4" />
-                        Benefits:
-                      </p>
-                      <ul className="grid grid-cols-2 gap-2">
-                        {opp.benefits.map((benefit, i) => (
-                          <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                            <span className="text-emerald-400 mt-0.5">✓</span>
-                            <span>{benefit}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-8 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-[hsl(210,11%,60%)]">
+                          <Calendar className="w-4 h-4 text-[hsl(210,11%,40%)]" />
+                          <span className="font-medium text-[hsl(210,11%,70%)]">Timeline:</span> {opp.timeline}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-[hsl(210,11%,60%)]">
+                          <Users className="w-4 h-4 text-[hsl(210,11%,40%)]" />
+                          <span className="font-medium text-[hsl(210,11%,70%)]">Eligibility:</span> {opp.eligibility}
+                        </div>
+                      </div>
+
+                      <div className="bg-[hsl(220,13%,7%,0.3)] rounded-lg p-3">
+                        <p className="text-xs font-semibold text-[hsl(210,11%,50%)] mb-2 flex items-center gap-2 uppercase tracking-wide">
+                          <Award className="w-3.5 h-3.5" />
+                          Benefits
+                        </p>
+                        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                          {opp.benefits.map((benefit, i) => (
+                            <li key={i} className="text-sm text-[hsl(210,11%,75%)] flex items-start gap-2">
+                              <span className="text-[hsl(142,70%,55%)] mt-0.5">•</span>
+                              <span>{benefit}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-slate-800 border-t border-slate-700 p-6">
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-            <p className="text-sm text-slate-300 mb-2 flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-blue-400" />
-              <strong className="text-blue-400">Pro Tip:</strong> Start contributing to projects you're interested in now! Having prior contributions significantly increases your chances of acceptance.
-            </p>
-            <p className="text-xs text-slate-400">
-              Use the AI Assistant to get personalized advice on which programs suit you best!
-            </p>
+          {/* Footer */}
+          <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,14%)] rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-500/10 p-3 rounded-lg flex-shrink-0">
+                <Lightbulb className="w-6 h-6 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-[hsl(210,11%,80%)] mb-1 font-medium">Pro Tip</p>
+                <p className="text-sm text-[hsl(210,11%,60%)] mb-3 leading-relaxed">
+                  Start contributing to projects in these organizations before the application period begins.
+                  Consistent contributions significantly increase your chances of being selected for mentorship programs.
+                </p>
+                <p className="text-xs text-[hsl(210,11%,40%)] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[hsl(142,70%,55%)]"></span>
+                  Use the AI Assistant to get personalized advice on which programs suit you best!
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

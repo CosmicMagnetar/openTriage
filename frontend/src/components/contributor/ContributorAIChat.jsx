@@ -7,7 +7,10 @@ import ReactMarkdown from 'react-markdown';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
-const ContributorAIChat = ({ onClose, issues }) => {
+const ContributorAIChat = ({ onClose, issues: propIssues }) => {
+  const [internalIssues, setInternalIssues] = useState([]);
+  const issues = propIssues || internalIssues;
+
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -20,6 +23,25 @@ const ContributorAIChat = ({ onClose, issues }) => {
   const [selectedRepo, setSelectedRepo] = useState('all');
   const [sessionId] = useState(() => `contributor-session-${Date.now()}`);
   const messagesEndRef = useRef(null);
+
+  // Fetch issues if not provided (for global usage)
+  useEffect(() => {
+    if (!propIssues) {
+      const fetchIssues = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
+          const response = await axios.get(`${API}/contributor/my-issues`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setInternalIssues(response.data);
+        } catch (error) {
+          console.error('Failed to fetch issues for chat context:', error);
+        }
+      };
+      fetchIssues();
+    }
+  }, [propIssues]);
 
   const repositories = useMemo(() => {
     return [...new Set(issues.map(i => i.repoName).filter(Boolean))].sort();

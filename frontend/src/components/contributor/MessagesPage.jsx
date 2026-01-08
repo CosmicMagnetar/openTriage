@@ -3,6 +3,7 @@ import { MessageSquare, Send, Loader2, ArrowLeft, Search } from 'lucide-react';
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
+import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 
 const MessagesPage = () => {
     const { user } = useAuthStore();
@@ -78,16 +79,16 @@ const MessagesPage = () => {
 
     if (loading && conversations.length === 0) {
         return (
-            <div className="h-full flex items-center justify-center bg-slate-900">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+            <div className="h-full flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[hsl(142,70%,55%)]" />
             </div>
         );
     }
 
     return (
-        <div className="h-full flex bg-slate-900">
+        <div className="h-full flex">
             {/* Left Panel - Conversations List */}
-            <div className={`w-80 border-r border-slate-700 flex flex-col ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
+            <div className={`w-80 border-r border-[hsl(220,13%,12%)] flex flex-col ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
                 <div className="p-4 border-b border-slate-700">
                     <h1 className="text-xl font-bold text-slate-200 mb-3">Messages</h1>
                     <div className="relative">
@@ -191,24 +192,33 @@ const MessagesPage = () => {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input */}
-                        <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-700 bg-slate-800">
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Type a message..."
-                                    className="flex-1 bg-slate-900 border border-slate-600 rounded-full px-4 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                                />
+                        {/* Input with AI suggestions based on conversation history */}
+                        <form onSubmit={handleSendMessage} className="p-4 border-t border-[hsl(220,13%,15%)] bg-[hsl(220,13%,8%)]">
+                            <div className="flex gap-2 items-end">
+                                <div className="flex-1">
+                                    <AISuggestTextarea
+                                        value={newMessage}
+                                        onChange={setNewMessage}
+                                        contextType="direct_message"
+                                        conversationHistory={messages.map(m => ({
+                                            sender: m.sender_id === user?.userId ? 'user' : 'other',
+                                            content: m.content
+                                        }))}
+                                        placeholder="Type a message..."
+                                        disabled={sending}
+                                        rows={1}
+                                        className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-4 py-2.5 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(220,13%,28%)] resize-none min-h-[40px] max-h-[120px]"
+                                    />
+                                </div>
                                 <button
                                     type="submit"
                                     disabled={!newMessage.trim() || sending}
-                                    className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="p-2.5 bg-[hsl(142,70%,45%)] text-black rounded-lg hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] transition-colors"
                                 >
                                     {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                 </button>
                             </div>
+                            <p className="text-[10px] text-[hsl(210,11%,35%)] mt-1.5">AI suggests completions based on your conversation</p>
                         </form>
                     </>
                 ) : (

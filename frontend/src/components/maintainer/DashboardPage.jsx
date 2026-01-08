@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { AlertCircle, CheckCircle2, Clock, TrendingUp, Plus, FolderGit2, RefreshCw, Bot } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, TrendingUp, Plus, FolderGit2, RefreshCw } from 'lucide-react';
 import IssueCard from './IssueCard';
-import AIChat from './AIChat';
 import { toast } from 'sonner';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
@@ -16,7 +15,6 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [autoSyncing, setAutoSyncing] = useState(false);
   const [showAddRepo, setShowAddRepo] = useState(false);
-  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -96,22 +94,14 @@ const DashboardPage = () => {
             <button
               data-testid="refresh-button"
               onClick={loadData}
-              className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-lg font-medium transition-all duration-300 active:scale-[0.98]"
+              className="bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,18%)] text-[hsl(210,11%,70%)] px-4 py-2.5 rounded-lg font-medium transition-colors"
             >
               <RefreshCw className="w-5 h-5" />
             </button>
             <button
-              data-testid="ai-chat-button"
-              onClick={() => setShowChat(true)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
-            >
-              <Bot className="w-5 h-5" />
-              AI Assistant
-            </button>
-            <button
               data-testid="add-repo-button"
               onClick={() => setShowAddRepo(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
+              className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors"
             >
               <Plus className="w-5 h-5" />
               Add Repository
@@ -224,9 +214,6 @@ const DashboardPage = () => {
           }}
         />
       )}
-
-      {/* AI Chat */}
-      {showChat && <AIChat onClose={() => setShowChat(false)} />}
     </div>
   );
 };
