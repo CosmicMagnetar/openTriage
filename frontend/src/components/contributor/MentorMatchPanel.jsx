@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Star, ArrowRight, Sparkles, Search, X, AlertCircle, MessageSquare } from 'lucide-react';
+import { Users, Star, ArrowRight, Sparkles, Search, X, AlertCircle, MessageSquare, Clock, ChevronRight } from 'lucide-react';
 import { mentorApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import MentorshipChatWidget from '../ui/MentorshipChatWidget';

@@ -12,7 +12,7 @@ router = APIRouter(prefix="/messaging", tags=["Messaging"])
 @router.get("/history/{other_user_id}", response_model=List[Message])
 async def get_chat_history(other_user_id: str, current_user: dict = Depends(get_current_user)):
     """Fetch chat history between current user and other user."""
-    current_user_id = str(current_user["_id"])
+    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
     
     # Find messages where (sender=me AND receiver=other) OR (sender=other AND receiver=me)
     cursor = db.messages.find({
@@ -28,7 +28,7 @@ async def get_chat_history(other_user_id: str, current_user: dict = Depends(get_
 @router.post("/send", response_model=Message)
 async def send_message(request: SendMessageRequest, current_user: dict = Depends(get_current_user)):
     """Send a message to another user."""
-    current_user_id = str(current_user["_id"])
+    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
     
     # Create message
     message = Message(
@@ -49,7 +49,7 @@ async def poll_messages(
     current_user: dict = Depends(get_current_user)
 ):
     """Poll for new messages from a specific user."""
-    current_user_id = str(current_user["_id"])
+    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
     
     query = {
         "$or": [
@@ -68,3 +68,34 @@ async def poll_messages(
     messages = await cursor.to_list(length=100)
     
     return messages
+
+
+@router.get("/unread-count")
+async def get_unread_count(current_user: dict = Depends(get_current_user)):
+    """Get count of unread messages for the current user."""
+    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+    
+    # Count unread messages where current user is the receiver
+    count = await db.messages.count_documents({
+        "receiver_id": current_user_id,
+        "read": False
+    })
+    
+    return {"count": count}
+
+
+@router.post("/mark-read/{other_user_id}")
+async def mark_messages_read(other_user_id: str, current_user: dict = Depends(get_current_user)):
+    """Mark all messages from a specific user as read."""
+    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
+    
+    result = await db.messages.update_many(
+        {
+            "sender_id": other_user_id,
+            "receiver_id": current_user_id,
+            "read": False
+        },
+        {"$set": {"read": True}}
+    )
+    
+    return {"marked_read": result.modified_count}

@@ -294,6 +294,25 @@ export const cookieLickingApi = {
     apiRequest('/api/spark/cookie-licking/stop-scan', { method: 'POST' }),
 };
 
+// ============ Issue Claiming API ============
+
+export const claimApi = {
+  claimIssue: (issueId) =>
+    apiRequest('/api/contributor/claim-issue', {
+      method: 'POST',
+      body: JSON.stringify({ issueId }),
+    }),
+  
+  unclaimIssue: (issueId) =>
+    apiRequest(`/api/contributor/claim-issue/${issueId}`, { method: 'DELETE' }),
+  
+  getMyClaimedIssues: () =>
+    apiRequest('/api/contributor/my-claimed-issues'),
+  
+  updateClaimActivity: (issueId) =>
+    apiRequest(`/api/contributor/claim-activity/${issueId}`, { method: 'POST' }),
+};
+
 // ============ Messaging API ============
 
 export const messagingApi = {
@@ -383,6 +402,7 @@ export default {
   analyticsApi,
   sentimentApi,
   cookieLickingApi,
+  claimApi,
   profileApi,
   repositoryApi,
   messagingApi,

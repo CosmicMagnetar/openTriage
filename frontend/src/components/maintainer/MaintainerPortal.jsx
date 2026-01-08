@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, FileText, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Sparkles, FileText, Plus, Edit2, Trash2, Cookie } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 import HypeGenerator from './HypeGenerator';
+import CookieLickingPanel from './CookieLickingPanel';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -66,6 +67,16 @@ const MaintainerPortal = () => {
                     <span className="font-medium">Hype Generator</span>
                 </button>
                 <button
+                    onClick={() => setActiveTab('claims')}
+                    className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${activeTab === 'claims'
+                        ? 'border-amber-500 text-amber-400'
+                        : 'border-transparent text-slate-400 hover:text-slate-200'
+                        }`}
+                >
+                    <Cookie className="w-5 h-5" />
+                    <span className="font-medium">Claims Monitor</span>
+                </button>
+                <button
                     onClick={() => setActiveTab('templates')}
                     className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${activeTab === 'templates'
                         ? 'border-blue-500 text-blue-400'
@@ -81,6 +92,12 @@ const MaintainerPortal = () => {
             {activeTab === 'hype' && (
                 <div className="animate-in fade-in duration-300">
                     <HypeGenerator />
+                </div>
+            )}
+
+            {activeTab === 'claims' && (
+                <div className="animate-in fade-in duration-300">
+                    <CookieLickingPanel />
                 </div>
             )}
 

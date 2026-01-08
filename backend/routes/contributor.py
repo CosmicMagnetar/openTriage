@@ -303,3 +303,147 @@ async def suggest_contributor_reply(request: ContributorSuggestReplyRequest, use
     except Exception as e:
         logger.error(f"Error generating contributor reply suggestion: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============ Issue Claiming Endpoints ============
+
+from datetime import datetime, timezone
+
+
+class ClaimIssueRequest(BaseModel):
+    issueId: str
+
+
+@router.post("/contributor/claim-issue")
+async def claim_issue(request: ClaimIssueRequest, user: dict = Depends(get_current_user)):
+    """Claim an issue to work on it. This registers the claim for cookie-licking tracking."""
+    try:
+        # Check if issue exists
+        issue = await db.issues.find_one({"id": request.issueId}, {"_id": 0})
+        if not issue:
+            raise HTTPException(status_code=404, detail="Issue not found")
+        
+        # Check if already claimed by someone
+        existing_claim = await db.claimed_issues.find_one({"issueId": request.issueId})
+        if existing_claim:
+            if existing_claim.get("claimedBy") == user["username"]:
+                return {"message": "You have already claimed this issue", "alreadyClaimed": True}
+            else:
+                raise HTTPException(
+                    status_code=409, 
+                    detail=f"Issue already claimed by {existing_claim.get('claimedBy')}"
+                )
+        
+        # Create claim record
+        claim = {
+            "issueId": request.issueId,
+            "claimedBy": user["username"],
+            "claimedById": user["id"],
+            "claimedAt": datetime.now(timezone.utc).isoformat(),
+            "lastActivityAt": datetime.now(timezone.utc).isoformat(),
+        }
+        
+        await db.claimed_issues.insert_one(claim)
+        
+        logger.info(f"User {user['username']} claimed issue {request.issueId}")
+        
+        return {
+            "message": "Issue claimed successfully",
+            "issueId": request.issueId,
+            "claimedAt": claim["claimedAt"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error claiming issue {request.issueId}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/contributor/claim-issue/{issue_id}")
+async def unclaim_issue(issue_id: str, user: dict = Depends(get_current_user)):
+    """Unclaim an issue. Only the user who claimed it can unclaim it."""
+    try:
+        # Check if claim exists
+        existing_claim = await db.claimed_issues.find_one({"issueId": issue_id})
+        if not existing_claim:
+            raise HTTPException(status_code=404, detail="No claim found for this issue")
+        
+        # Verify ownership
+        if existing_claim.get("claimedBy") != user["username"]:
+            raise HTTPException(
+                status_code=403, 
+                detail="You can only unclaim issues you have claimed"
+            )
+        
+        # Remove claim
+        await db.claimed_issues.delete_one({"issueId": issue_id})
+        
+        logger.info(f"User {user['username']} unclaimed issue {issue_id}")
+        
+        return {"message": "Issue unclaimed successfully", "issueId": issue_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error unclaiming issue {issue_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/contributor/my-claimed-issues")
+async def get_my_claimed_issues(user: dict = Depends(get_current_user)):
+    """Get all issues currently claimed by the user."""
+    try:
+        claims = await db.claimed_issues.find(
+            {"claimedBy": user["username"]}, 
+            {"_id": 0}
+        ).to_list(100)
+        
+        # Enrich with issue details
+        enriched = []
+        for claim in claims:
+            issue = await db.issues.find_one({"id": claim["issueId"]}, {"_id": 0})
+            if issue:
+                enriched.append({
+                    **claim,
+                    "issue": issue
+                })
+        
+        return {"claims": enriched, "count": len(enriched)}
+        
+    except Exception as e:
+        logger.error(f"Error fetching claimed issues for {user['username']}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/contributor/claim-activity/{issue_id}")
+async def update_claim_activity(issue_id: str, user: dict = Depends(get_current_user)):
+    """Update the last activity timestamp for a claimed issue (resets cookie-licking timer)."""
+    try:
+        # Check if claim exists and belongs to user
+        existing_claim = await db.claimed_issues.find_one({"issueId": issue_id})
+        if not existing_claim:
+            raise HTTPException(status_code=404, detail="No claim found for this issue")
+        
+        if existing_claim.get("claimedBy") != user["username"]:
+            raise HTTPException(
+                status_code=403, 
+                detail="You can only update activity on issues you have claimed"
+            )
+        
+        # Update activity timestamp
+        await db.claimed_issues.update_one(
+            {"issueId": issue_id},
+            {"$set": {"lastActivityAt": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        logger.info(f"User {user['username']} updated activity on claimed issue {issue_id}")
+        
+        return {"message": "Activity updated successfully", "issueId": issue_id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating claim activity for {issue_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

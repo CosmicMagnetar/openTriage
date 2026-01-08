@@ -1,6 +1,6 @@
-import { FileText, LogOut, BarChart3, Settings, Menu, X, User } from 'lucide-react';
+import { FileText, LogOut, BarChart3, Settings, Menu, X, User, Bell, MessageSquare } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useAuthStore from '../../stores/authStore';
 import Logo from '../Logo';
 
@@ -9,9 +9,35 @@ const ContributorSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Poll for unread messages
+  useEffect(() => {
+    const checkUnread = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/messaging/unread-count`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUnreadCount(data.count || 0);
+        }
+      } catch (error) {
+        console.error('Failed to check unread messages:', error);
+      }
+    };
+
+    checkUnread();
+    const interval = setInterval(checkUnread, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const menuItems = [
     { icon: FileText, label: 'My Issues', path: '/' },
+    { icon: MessageSquare, label: 'Messages', path: '/messages', badge: unreadCount },
     { icon: User, label: 'Profile', path: '/profile' },
     { icon: BarChart3, label: 'Metrics', path: '/metrics' },
     { icon: Settings, label: 'Settings', path: '/settings' }
@@ -85,8 +111,20 @@ const ContributorSidebar = () => {
                   : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'
                   }`}
               >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
+                <div className="relative">
+                  <Icon className="w-5 h-5" />
+                  {item.badge > 0 && (
+                    <span className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="flex-1">{item.label}</span>
+                {item.badge > 0 && (
+                  <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}
