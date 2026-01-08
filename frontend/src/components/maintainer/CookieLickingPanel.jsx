@@ -11,6 +11,7 @@ const CookieLickingPanel = () => {
     const [selectedRepo, setSelectedRepo] = useState('');
     const [loading, setLoading] = useState(true);
     const [releasing, setReleasing] = useState(false);
+    const [scanStarted, setScanStarted] = useState(false);
 
     useEffect(() => {
         loadRepos();
@@ -23,8 +24,21 @@ const CookieLickingPanel = () => {
     const loadRepos = async () => {
         if (!user) return;
         try {
-            const data = await profileApi.getConnectedRepos(user.id);
-            setConnectedRepos(data.repos || []);
+            // First try connected repos
+            const data = await profileApi.getConnectedRepos(user.username || user.id);
+            let repos = data.repos || [];
+
+            // If no connected repos, fetch from GitHub
+            if (repos.length === 0) {
+                try {
+                    const githubData = await profileApi.getUserRepos(user.username);
+                    repos = (githubData.repos || []).map(r => r.name);
+                } catch (e) {
+                    console.error('Failed to load GitHub repos:', e);
+                }
+            }
+
+            setConnectedRepos(repos);
         } catch (error) {
             console.error('Failed to load repos:', error);
         }
@@ -49,14 +63,19 @@ const CookieLickingPanel = () => {
 
     const toggleScan = async () => {
         try {
+            setScanStarted(true);
             if (status?.scanning) {
                 await cookieLickingApi.stopScan();
+                setStatus(prev => ({ ...prev, scanning: false }));
             } else {
                 await cookieLickingApi.startScan();
+                setStatus(prev => ({ ...prev, scanning: true }));
             }
             await loadData();
         } catch (error) {
             console.error('Failed to toggle scan:', error);
+        } finally {
+            setScanStarted(false);
         }
     };
 
@@ -131,12 +150,15 @@ const CookieLickingPanel = () => {
 
                     <button
                         onClick={toggleScan}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                        disabled={scanStarted}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50
                        ${status?.scanning
                                 ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
                                 : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'}`}
                     >
-                        {status?.scanning ? (
+                        {scanStarted ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+                        ) : status?.scanning ? (
                             <>
                                 <Square className="w-4 h-4" />
                                 Stop Scan

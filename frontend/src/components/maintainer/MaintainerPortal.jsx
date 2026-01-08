@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, FileText, Plus, Edit2, Trash2, Cookie } from 'lucide-react';
+import { Sparkles, FileText, Plus, Edit2, Trash2, Cookie, Users } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 import HypeGenerator from './HypeGenerator';
 import CookieLickingPanel from './CookieLickingPanel';
+import MentorDashboardPanel from './MentorDashboardPanel';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -84,7 +85,17 @@ const MaintainerPortal = () => {
                         }`}
                 >
                     <FileText className="w-5 h-5" />
-                    <span className="font-medium">Response Templates</span>
+                    <span className="font-medium">Templates</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('mentorship')}
+                    className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${activeTab === 'mentorship'
+                        ? 'border-pink-500 text-pink-400'
+                        : 'border-transparent text-slate-400 hover:text-slate-200'
+                        }`}
+                >
+                    <Users className="w-5 h-5" />
+                    <span className="font-medium">Mentorship</span>
                 </button>
             </div>
 
@@ -98,6 +109,12 @@ const MaintainerPortal = () => {
             {activeTab === 'claims' && (
                 <div className="animate-in fade-in duration-300">
                     <CookieLickingPanel />
+                </div>
+            )}
+
+            {activeTab === 'mentorship' && (
+                <div className="animate-in fade-in duration-300">
+                    <MentorDashboardPanel />
                 </div>
             )}
 

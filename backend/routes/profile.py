@@ -325,10 +325,23 @@ async def disconnect_repo(user_id: str, repo_name: str):
 @router.get("/{user_id}/connected-repos")
 async def get_connected_repos(user_id: str):
     """Get list of connected repositories for a user."""
-    profile = await db.profiles.find_one({"user_id": user_id})
+    # Query by both user_id and username to handle different ID formats
+    profile = await db.profiles.find_one({
+        "$or": [{"user_id": user_id}, {"username": user_id}]
+    })
     
     if not profile:
-        return {"repos": []}
+        # Try to get repos from issues the user has created in
+        unique_repos = set()
+        cursor = db.issues.find(
+            {"$or": [{"authorName": user_id}, {"authorName": {"$regex": f"^{user_id}$", "$options": "i"}}]},
+            {"repoName": 1, "_id": 0}
+        )
+        async for issue in cursor:
+            if issue.get("repoName"):
+                unique_repos.add(issue["repoName"])
+        
+        return {"repos": list(unique_repos)[:20]}
     
     return {"repos": profile.get("connected_repos", [])}
 

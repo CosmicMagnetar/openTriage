@@ -3,6 +3,7 @@ import ContributorSidebar from './ContributorSidebar';
 import MyIssuesDashboard from './MyIssuesDashboard';
 import ContributorMetrics from './ContributorMetrics';
 import ProfilePage from './ProfilePage';
+import MessagesPage from './MessagesPage';
 import Settings from '../Settings';
 
 const ContributorLayout = () => {
@@ -13,6 +14,7 @@ const ContributorLayout = () => {
         <Routes>
           <Route path="/" element={<MyIssuesDashboard />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/messages" element={<MessagesPage />} />
           <Route path="/metrics" element={<ContributorMetrics />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<MyIssuesDashboard />} />

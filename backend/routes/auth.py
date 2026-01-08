@@ -82,3 +82,46 @@ async def github_callback(code: str):
     except Exception as e:
         logger.error(f"GitHub auth error: {e}")
         return RedirectResponse(f"{settings.FRONTEND_URL}/?error=auth_failed")
+
+
+from pydantic import BaseModel
+from utils.dependencies import get_current_user
+from fastapi import Depends
+
+
+class RoleUpdateRequest(BaseModel):
+    role: str  # "maintainer" or "contributor"
+
+
+@router.get("/auth/me")
+async def get_current_user_info(user: dict = Depends(get_current_user)):
+    """Get current user information."""
+    return {
+        "id": user.get("id"),
+        "username": user.get("username"),
+        "avatarUrl": user.get("avatarUrl"),
+        "role": user.get("role"),
+        "githubId": user.get("githubId")
+    }
+
+
+@router.post("/auth/update-role")
+async def update_user_role(request: RoleUpdateRequest, user: dict = Depends(get_current_user)):
+    """Update user's role. Users can switch between contributor and maintainer."""
+    if request.role not in ["maintainer", "contributor"]:
+        raise HTTPException(status_code=400, detail="Role must be 'maintainer' or 'contributor'")
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"role": request.role}}
+    )
+    
+    # Generate new JWT with updated role
+    new_token = create_jwt_token(user["id"], request.role)
+    
+    return {
+        "success": True,
+        "message": f"Role updated to {request.role}",
+        "token": new_token,
+        "role": request.role
+    }

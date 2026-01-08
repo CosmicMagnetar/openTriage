@@ -158,6 +158,86 @@ async def stop_background_scan():
     return {"status": "stopped"}
 
 
+@router.post("/cookie-licking/seed-test-data")
+async def seed_test_data():
+    """
+    Seed test data for cookie-licking monitor demonstration.
+    Creates sample claimed issues with various statuses.
+    """
+    from config.database import db
+    from datetime import datetime, timezone, timedelta
+    import uuid
+    
+    now = datetime.now(timezone.utc)
+    
+    # Sample test data with different claim ages
+    test_claims = [
+        {
+            "issueId": str(uuid.uuid4()),
+            "issue_number": 42,
+            "issue_title": "Fix navigation bug on mobile",
+            "repo_name": "openTriage/frontend",
+            "username": "contributor1",
+            "claimedAt": (now - timedelta(hours=2)).isoformat(),  # Active - claimed 2h ago
+            "lastActivityAt": (now - timedelta(hours=1)).isoformat(),
+            "status": "active"
+        },
+        {
+            "issueId": str(uuid.uuid4()),
+            "issue_number": 87,
+            "issue_title": "Add dark mode toggle",
+            "repo_name": "openTriage/frontend",
+            "username": "dev_student",
+            "claimedAt": (now - timedelta(hours=28)).isoformat(),  # At-risk - claimed 28h ago
+            "lastActivityAt": (now - timedelta(hours=26)).isoformat(),
+            "status": "at_risk"
+        },
+        {
+            "issueId": str(uuid.uuid4()),
+            "issue_number": 156,
+            "issue_title": "Improve API error handling",
+            "repo_name": "openTriage/backend",
+            "username": "newbie_coder",
+            "claimedAt": (now - timedelta(hours=40)).isoformat(),  # At-risk - claimed 40h ago
+            "lastActivityAt": (now - timedelta(hours=38)).isoformat(),
+            "status": "at_risk"
+        },
+        {
+            "issueId": str(uuid.uuid4()),
+            "issue_number": 201,
+            "issue_title": "Add unit tests for auth module",
+            "repo_name": "openTriage/backend",
+            "username": "ghost_dev",
+            "claimedAt": (now - timedelta(hours=50)).isoformat(),  # Expired - claimed 50h ago
+            "lastActivityAt": (now - timedelta(hours=49)).isoformat(),
+            "status": "expired"
+        },
+        {
+            "issueId": str(uuid.uuid4()),
+            "issue_number": 305,
+            "issue_title": "Refactor database queries",
+            "repo_name": "openTriage/backend",
+            "username": "busy_contributor",
+            "claimedAt": (now - timedelta(hours=20)).isoformat(),  # Active - claimed 20h ago
+            "lastActivityAt": (now - timedelta(hours=5)).isoformat(),
+            "status": "active"
+        },
+    ]
+    
+    # Clear existing test data
+    await db.claimed_issues.delete_many({})
+    
+    # Insert test data
+    await db.claimed_issues.insert_many(test_claims)
+    
+    return {
+        "success": True,
+        "message": f"Seeded {len(test_claims)} test claimed issues",
+        "claims": test_claims
+    }
+
+
+
 # Invisible Labor Analytics Endpoints
 
 @router.post("/analytics/invisible-labor")
@@ -413,10 +493,12 @@ async def get_all_badges():
 
 
 @router.get("/badges/user/{username}")
-async def get_user_badges(username: str):
+async def get_user_badges(username: str, current_user: dict = Depends(get_current_user)):
     """Get badges for a user."""
     try:
-        result = await badges_service.get_user_badges("", username)
+        # Use the requesting user's ID if viewing own profile, otherwise query by username
+        user_id = current_user.get("id", "") if current_user.get("username") == username else ""
+        result = await badges_service.get_user_badges(user_id, username)
         return result
     except Exception as e:
         logger.error(f"Get user badges error: {e}")
@@ -424,14 +506,21 @@ async def get_user_badges(username: str):
 
 
 @router.post("/badges/check/{username}")
-async def check_and_award_badges(username: str):
+async def check_and_award_badges(username: str, current_user: dict = Depends(get_current_user)):
     """Check and award any new badges for a user."""
     try:
-        new_badges = await badges_service.check_and_award_badges("", username)
+        # Only allow users to check their own badges for security
+        if current_user.get("username") != username:
+            raise HTTPException(status_code=403, detail="Can only check badges for your own account")
+        
+        user_id = current_user.get("id", "")
+        new_badges = await badges_service.check_and_award_badges(user_id, username)
         return {
             "new_badges_count": len(new_badges),
             "new_badges": [b.model_dump() for b in new_badges]
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Check badges error: {e}")
         raise HTTPException(status_code=500, detail=str(e))

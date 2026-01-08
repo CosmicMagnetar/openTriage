@@ -328,7 +328,35 @@ export const messagingApi = {
   pollMessages: (otherUserId, lastMessageId = null) => {
     const params = lastMessageId ? `?last_message_id=${lastMessageId}` : '';
     return apiRequest(`/api/messaging/poll/${otherUserId}${params}`);
-  }
+  },
+
+  getConversations: () =>
+    apiRequest('/api/messaging/conversations'),
+
+  markRead: (otherUserId) =>
+    apiRequest(`/api/messaging/mark-read/${otherUserId}`, { method: 'POST' }),
+
+  // Mentorship Management
+  getMentorshipRequests: () =>
+    apiRequest('/api/messaging/mentorship/requests'),
+
+  acceptMentorship: (requestId, message = null) =>
+    apiRequest('/api/messaging/mentorship/accept', {
+      method: 'POST',
+      body: JSON.stringify({ request_id: requestId, message }),
+    }),
+
+  declineMentorship: (requestId) =>
+    apiRequest('/api/messaging/mentorship/decline', {
+      method: 'POST',
+      body: JSON.stringify({ request_id: requestId }),
+    }),
+
+  getMentees: () =>
+    apiRequest('/api/messaging/mentees'),
+
+  removeMentee: (menteeId) =>
+    apiRequest(`/api/messaging/mentees/${menteeId}`, { method: 'DELETE' }),
 };
 
 // ============ Profile API ============
