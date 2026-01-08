@@ -12,32 +12,44 @@ router = APIRouter(prefix="/messaging", tags=["Messaging"])
 @router.get("/history/{other_user_id}", response_model=List[Message])
 async def get_chat_history(other_user_id: str, current_user: dict = Depends(get_current_user)):
     """Fetch chat history between current user and other user."""
-    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
-    current_username = current_user.get("username", "")
+    # Get all identifiers for current user
+    current_ids = [
+        current_user.get("id"),  # UUID
+        current_user.get("username"),
+        str(current_user.get("_id", "")), # ObjectId
+        str(current_user.get("githubId", "")) # GitHub ID
+    ]
+    current_ids = [i for i in current_ids if i]
     
-    # Also get the other user's possible identifiers
+    # Get all identifiers for other user
+    search_criteria = [
+        {"id": other_user_id}, 
+        {"username": other_user_id},
+        {"_id": other_user_id}
+    ]
+    if other_user_id.isdigit():
+        search_criteria.append({"githubId": int(other_user_id)})
+        
     other_user = await db.users.find_one(
-        {"$or": [{"id": other_user_id}, {"username": other_user_id}]},
-        {"_id": 0, "id": 1, "username": 1}
+        {"$or": search_criteria},
+        {"_id": 1, "id": 1, "username": 1, "githubId": 1}
     )
-    
-    # Build list of IDs to match
-    my_ids = [current_user_id]
-    if current_username:
-        my_ids.append(current_username)
     
     other_ids = [other_user_id]
     if other_user:
-        if other_user.get("id"):
-            other_ids.append(str(other_user["id"]))
-        if other_user.get("username"):
-            other_ids.append(other_user["username"])
+        other_ids.extend([
+            other_user.get("id"),
+            other_user.get("username"),
+            str(other_user.get("_id", "")),
+            str(other_user.get("githubId", ""))
+        ])
+    other_ids = [i for i in set(other_ids) if i]
     
     # Find messages where (sender=me AND receiver=other) OR (sender=other AND receiver=me)
     cursor = db.messages.find({
         "$or": [
-            {"sender_id": {"$in": my_ids}, "receiver_id": {"$in": other_ids}},
-            {"sender_id": {"$in": other_ids}, "receiver_id": {"$in": my_ids}}
+            {"sender_id": {"$in": current_ids}, "receiver_id": {"$in": other_ids}},
+            {"sender_id": {"$in": other_ids}, "receiver_id": {"$in": current_ids}}
         ]
     }).sort("timestamp", 1)
     
@@ -68,31 +80,43 @@ async def poll_messages(
     current_user: dict = Depends(get_current_user)
 ):
     """Poll for new messages from a specific user."""
-    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
-    current_username = current_user.get("username", "")
+    # Get all identifiers for current user
+    current_ids = [
+        current_user.get("id"),  # UUID
+        current_user.get("username"),
+        str(current_user.get("_id", "")), # ObjectId
+        str(current_user.get("githubId", "")) # GitHub ID
+    ]
+    current_ids = [i for i in current_ids if i]
     
-    # Also get the other user's possible identifiers
+    # Get all identifiers for other user
+    search_criteria = [
+        {"id": other_user_id}, 
+        {"username": other_user_id},
+        {"_id": other_user_id}
+    ]
+    if other_user_id.isdigit():
+        search_criteria.append({"githubId": int(other_user_id)})
+        
     other_user = await db.users.find_one(
-        {"$or": [{"id": other_user_id}, {"username": other_user_id}]},
-        {"_id": 0, "id": 1, "username": 1}
+        {"$or": search_criteria},
+        {"_id": 1, "id": 1, "username": 1, "githubId": 1}
     )
-    
-    # Build list of IDs to match
-    my_ids = [current_user_id]
-    if current_username:
-        my_ids.append(current_username)
     
     other_ids = [other_user_id]
     if other_user:
-        if other_user.get("id"):
-            other_ids.append(str(other_user["id"]))
-        if other_user.get("username"):
-            other_ids.append(other_user["username"])
+        other_ids.extend([
+            other_user.get("id"),
+            other_user.get("username"),
+            str(other_user.get("_id", "")),
+            str(other_user.get("githubId", ""))
+        ])
+    other_ids = [i for i in set(other_ids) if i]
     
     query = {
         "$or": [
-            {"sender_id": {"$in": my_ids}, "receiver_id": {"$in": other_ids}},
-            {"sender_id": {"$in": other_ids}, "receiver_id": {"$in": my_ids}}
+            {"sender_id": {"$in": current_ids}, "receiver_id": {"$in": other_ids}},
+            {"sender_id": {"$in": other_ids}, "receiver_id": {"$in": current_ids}}
         ]
     }
     
@@ -215,21 +239,22 @@ async def seed_test_messages(current_user: dict = Depends(get_current_user)):
 @router.get("/conversations")
 async def get_conversations(current_user: dict = Depends(get_current_user)):
     """Get list of all conversation contacts with last message preview."""
-    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
-    current_username = current_user.get("username", "")
-    
-    # Build list of all possible IDs for current user
-    my_ids = [current_user_id]
-    if current_username:
-        my_ids.append(current_username)
+    # Get all identifiers for current user
+    current_ids = [
+        current_user.get("id"),  # UUID
+        current_user.get("username"),
+        str(current_user.get("_id", "")), # ObjectId
+        str(current_user.get("githubId", "")) # GitHub ID
+    ]
+    current_ids = [i for i in current_ids if i]
     
     # Get all unique users we've messaged with
     pipeline = [
         {
             "$match": {
                 "$or": [
-                    {"sender_id": {"$in": my_ids}},
-                    {"receiver_id": {"$in": my_ids}}
+                    {"sender_id": {"$in": current_ids}},
+                    {"receiver_id": {"$in": current_ids}}
                 ]
             }
         },
@@ -240,7 +265,7 @@ async def get_conversations(current_user: dict = Depends(get_current_user)):
             "$group": {
                 "_id": {
                     "$cond": [
-                        {"$in": ["$sender_id", my_ids]},
+                        {"$in": ["$sender_id", current_ids]},
                         "$receiver_id",
                         "$sender_id"
                     ]
@@ -251,7 +276,7 @@ async def get_conversations(current_user: dict = Depends(get_current_user)):
                     "$sum": {
                         "$cond": [
                             {"$and": [
-                                {"$in": ["$receiver_id", my_ids]},
+                                {"$in": ["$receiver_id", current_ids]},
                                 {"$eq": ["$read", False]}
                             ]},
                             1, 0
@@ -271,9 +296,17 @@ async def get_conversations(current_user: dict = Depends(get_current_user)):
     conversations = []
     for r in results:
         other_user_id = r["_id"]
-        # Try to get user info
+        # Try to resolve user info with robust lookup
+        search_criteria = [
+            {"id": other_user_id}, 
+            {"username": other_user_id},
+            {"_id": other_user_id}
+        ]
+        if str(other_user_id).isdigit():
+            search_criteria.append({"githubId": int(other_user_id)})
+            
         user_info = await db.users.find_one(
-            {"$or": [{"id": other_user_id}, {"username": other_user_id}]},
+            {"$or": search_criteria},
             {"_id": 0, "username": 1, "avatarUrl": 1}
         )
         
@@ -302,14 +335,21 @@ class MentorshipRequestAction(BaseModel):
 @router.get("/mentorship/requests")
 async def get_mentorship_requests(current_user: dict = Depends(get_current_user)):
     """Get pending mentorship requests for the current user (as mentor)."""
-    current_user_id = current_user.get("id") or str(current_user.get("_id", ""))
-    username = current_user.get("username", "")
+    # Get all identifiers for current user
+    current_ids = [
+        current_user.get("id"),  # UUID
+        current_user.get("username"),
+        str(current_user.get("_id", "")), # ObjectId
+        str(current_user.get("githubId", "")) # GitHub ID
+    ]
+    current_ids = [i for i in current_ids if i]
     
-    # Find requests where this user is the mentor
+    # Find requests where mentor_id matches ANY of the current user's IDs
+    # OR mentor_username matches
     cursor = db.mentorship_requests.find({
         "$or": [
-            {"mentor_id": current_user_id},
-            {"mentor_username": username}
+            {"mentor_id": {"$in": current_ids}},
+            {"mentor_username": current_user.get("username", "")}
         ],
         "status": "pending"
     }, {"_id": 0})
