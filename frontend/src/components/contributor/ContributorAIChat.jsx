@@ -3,6 +3,7 @@ import { X, Send, Bot, User, Sparkles, ChevronDown, BookOpen, ExternalLink, Aler
 import axios from 'axios';
 import { toast } from 'sonner';
 import { ragApi } from '../../services/api';
+import ReactMarkdown from 'react-markdown';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -200,8 +201,8 @@ const ContributorAIChat = ({ onClose, issues }) => {
                 }}
                 disabled={isIndexing}
                 className={`p-2 rounded-lg transition-colors border ${isIndexing
-                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 animate-pulse'
-                    : 'bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-300'
+                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 animate-pulse'
+                  : 'bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-300'
                   }`}
                 title="Refresh documentation"
               >
@@ -232,8 +233,8 @@ const ContributorAIChat = ({ onClose, issues }) => {
                     : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-bl-none'
                   }`}
               >
-                <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {message.content}
+                <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-strong:text-emerald-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline">
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
 
                 {/* Sources & Related Issues (RAG) */}

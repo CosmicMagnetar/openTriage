@@ -321,23 +321,29 @@ const OrganizationsPanel = ({ onClose, contributedRepos = [] }) => {
 
 const OrganizationIcon = ({ domain, name }) => {
     const [error, setError] = useState(false);
+    const [loaded, setLoaded] = useState(false);
 
-    if (!domain || error) {
-        return (
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
-                <Building2 className="w-7 h-7 text-emerald-400" />
-            </div>
-        );
-    }
+    // Get initials for fallback
+    const initials = name ? name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : '?';
 
+    // Always show fallback first, then overlay with logo if it loads
     return (
-        <div className="w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
-            <img
-                src={`https://logo.clearbit.com/${domain}`}
-                alt={`${name} logo`}
-                className="w-full h-full object-contain p-2"
-                onError={() => setError(true)}
-            />
+        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 relative overflow-hidden border border-slate-700">
+            {/* Fallback content - always visible until image loads */}
+            {(!loaded || error || !domain) && (
+                <span className="text-lg font-bold text-emerald-400">{initials}</span>
+            )}
+
+            {/* Logo image - hidden until loaded */}
+            {domain && !error && (
+                <img
+                    src={`https://logo.clearbit.com/${domain}`}
+                    alt={`${name} logo`}
+                    className={`absolute inset-0 w-full h-full object-contain p-2 bg-slate-800 transition-opacity duration-200 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+                    onLoad={() => setLoaded(true)}
+                    onError={() => setError(true)}
+                />
+            )}
         </div>
     );
 };
