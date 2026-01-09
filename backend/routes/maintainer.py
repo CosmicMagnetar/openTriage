@@ -73,83 +73,111 @@ async def get_dashboard_summary(user: dict = Depends(require_maintainer)):
 
 
 @router.get("/maintainer/issues")
-async def get_issues(user: dict = Depends(require_maintainer)):
-    """Get all open issues and PRs for maintainer's repositories with auto-sync from GitHub."""
+async def get_issues(
+    page: int = 1,
+    limit: int = 10,
+    user: dict = Depends(require_maintainer)
+):
+    """Get paginated open issues and PRs for maintainer's repositories."""
+    
+    # Validate pagination params
+    page = max(1, page)
+    limit = min(max(1, limit), 50)
+    skip = (page - 1) * limit
+    
     repos = await db.repositories.find({"userId": user['id']}, {"_id": 0}).to_list(1000)
     repo_ids = [r['id'] for r in repos]
     
-    # Get user's GitHub access token for authenticated requests
+    # Get total count
+    total = await db.issues.count_documents({
+        "repoId": {"$in": repo_ids},
+        "state": "open"
+    })
+    
+    # Get user's GitHub access token
     user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
     github_token = user_doc.get('githubAccessToken') if user_doc else None
     
-    # Background task: Sync issue/PR states from GitHub and import new ones
-    try:
-        for repo in repos:
-            # Fetch latest data from GitHub
-            repo_full_name = repo.get('name')
-            if repo_full_name and '/' in repo_full_name:
-                try:
-                    owner, repo_name = repo_full_name.split('/')
-                    data = await github_service.fetch_repo_issues(repo_full_name, github_token)
-                    
-                    # Process both issues and PRs
-                    for gh_item in data.get('issues', []) + data.get('prs', []):
-                        is_pr = gh_item.get('pull_request') is not None or gh_item in data.get('prs', [])
+    # Sync with GitHub only on first page
+    if page == 1:
+        try:
+            for repo in repos:
+                repo_full_name = repo.get('name')
+                if repo_full_name and '/' in repo_full_name:
+                    try:
+                        owner, repo_name = repo_full_name.split('/')
+                        data = await github_service.fetch_repo_issues(repo_full_name, github_token)
                         
-                        # Check if exists
-                        existing = await db.issues.find_one(
-                            {"githubIssueId": gh_item['id']},
-                            {"_id": 0}
-                        )
-                        
-                        if existing:
-                            # Update existing with all metadata
-                            await db.issues.update_one(
+                        for gh_item in data.get('issues', []) + data.get('prs', []):
+                            is_pr = gh_item.get('pull_request') is not None or gh_item in data.get('prs', [])
+                            
+                            existing = await db.issues.find_one(
                                 {"githubIssueId": gh_item['id']},
-                                {"$set": {
-                                    "title": gh_item['title'],
-                                    "body": gh_item.get('body') or '',
-                                    "state": gh_item['state'],
-                                    "htmlUrl": gh_item.get('html_url', '')
-                                }},
-                                upsert=False
+                                {"_id": 0}
                             )
-                        else:
-                            # Import new issue/PR
-                            from models.issue import Issue
-                            new_item = Issue(
-                                githubIssueId=gh_item['id'],
-                                number=gh_item['number'],
-                                title=gh_item['title'],
-                                body=gh_item.get('body') or '',
-                                authorName=gh_item['user']['login'],
-                                repoId=repo['id'],
-                                repoName=repo_full_name,
-                                owner=owner,
-                                repo=repo_name,
-                                htmlUrl=gh_item.get('html_url', ''),
-                                state=gh_item['state'],
-                                isPR=is_pr
-                            )
-                            item_dict = new_item.model_dump()
-                            item_dict['createdAt'] = item_dict['createdAt'].isoformat()
-                            await db.issues.insert_one(item_dict)
-                            logger.info(f"Imported new {'PR' if is_pr else 'issue'} #{gh_item['number']} from {repo_full_name}")
-                except Exception as e:
-                    logger.warning(f"Failed to sync {repo_full_name}: {e}")
-                    continue
-    except Exception as e:
-        logger.error(f"GitHub sync error: {e}")
+                            
+                            if existing:
+                                await db.issues.update_one(
+                                    {"githubIssueId": gh_item['id']},
+                                    {"$set": {
+                                        "title": gh_item['title'],
+                                        "body": gh_item.get('body') or '',
+                                        "state": gh_item['state'],
+                                        "htmlUrl": gh_item.get('html_url', '')
+                                    }},
+                                    upsert=False
+                                )
+                            else:
+                                from models.issue import Issue
+                                new_item = Issue(
+                                    githubIssueId=gh_item['id'],
+                                    number=gh_item['number'],
+                                    title=gh_item['title'],
+                                    body=gh_item.get('body') or '',
+                                    authorName=gh_item['user']['login'],
+                                    repoId=repo['id'],
+                                    repoName=repo_full_name,
+                                    owner=owner,
+                                    repo=repo_name,
+                                    htmlUrl=gh_item.get('html_url', ''),
+                                    state=gh_item['state'],
+                                    isPR=is_pr
+                                )
+                                item_dict = new_item.model_dump()
+                                item_dict['createdAt'] = item_dict['createdAt'].isoformat()
+                                await db.issues.insert_one(item_dict)
+                                logger.info(f"Imported new {'PR' if is_pr else 'issue'} #{gh_item['number']} from {repo_full_name}")
+                    except Exception as e:
+                        logger.warning(f"Failed to sync {repo_full_name}: {e}")
+                        continue
+        except Exception as e:
+            logger.error(f"GitHub sync error: {e}")
+        
+        # Refresh total after sync
+        total = await db.issues.count_documents({
+            "repoId": {"$in": repo_ids},
+            "state": "open"
+        })
     
-    # Only fetch open issues and PRs
+    # Fetch paginated issues
     issues = await db.issues.find({
         "repoId": {"$in": repo_ids},
         "state": "open"
-    }, {"_id": 0}).sort("createdAt", -1).to_list(1000)
+    }, {"_id": 0}).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    
     for issue in issues:
         triage = await db.triage_data.find_one({"issueId": issue['id']}, {"_id": 0})
         issue['triage'] = triage
-    return issues
+    
+    total_pages = (total + limit - 1) // limit
+    
+    return {
+        "items": issues,
+        "total": total,
+        "page": page,
+        "pages": total_pages,
+        "limit": limit
+    }
 
 
 @router.get("/maintainer/metrics")

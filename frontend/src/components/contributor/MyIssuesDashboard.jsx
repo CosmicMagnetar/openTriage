@@ -23,6 +23,8 @@ const MyIssuesDashboard = () => {
   const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest', 'repo'
   const [selectedRepo, setSelectedRepo] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -36,6 +38,11 @@ const MyIssuesDashboard = () => {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Reload when page changes
+  useEffect(() => {
+    loadDashboardData();
+  }, [currentPage]);
+
   const loadDashboardData = async (isAutoSync = false) => {
     if (!isAutoSync) {
       setLoading(true);
@@ -44,16 +51,22 @@ const MyIssuesDashboard = () => {
     }
 
     try {
-      // Fetch both issues and dashboard summary
+      // Fetch both issues (with pagination) and dashboard summary
       const [issuesResponse, statsResponse] = await Promise.all([
-        axios.get(`${API}/contributor/my-issues`),
+        axios.get(`${API}/contributor/my-issues`, {
+          params: { page: currentPage, limit: ITEMS_PER_PAGE }
+        }),
         axios.get(`${API}/contributor/dashboard-summary`)
       ]);
 
-      setIssues(issuesResponse.data);
+      // Backend returns { items, total, page, pages, limit }
+      const { items, total, pages } = issuesResponse.data;
+      setIssues(items || []);
+      setTotalItems(total || 0);
+      setTotalPages(pages || 1);
       setDashboardStats(statsResponse.data);
 
-      if (issuesResponse.data.length === 0 && !isAutoSync) {
+      if ((items || []).length === 0 && !isAutoSync && currentPage === 1) {
         toast.info('Fetching your issues from GitHub...');
       }
     } catch (error) {
@@ -112,12 +125,8 @@ const MyIssuesDashboard = () => {
     return filtered;
   }, [issues, activeFilter, sortBy, selectedRepo]);
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredAndSortedIssues.length / ITEMS_PER_PAGE);
-  const paginatedIssues = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredAndSortedIssues.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredAndSortedIssues, currentPage]);
+  // Client-side filtering/sorting still works - pagination is handled by backend
+  // paginatedIssues is now just the filtered/sorted issues (already paginated from backend)
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -312,7 +321,7 @@ const MyIssuesDashboard = () => {
             {/* Filtered Results Count */}
             {(activeFilter !== 'all' || selectedRepo !== 'all' || totalPages > 1) && (
               <div className="mb-4 text-sm text-[hsl(210,11%,50%)]">
-                Showing {paginatedIssues.length} of {filteredAndSortedIssues.length} items
+                Showing {filteredAndSortedIssues.length} of {totalItems} items
                 {selectedRepo !== 'all' && <span> in <span className="text-[hsl(142,70%,55%)]">{selectedRepo}</span></span>}
                 {totalPages > 1 && <span> • Page {currentPage} of {totalPages}</span>}
               </div>
@@ -320,8 +329,8 @@ const MyIssuesDashboard = () => {
 
             {/* Issues Grid */}
             <div className="grid gap-4">
-              {paginatedIssues.length > 0 ? (
-                paginatedIssues.map((issue) => (
+              {filteredAndSortedIssues.length > 0 ? (
+                filteredAndSortedIssues.map((issue) => (
                   <ParticipantIssueCard key={issue.id} issue={issue} />
                 ))
               ) : (
@@ -366,8 +375,8 @@ const MyIssuesDashboard = () => {
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
                         className={`w-8 h-8 rounded-md text-sm font-medium transition-colors ${currentPage === pageNum
-                            ? 'bg-[hsl(142,70%,45%)] text-black'
-                            : 'bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,15%)]'
+                          ? 'bg-[hsl(142,70%,45%)] text-black'
+                          : 'bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,15%)]'
                           }`}
                       >
                         {pageNum}

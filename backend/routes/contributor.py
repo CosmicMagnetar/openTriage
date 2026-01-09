@@ -64,115 +64,142 @@ async def get_contributor_dashboard_summary(user: dict = Depends(get_current_use
 
 
 @router.get("/contributor/my-issues")
-async def get_my_issues(user: dict = Depends(get_current_user)):
-    """Get all issues and PRs created by the contributor."""
-    issues = await db.issues.find({"authorName": user['username']}, {"_id": 0}).sort("createdAt", -1).to_list(1000)
-    logger.info(f"Found {len(issues)} issues in DB for {user['username']}")
+async def get_my_issues(
+    page: int = 1,
+    limit: int = 10,
+    user: dict = Depends(get_current_user)
+):
+    """Get paginated issues and PRs created by the contributor."""
+    
+    # Validate pagination params
+    page = max(1, page)
+    limit = min(max(1, limit), 50)  # Max 50 per page
+    skip = (page - 1) * limit
+    
+    # Get total count for pagination
+    total = await db.issues.count_documents({"authorName": user['username']})
     
     # Get user's GitHub access token for authenticated requests
     user_doc = await db.users.find_one({"id": user['id']}, {"_id": 0})
     github_token = user_doc.get('githubAccessToken') if user_doc else None
     
-    logger.info(f"Fetching latest issues for {user['username']} from GitHub API...")
-    data = await github_service.fetch_user_activity(user['username'], github_token)
-    logger.info(f"GitHub API returned {len(data['issues'])} issues and {len(data['prs'])} PRs")
-    
-    # Import new issues
-    for gh_issue in data['issues']:
-        try:
-            repo_url_parts = gh_issue.get('repository_url', '').split('/')
-            repo_name = f"{repo_url_parts[-2]}/{repo_url_parts[-1]}" if len(repo_url_parts) >= 2 else "unknown/unknown"
-            owner, repo = repo_name.split('/') if '/' in repo_name else ('unknown', 'unknown')
-            
-            issue = Issue(
-                githubIssueId=gh_issue['id'],
-                number=gh_issue['number'],
-                title=gh_issue['title'],
-                body=gh_issue.get('body') or '',
-                authorName=gh_issue['user']['login'],
-                repoId="external",
-                repoName=repo_name,
-                owner=owner,
-                repo=repo,
-                htmlUrl=gh_issue.get('html_url', ''),
-                state=gh_issue['state'],
-                isPR=False
-            )
-            issue_dict = issue.model_dump()
-            issue_dict['createdAt'] = issue_dict['createdAt'].isoformat()
-            existing = await db.issues.find_one({"githubIssueId": issue.githubIssueId}, {"_id": 0})
-            if existing:
-                # Update existing issue with latest metadata
-                await db.issues.update_one(
-                    {"githubIssueId": issue.githubIssueId},
-                    {"$set": {
-                        "title": gh_issue['title'],
-                        "body": gh_issue.get('body') or '',
-                        "state": gh_issue['state'],
-                        "htmlUrl": gh_issue.get('html_url', '')
-                    }},
-                    upsert=False
+    # Sync with GitHub API (only on first page to avoid rate limits)
+    if page == 1:
+        logger.info(f"Fetching latest issues for {user['username']} from GitHub API...")
+        data = await github_service.fetch_user_activity(user['username'], github_token)
+        logger.info(f"GitHub API returned {len(data['issues'])} issues and {len(data['prs'])} PRs")
+        
+        # Import new issues
+        for gh_issue in data['issues']:
+            try:
+                repo_url_parts = gh_issue.get('repository_url', '').split('/')
+                repo_name = f"{repo_url_parts[-2]}/{repo_url_parts[-1]}" if len(repo_url_parts) >= 2 else "unknown/unknown"
+                owner, repo = repo_name.split('/') if '/' in repo_name else ('unknown', 'unknown')
+                
+                issue = Issue(
+                    githubIssueId=gh_issue['id'],
+                    number=gh_issue['number'],
+                    title=gh_issue['title'],
+                    body=gh_issue.get('body') or '',
+                    authorName=gh_issue['user']['login'],
+                    repoId="external",
+                    repoName=repo_name,
+                    owner=owner,
+                    repo=repo,
+                    htmlUrl=gh_issue.get('html_url', ''),
+                    state=gh_issue['state'],
+                    isPR=False
                 )
-            else:
-                await db.issues.insert_one(issue_dict)
-                asyncio.create_task(classify_and_store(issue))
-                logger.info(f"Imported new issue #{issue.number} from {repo_name}")
-        except Exception as e:
-            logger.error(f"Error importing issue: {e}")
-            continue
-    
-    # Import new PRs
-    for gh_pr in data['prs']:
-        try:
-            repo_url_parts = gh_pr.get('repository_url', '').split('/')
-            repo_name = f"{repo_url_parts[-2]}/{repo_url_parts[-1]}" if len(repo_url_parts) >= 2 else "unknown/unknown"
-            owner, repo = repo_name.split('/') if '/' in repo_name else ('unknown', 'unknown')
-            
-            pr = Issue(
-                githubIssueId=gh_pr['id'],
-                number=gh_pr['number'],
-                title=gh_pr['title'],
-                body=gh_pr.get('body') or '',
-                authorName=gh_pr['user']['login'],
-                repoId="external",
-                repoName=repo_name,
-                owner=owner,
-                repo=repo,
-                htmlUrl=gh_pr.get('html_url', ''),
-                state=gh_pr['state'],
-                isPR=True
-            )
-            pr_dict = pr.model_dump()
-            pr_dict['createdAt'] = pr_dict['createdAt'].isoformat()
-            existing = await db.issues.find_one({"githubIssueId": pr.githubIssueId}, {"_id": 0})
-            if existing:
-                # Update existing PR with latest metadata
-                await db.issues.update_one(
-                    {"githubIssueId": pr.githubIssueId},
-                    {"$set": {
-                        "title": gh_pr['title'],
-                        "body": gh_pr.get('body') or '',
-                        "state": gh_pr['state'],
-                        "htmlUrl": gh_pr.get('html_url', '')
-                    }},
-                    upsert=False
+                issue_dict = issue.model_dump()
+                issue_dict['createdAt'] = issue_dict['createdAt'].isoformat()
+                existing = await db.issues.find_one({"githubIssueId": issue.githubIssueId}, {"_id": 0})
+                if existing:
+                    await db.issues.update_one(
+                        {"githubIssueId": issue.githubIssueId},
+                        {"$set": {
+                            "title": gh_issue['title'],
+                            "body": gh_issue.get('body') or '',
+                            "state": gh_issue['state'],
+                            "htmlUrl": gh_issue.get('html_url', '')
+                        }},
+                        upsert=False
+                    )
+                else:
+                    await db.issues.insert_one(issue_dict)
+                    asyncio.create_task(classify_and_store(issue))
+                    logger.info(f"Imported new issue #{issue.number} from {repo_name}")
+            except Exception as e:
+                logger.error(f"Error importing issue: {e}")
+                continue
+        
+        # Import new PRs
+        for gh_pr in data['prs']:
+            try:
+                repo_url_parts = gh_pr.get('repository_url', '').split('/')
+                repo_name = f"{repo_url_parts[-2]}/{repo_url_parts[-1]}" if len(repo_url_parts) >= 2 else "unknown/unknown"
+                owner, repo = repo_name.split('/') if '/' in repo_name else ('unknown', 'unknown')
+                
+                pr = Issue(
+                    githubIssueId=gh_pr['id'],
+                    number=gh_pr['number'],
+                    title=gh_pr['title'],
+                    body=gh_pr.get('body') or '',
+                    authorName=gh_pr['user']['login'],
+                    repoId="external",
+                    repoName=repo_name,
+                    owner=owner,
+                    repo=repo,
+                    htmlUrl=gh_pr.get('html_url', ''),
+                    state=gh_pr['state'],
+                    isPR=True
                 )
-            else:
-                await db.issues.insert_one(pr_dict)
-                asyncio.create_task(classify_and_store(pr))
-                logger.info(f"Imported new PR #{pr.number} from {repo_name}")
-        except Exception as e:
-            logger.error(f"Error importing PR: {e}")
-            continue
+                pr_dict = pr.model_dump()
+                pr_dict['createdAt'] = pr_dict['createdAt'].isoformat()
+                existing = await db.issues.find_one({"githubIssueId": pr.githubIssueId}, {"_id": 0})
+                if existing:
+                    await db.issues.update_one(
+                        {"githubIssueId": pr.githubIssueId},
+                        {"$set": {
+                            "title": gh_pr['title'],
+                            "body": gh_pr.get('body') or '',
+                            "state": gh_pr['state'],
+                            "htmlUrl": gh_pr.get('html_url', '')
+                        }},
+                        upsert=False
+                    )
+                else:
+                    await db.issues.insert_one(pr_dict)
+                    asyncio.create_task(classify_and_store(pr))
+                    logger.info(f"Imported new PR #{pr.number} from {repo_name}")
+            except Exception as e:
+                logger.error(f"Error importing PR: {e}")
+                continue
+        
+        # Refresh total after sync
+        total = await db.issues.count_documents({"authorName": user['username']})
     
-    # Fetch all issues with triage data
-    issues = await db.issues.find({"authorName": user['username']}, {"_id": 0}).sort("createdAt", -1).to_list(1000)
+    # Fetch paginated issues with triage data
+    issues = await db.issues.find(
+        {"authorName": user['username']}, 
+        {"_id": 0}
+    ).sort("createdAt", -1).skip(skip).limit(limit).to_list(limit)
+    
     for issue in issues:
         triage = await db.triage_data.find_one({"issueId": issue['id']}, {"_id": 0})
         issue['triage'] = triage
     
-    logger.info(f"Returning {len(issues)} total issues/PRs for {user['username']}")
-    return issues
+    # Calculate total pages
+    total_pages = (total + limit - 1) // limit
+    
+    logger.info(f"Returning page {page}/{total_pages} ({len(issues)} items) for {user['username']}")
+    
+    return {
+        "items": issues,
+        "total": total,
+        "page": page,
+        "pages": total_pages,
+        "limit": limit
+    }
 
 
 # Pydantic models for request bodies

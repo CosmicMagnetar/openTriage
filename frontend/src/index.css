@@ -103,3 +103,80 @@ code {
         border-bottom-color: inherit;
     }
 }
+
+/* ========== Animations ========== */
+
+/* Loading bar animation */
+@keyframes loading-bar {
+    0% { width: 0; margin-left: 0; }
+    50% { width: 60%; margin-left: 20%; }
+    100% { width: 0; margin-left: 100%; }
+}
+
+.animate-loading-bar {
+    animation: loading-bar 1.5s ease-in-out infinite;
+}
+
+/* Page transition */
+.page-transition {
+    animation: page-fade-in 0.2s ease-out;
+}
+
+@keyframes page-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Card hover */
+.card-interactive {
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-interactive:hover {
+    border-color: hsl(220, 13%, 22%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.3);
+}
+
+/* Button press */
+.btn-press:active {
+    transform: scale(0.98);
+}
+
+/* Smooth scroll */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Focus ring */
+.focus-ring:focus-visible {
+    outline: 2px solid hsl(142, 70%, 45%);
+    outline-offset: 2px;
+}
+
+/* Hide scrollbar but allow scroll */
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* ========== Responsive utilities ========== */
+
+@media (max-width: 768px) {
+    .mobile-full {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .mobile-stack {
+        flex-direction: column !important;
+    }
+    
+    .mobile-hide {
+        display: none !important;
+    }
+}
