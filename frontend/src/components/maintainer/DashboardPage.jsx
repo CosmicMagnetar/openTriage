@@ -16,6 +16,8 @@ const DashboardPage = () => {
   const [autoSyncing, setAutoSyncing] = useState(false);
   const [showAddRepo, setShowAddRepo] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -24,6 +26,11 @@ const DashboardPage = () => {
     }, 30000);
     return () => clearInterval(intervalId);
   }, []);
+
+  // Reload when page changes
+  useEffect(() => {
+    loadData();
+  }, [currentPage]);
 
   // Reset page when repo filter changes
   useEffect(() => {
@@ -38,11 +45,30 @@ const DashboardPage = () => {
     try {
       const [summaryRes, issuesRes, reposRes] = await Promise.all([
         axios.get(`${API}/maintainer/dashboard-summary`),
-        axios.get(`${API}/maintainer/issues`),
+        axios.get(`${API}/maintainer/issues`, {
+          params: { page: currentPage, limit: ITEMS_PER_PAGE }
+        }),
         axios.get(`${API}/repositories`)
       ]);
       setSummary(summaryRes.data);
-      setIssues(issuesRes.data);
+
+      // Handle paginated response: { items, total, page, pages, limit }
+      const issuesData = issuesRes.data;
+      if (issuesData && typeof issuesData === 'object' && issuesData.items) {
+        setIssues(issuesData.items || []);
+        setTotalPages(issuesData.pages || 1);
+        setTotalItems(issuesData.total || 0);
+      } else if (Array.isArray(issuesData)) {
+        // Fallback for old API format
+        setIssues(issuesData);
+        setTotalPages(Math.ceil(issuesData.length / ITEMS_PER_PAGE));
+        setTotalItems(issuesData.length);
+      } else {
+        setIssues([]);
+        setTotalPages(1);
+        setTotalItems(0);
+      }
+
       setRepositories(reposRes.data);
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -63,18 +89,13 @@ const DashboardPage = () => {
     }
   };
 
+  // Filter by selected repo (client-side filtering on already-paginated data)
   const filteredIssues = useMemo(() => {
+    if (!Array.isArray(issues)) return [];
     return selectedRepo
       ? issues.filter(issue => issue.repoId === selectedRepo)
       : issues;
   }, [issues, selectedRepo]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredIssues.length / ITEMS_PER_PAGE);
-  const paginatedIssues = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredIssues.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredIssues, currentPage]);
 
   if (loading) {
     return (
@@ -159,8 +180,8 @@ const DashboardPage = () => {
               <button
                 onClick={() => setSelectedRepo(null)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${selectedRepo === null
-                    ? 'bg-[hsl(142,70%,45%,0.15)] border-[hsl(142,70%,45%,0.25)] text-[hsl(142,70%,55%)]'
-                    : 'bg-[hsl(220,13%,10%)] border-[hsl(220,13%,18%)] text-[hsl(210,11%,50%)] hover:border-[hsl(142,70%,45%)]'
+                  ? 'bg-[hsl(142,70%,45%,0.15)] border-[hsl(142,70%,45%,0.25)] text-[hsl(142,70%,55%)]'
+                  : 'bg-[hsl(220,13%,10%)] border-[hsl(220,13%,18%)] text-[hsl(210,11%,50%)] hover:border-[hsl(142,70%,45%)]'
                   }`}
               >
                 All Repositories
@@ -170,8 +191,8 @@ const DashboardPage = () => {
                   key={repo.id}
                   onClick={() => setSelectedRepo(repo.id)}
                   className={`px-4 py-2 rounded-lg text-sm transition-colors border ${selectedRepo === repo.id
-                      ? 'bg-[hsl(142,70%,45%,0.15)] border-[hsl(142,70%,45%,0.25)] text-[hsl(142,70%,55%)]'
-                      : 'bg-[hsl(220,13%,10%)] border-[hsl(220,13%,18%)] text-[hsl(210,11%,50%)] hover:border-[hsl(142,70%,45%)]'
+                    ? 'bg-[hsl(142,70%,45%,0.15)] border-[hsl(142,70%,45%,0.25)] text-[hsl(142,70%,55%)]'
+                    : 'bg-[hsl(220,13%,10%)] border-[hsl(220,13%,18%)] text-[hsl(210,11%,50%)] hover:border-[hsl(142,70%,45%)]'
                     }`}
                 >
                   <FolderGit2 className="w-4 h-4 inline mr-2" />
@@ -190,7 +211,7 @@ const DashboardPage = () => {
             </h2>
             {totalPages > 1 && (
               <span className="text-sm text-[hsl(210,11%,50%)]">
-                Showing {paginatedIssues.length} of {filteredIssues.length} • Page {currentPage} of {totalPages}
+                Showing {filteredIssues.length} of {totalItems} • Page {currentPage} of {totalPages}
               </span>
             )}
           </div>
@@ -213,7 +234,7 @@ const DashboardPage = () => {
           ) : (
             <>
               <div className="grid gap-4">
-                {paginatedIssues.map((issue) => (
+                {filteredIssues.map((issue) => (
                   <IssueCard key={issue.id} issue={issue} />
                 ))}
               </div>
@@ -246,8 +267,8 @@ const DashboardPage = () => {
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
                           className={`w-8 h-8 rounded-md text-sm font-medium transition-colors ${currentPage === pageNum
-                              ? 'bg-[hsl(142,70%,45%)] text-black'
-                              : 'bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,15%)]'
+                            ? 'bg-[hsl(142,70%,45%)] text-black'
+                            : 'bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,15%)]'
                             }`}
                         >
                           {pageNum}

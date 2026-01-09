@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './stores/authStore';
 import SplashScreen from './components/SplashScreen';
 import AuthPage from './components/AuthPage';
+import LandingPage from './components/LandingPage';
 import RoleSelection from './components/RoleSelection';
 import MaintainerLayout from './components/maintainer/MaintainerLayout';
 import ContributorLayout from './components/contributor/ContributorLayout';
@@ -30,9 +31,25 @@ function App() {
     return <SplashScreen />;
   }
 
-  // Not logged in
+  // Not logged in - show landing or auth page
   if (!user) {
-    return <AuthPage />;
+    return (
+      <>
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<AuthPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+        <Toaster />
+      </>
+    );
   }
 
   // Logged in but no role selected
