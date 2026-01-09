@@ -36,7 +36,7 @@ const LandingPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-[hsl(220,13%,5%)]">
+        <div className="min-h-screen h-screen overflow-y-auto bg-[hsl(220,13%,5%)]">
             {/* Header */}
             <header className="fixed top-0 left-0 right-0 z-50 bg-[hsl(220,13%,5%,0.9)] backdrop-blur-sm border-b border-[hsl(220,13%,12%)]">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">

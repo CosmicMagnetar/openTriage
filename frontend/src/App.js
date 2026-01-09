@@ -67,6 +67,7 @@ function App() {
         }}
       >
         <Routes>
+          <Route path="/landing" element={<LandingPage />} />
           <Route
             path="/*"
             element={
