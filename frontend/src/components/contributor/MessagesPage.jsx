@@ -193,7 +193,7 @@ const MessagesPage = () => {
                         </div>
 
                         {/* Input with AI suggestions based on conversation history */}
-                        <form onSubmit={handleSendMessage} className="p-4 border-t border-[hsl(220,13%,15%)] bg-[hsl(220,13%,8%)]">
+                        <form onSubmit={handleSendMessage} className="p-4 pr-16 border-t border-[hsl(220,13%,15%)] bg-[hsl(220,13%,8%)]">
                             <div className="flex gap-2 items-end">
                                 <div className="flex-1">
                                     <AISuggestTextarea

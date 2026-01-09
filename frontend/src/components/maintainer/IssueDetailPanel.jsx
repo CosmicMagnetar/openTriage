@@ -1,4 +1,4 @@
-import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, Bot } from 'lucide-react';
+import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, Bot, ExternalLink } from 'lucide-react';
 import MaintainerAIChat from './MaintainerAIChat';
 import { useState, useEffect } from 'react';
 import useIssueStore from '../../stores/issueStore';
@@ -17,7 +17,6 @@ const IssueDetailPanel = () => {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [showAiChat, setShowAiChat] = useState(false);
 
-  // Fetch templates on mount
   useEffect(() => {
     fetchTemplates();
   }, []);
@@ -31,7 +30,6 @@ const IssueDetailPanel = () => {
     }
   };
 
-  // Fetch comments when issue is selected
   useEffect(() => {
     if (selectedIssue?.id) {
       fetchComments();
@@ -39,10 +37,7 @@ const IssueDetailPanel = () => {
   }, [selectedIssue?.id]);
 
   const fetchComments = async () => {
-    if (!selectedIssue?.owner || !selectedIssue?.repo) {
-      // Issue doesn't have GitHub metadata, skip fetching
-      return;
-    }
+    if (!selectedIssue?.owner || !selectedIssue?.repo) return;
 
     setLoadingComments(true);
     try {
@@ -50,7 +45,6 @@ const IssueDetailPanel = () => {
       setComments(response.data.comments || []);
     } catch (error) {
       console.error('Error fetching comments:', error);
-      // Don't show error toast, just fail silently
     } finally {
       setLoadingComments(false);
     }
@@ -70,7 +64,6 @@ const IssueDetailPanel = () => {
         message: reply
       });
 
-      // Show success with GitHub comment URL
       if (response.data.commentUrl) {
         toast.success(
           <div>
@@ -79,7 +72,7 @@ const IssueDetailPanel = () => {
               href={response.data.commentUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 underline text-sm"
+              className="text-[hsl(217,91%,65%)] underline text-sm"
             >
               View on GitHub →
             </a>
@@ -91,12 +84,10 @@ const IssueDetailPanel = () => {
 
       setReply('');
       setSelectedTemplate('');
-      // Refresh comments after posting
       fetchComments();
     } catch (error) {
       console.error('Reply error:', error);
-      const errorMessage = error.response?.data?.detail || 'Failed to send reply';
-      toast.error(errorMessage);
+      toast.error(error.response?.data?.detail || 'Failed to send reply');
     } finally {
       setSending(false);
     }
@@ -117,156 +108,163 @@ const IssueDetailPanel = () => {
   };
 
   const sentimentColors = {
-    POSITIVE: 'text-emerald-400',
-    NEUTRAL: 'text-blue-400',
+    POSITIVE: 'text-[hsl(142,70%,55%)]',
+    NEUTRAL: 'text-[hsl(217,91%,65%)]',
     NEGATIVE: 'text-orange-400',
     FRUSTRATED: 'text-red-400'
   };
 
   return (
-    // Popup Overlay/Backdrop
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
       onClick={clearSelectedIssue}
     >
-      {/* Popup Modal */}
       <div
         data-testid="issue-detail-panel"
-        className="w-full max-w-2xl max-h-[90vh] bg-slate-800 border border-slate-700 rounded-2xl flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        className="w-full max-w-2xl max-h-[90vh] bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-700 flex items-start justify-between bg-gradient-to-r from-slate-800 to-slate-800/80">
+        <div className="p-5 border-b border-[hsl(220,13%,15%)] flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-slate-200 mb-1">
-              Issue #{selectedIssue.number}
-            </h2>
-            <p className="text-sm text-slate-400">{selectedIssue.repoName}</p>
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">
+                Issue #{selectedIssue.number}
+              </h2>
+              {selectedIssue.htmlUrl && (
+                <a
+                  href={selectedIssue.htmlUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[hsl(210,11%,50%)] hover:text-[hsl(217,91%,65%)] transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+            <p className="text-sm text-[hsl(210,11%,50%)]">{selectedIssue.repoName}</p>
           </div>
           <button
             data-testid="close-panel-button"
             onClick={clearSelectedIssue}
-            className="text-slate-400 hover:text-slate-200 transition-colors p-2 hover:bg-slate-700 rounded-lg"
+            className="p-2 text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,12%)] rounded-md transition-colors"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="flex-1 overflow-auto p-5 space-y-5">
           {/* Title */}
           <div>
-            <h3 className="text-sm font-medium text-slate-400 mb-2">Title</h3>
-            <p className="text-slate-200">{selectedIssue.title}</p>
+            <h3 className="text-xs font-medium text-[hsl(210,11%,45%)] uppercase tracking-wider mb-2">Title</h3>
+            <p className="text-[hsl(210,11%,90%)]">{selectedIssue.title}</p>
           </div>
 
           {/* Body */}
           <div>
-            <h3 className="text-sm font-medium text-slate-400 mb-2">Description</h3>
-            <p className="text-slate-300 text-sm leading-relaxed">
+            <h3 className="text-xs font-medium text-[hsl(210,11%,45%)] uppercase tracking-wider mb-2">Description</h3>
+            <p className="text-sm text-[hsl(210,11%,70%)] leading-relaxed bg-[hsl(220,13%,6%)] p-3 rounded-lg border border-[hsl(220,13%,12%)]">
               {selectedIssue.body || 'No description provided'}
             </p>
           </div>
 
           {/* AI Triage */}
           {triage && (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 space-y-4">
-              <h3 className="text-sm font-bold text-blue-400 flex items-center gap-2">
-                <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+            <div className="bg-[hsl(217,91%,60%,0.08)] border border-[hsl(217,91%,60%,0.2)] rounded-lg p-4 space-y-4">
+              <h3 className="text-sm font-semibold text-[hsl(217,91%,65%)] flex items-center gap-2">
+                <Bot className="w-4 h-4" />
                 AI Triage Analysis
               </h3>
 
-              <div>
-                <p className="text-xs text-slate-400 mb-1">Classification</p>
-                <p className="text-sm font-medium text-blue-300">
-                  {triage.classification.replace('_', ' ')}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400 mb-1">Summary</p>
-                <p className="text-sm text-slate-300">{triage.summary}</p>
-              </div>
-
-              <div className="flex items-center justify-between">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-slate-400 mb-1">Suggested Label</p>
-                  <div className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-blue-400" />
-                    <span className="text-sm text-blue-300">{triage.suggestedLabel}</span>
-                  </div>
+                  <p className="text-xs text-[hsl(210,11%,45%)] mb-1">Classification</p>
+                  <p className="text-sm font-medium text-[hsl(217,91%,70%)]">
+                    {triage.classification.replace('_', ' ')}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400 mb-1">Sentiment</p>
+                  <p className="text-xs text-[hsl(210,11%,45%)] mb-1">Suggested Label</p>
                   <div className="flex items-center gap-1.5">
-                    {triage.sentiment === 'POSITIVE' || triage.sentiment === 'NEUTRAL' ? (
-                      <ThumbsUp className={`w-3.5 h-3.5 ${sentimentColors[triage.sentiment]}`} />
-                    ) : (
-                      <ThumbsDown className={`w-3.5 h-3.5 ${sentimentColors[triage.sentiment]}`} />
-                    )}
-                    <span className={`text-sm ${sentimentColors[triage.sentiment]}`}>
-                      {triage.sentiment}
-                    </span>
+                    <Tag className="w-3.5 h-3.5 text-[hsl(217,91%,65%)]" />
+                    <span className="text-sm text-[hsl(217,91%,70%)]">{triage.suggestedLabel}</span>
                   </div>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-[hsl(210,11%,45%)] mb-1">Summary</p>
+                <p className="text-sm text-[hsl(210,11%,75%)]">{triage.summary}</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-[hsl(210,11%,45%)]">Sentiment:</p>
+                <div className="flex items-center gap-1">
+                  {triage.sentiment === 'POSITIVE' || triage.sentiment === 'NEUTRAL' ? (
+                    <ThumbsUp className={`w-3.5 h-3.5 ${sentimentColors[triage.sentiment]}`} />
+                  ) : (
+                    <ThumbsDown className={`w-3.5 h-3.5 ${sentimentColors[triage.sentiment]}`} />
+                  )}
+                  <span className={`text-sm ${sentimentColors[triage.sentiment]}`}>
+                    {triage.sentiment}
+                  </span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Chat Conversation */}
+          {/* Comments */}
           {(selectedIssue.owner && selectedIssue.repo) && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-slate-400 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4" />
+                <h3 className="text-xs font-medium text-[hsl(210,11%,45%)] uppercase tracking-wider flex items-center gap-2">
+                  <MessageSquare className="w-3.5 h-3.5" />
                   Conversation ({comments.length})
                 </h3>
                 <button
                   onClick={fetchComments}
                   disabled={loadingComments}
-                  className="text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
-                  title="Refresh comments"
+                  className="text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className={`w-4 h-4 ${loadingComments ? 'animate-spin' : ''}`} />
                 </button>
               </div>
 
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="space-y-2 max-h-48 overflow-y-auto">
                 {loadingComments ? (
-                  <div className="text-center py-4 text-slate-500 text-sm">
+                  <div className="text-center py-4 text-[hsl(210,11%,45%)] text-sm">
                     Loading comments...
                   </div>
                 ) : comments.length === 0 ? (
-                  <div className="text-center py-4 text-slate-500 text-sm">
+                  <div className="text-center py-4 text-[hsl(210,11%,45%)] text-sm">
                     No comments yet. Be the first to reply!
                   </div>
                 ) : (
                   comments.map((comment) => (
                     <div
                       key={comment.id}
-                      className="bg-slate-900/50 border border-slate-700 rounded-lg p-3"
+                      className="bg-[hsl(220,13%,6%)] border border-[hsl(220,13%,12%)] rounded-lg p-3"
                     >
                       <div className="flex items-start gap-3">
                         <img
                           src={comment.user?.avatar_url || 'https://github.com/ghost.png'}
                           alt={comment.user?.login || 'User'}
-                          className="w-8 h-8 rounded-full"
+                          className="w-7 h-7 rounded-full"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-slate-300">
+                            <span className="text-sm font-medium text-[hsl(210,11%,80%)]">
                               {comment.user?.login || 'Unknown'}
                             </span>
-                            <span className="text-xs text-slate-500">
+                            <span className="text-xs text-[hsl(210,11%,40%)]">
                               {new Date(comment.created_at).toLocaleDateString('en-US', {
                                 month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
+                                day: 'numeric'
                               })}
                             </span>
                           </div>
-                          <p className="text-sm text-slate-300 whitespace-pre-wrap break-words">
+                          <p className="text-sm text-[hsl(210,11%,70%)] whitespace-pre-wrap break-words">
                             {comment.body}
                           </p>
                         </div>
@@ -280,23 +278,19 @@ const IssueDetailPanel = () => {
 
           {/* Quick Reply */}
           <div>
-            <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" />
+            <h3 className="text-xs font-medium text-[hsl(210,11%,45%)] uppercase tracking-wider mb-3 flex items-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5" />
               Quick Reply
             </h3>
 
-            {/* Template Selector */}
             {templates.length > 0 && (
               <div className="mb-3">
-                <label className="text-xs text-slate-500 mb-1 block">
-                  Use Template (optional)
-                </label>
                 <select
                   value={selectedTemplate}
                   onChange={handleTemplateSelect}
-                  className="w-full bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(217,91%,60%)] transition-colors"
                 >
-                  <option value="">Manual Reply</option>
+                  <option value="">Select template (optional)</option>
                   {templates.map((template) => (
                     <option key={template.id} value={template.id}>
                       {template.name}
@@ -312,22 +306,23 @@ const IssueDetailPanel = () => {
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Type your reply..."
-                className="w-full bg-slate-900/50 border border-slate-600 rounded-lg p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-y min-h-[100px]"
+                className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg p-3 pr-12 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(217,91%,60%)] transition-colors resize-none"
                 rows={4}
               />
               <button
                 onClick={() => setShowAiChat(true)}
-                className="absolute bottom-3 right-3 p-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 hover:text-blue-300 rounded-lg transition-colors"
+                className="absolute bottom-3 right-3 p-2 text-[hsl(217,91%,65%)] hover:bg-[hsl(217,91%,60%,0.15)] rounded-lg transition-colors"
                 title="Ask AI Assistant"
               >
                 <Bot className="w-4 h-4" />
               </button>
             </div>
+
             <button
               data-testid="send-reply-button"
               onClick={handleReply}
               disabled={!reply.trim() || sending}
-              className="mt-3 w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 active:scale-[0.98]"
+              className="mt-3 w-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-black px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
             >
               {sending ? 'Sending...' : 'Send Reply'}
             </button>
