@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
+import { Send, X, MessageSquare, Loader2 } from 'lucide-react';
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
@@ -52,7 +52,6 @@ const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onC
                 const newMessages = await messagingApi.pollMessages(recipientId, lastMessageIdRef.current);
                 if (newMessages && newMessages.length > 0) {
                     setMessages(prev => {
-                        // Avoid duplicates just in case
                         const existingIds = new Set(prev.map(m => m.id));
                         const uniqueNew = newMessages.filter(m => !existingIds.has(m.id));
                         if (uniqueNew.length === 0) return prev;
@@ -64,7 +63,7 @@ const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onC
             } catch (error) {
                 console.error('Polling error:', error);
             }
-        }, 2000); // Poll every 2 seconds for "freely possible" real-time
+        }, 2000);
     };
 
     const stopPolling = () => {
@@ -81,7 +80,6 @@ const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onC
             setSending(true);
             const sentMessage = await messagingApi.sendMessage(recipientId, newMessage);
 
-            // Add immediately to UI
             setMessages(prev => [...prev, sentMessage]);
             lastMessageIdRef.current = sentMessage.id;
             setNewMessage('');
@@ -94,64 +92,60 @@ const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onC
     };
 
     return (
-        <div className="fixed bottom-4 right-4 w-96 h-[500px] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden">
+        <div className="fixed bottom-4 right-20 w-80 h-[450px] bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg shadow-xl flex flex-col z-40 overflow-hidden">
             {/* Header */}
-            <div className="bg-slate-800 p-4 border-b border-slate-700 flex items-center justify-between">
+            <div className="bg-[hsl(220,13%,10%)] p-3 border-b border-[hsl(220,13%,15%)] flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         <img
                             src={recipientAvatar || `https://github.com/${recipientName}.png`}
                             alt={recipientName}
-                            className="w-10 h-10 rounded-full border border-slate-600"
+                            className="w-8 h-8 rounded-full"
                             onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                         />
-                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-800"></span>
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[hsl(142,70%,50%)] rounded-full border-2 border-[hsl(220,13%,10%)]"></span>
                     </div>
                     <div>
-                        <h3 className="font-bold text-slate-200">{recipientName}</h3>
-                        <p className="text-xs text-slate-400 flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-purple-400" />
-                            Mentor
-                        </p>
+                        <h3 className="font-medium text-[hsl(210,11%,90%)] text-sm">{recipientName}</h3>
+                        <p className="text-xs text-[hsl(210,11%,50%)]">Mentor</p>
                     </div>
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+                    className="p-1.5 text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,15%)] rounded transition-colors"
                 >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                 </button>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-900/95">
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
                 {loading ? (
-                    <div className="h-full flex items-center justify-center text-slate-500 gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Loading chat...
+                    <div className="h-full flex items-center justify-center text-[hsl(210,11%,50%)] gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Loading...</span>
                     </div>
                 ) : messages.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
-                        <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                        <p>No messages yet.</p>
-                        <p className="text-sm">Start the conversation!</p>
+                    <div className="text-center py-6 text-[hsl(210,11%,40%)]">
+                        <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">No messages yet</p>
                     </div>
                 ) : (
                     messages.map((msg) => {
-                        const isMe = msg.sender_id === user?.id || msg.sender_id === user?._id; // Handle both id formats if inconsistent
+                        const isMe = msg.sender_id === user?.id || msg.sender_id === user?._id;
                         return (
                             <div
                                 key={msg.id}
                                 className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div
-                                    className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${isMe
-                                            ? 'bg-blue-600 text-white rounded-br-none'
-                                            : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-none'
+                                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${isMe
+                                        ? 'bg-[hsl(217,91%,50%)] text-white'
+                                        : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,85%)] border border-[hsl(220,13%,18%)]'
                                         }`}
                                 >
                                     {msg.content}
-                                    <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-slate-500'}`}>
+                                    <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-[hsl(210,11%,40%)]'}`}>
                                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                 </div>
@@ -163,24 +157,24 @@ const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onC
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSendMessage} className="p-4 bg-slate-800 border-t border-slate-700">
+            <form onSubmit={handleSendMessage} className="p-3 bg-[hsl(220,13%,10%)] border-t border-[hsl(220,13%,15%)]">
                 <div className="flex gap-2">
                     <input
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Type a message..."
-                        className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 placeholder-slate-500"
+                        className="flex-1 bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,18%)] rounded-md px-3 py-2 text-sm text-[hsl(210,11%,85%)] focus:outline-none focus:border-[hsl(217,91%,60%)] placeholder-[hsl(210,11%,35%)]"
                     />
                     <button
                         type="submit"
                         disabled={!newMessage.trim() || sending}
-                        className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="p-2 bg-[hsl(217,91%,50%)] text-white rounded-md hover:bg-[hsl(217,91%,55%)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         {sending ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                            <Send className="w-5 h-5" />
+                            <Send className="w-4 h-4" />
                         )}
                     </button>
                 </div>

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
     GitPullRequest, RefreshCw, Bot, FileCode, Check, X, AlertTriangle,
-    MessageSquare, Sparkles, ChevronRight, ExternalLink, Clock, User,
-    GitBranch, Plus, Minus, Loader2
+    MessageSquare, ChevronRight, ExternalLink, Clock, User,
+    GitBranch, Plus, Minus, Loader2, Lightbulb
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
@@ -48,7 +48,6 @@ const PRManagementPage = () => {
             setTemplates(templatesRes.data);
             setLoading(false);
 
-            // Auto-select first repo if any (after setting loading to false)
             if (reposRes.data.length > 0 && !selectedRepo) {
                 await handleSelectRepo(reposRes.data[0]);
             }
@@ -68,10 +67,7 @@ const PRManagementPage = () => {
         setLoadingPRs(true);
 
         try {
-            // Fetch PRs directly from GitHub via our backend
             const [owner, repoName] = repo.name.split('/');
-
-            // First try to get PRs from our database (maintainer issues endpoint)
             const issuesRes = await axios.get(`${API}/maintainer/issues`);
             const repoPRs = issuesRes.data.filter(
                 item => item.isPR && item.repoName === repo.name
@@ -80,8 +76,6 @@ const PRManagementPage = () => {
             if (repoPRs.length > 0) {
                 setPullRequests(repoPRs);
             } else {
-                // If no PRs in DB, try fetching from GitHub directly
-                // We need to use the user's GitHub token for this
                 try {
                     const userRes = await axios.get(`${API}/user/me`);
                     if (userRes.data.githubAccessToken) {
@@ -91,7 +85,6 @@ const PRManagementPage = () => {
                             repo: repoName
                         });
 
-                        // Transform GitHub PR format to match our PR format
                         const githubPRs = (ghPRsRes.data.pullRequests || []).map(pr => ({
                             id: `gh-${pr.number}`,
                             number: pr.number,
@@ -222,9 +215,9 @@ const PRManagementPage = () => {
 
     const getVerdictColor = (verdict) => {
         switch (verdict) {
-            case 'APPROVE': return 'text-emerald-400 bg-emerald-500/20 border-emerald-500/30';
-            case 'REQUEST_CHANGES': return 'text-red-400 bg-red-500/20 border-red-500/30';
-            default: return 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30';
+            case 'APPROVE': return 'text-[hsl(142,70%,55%)] bg-[hsl(142,70%,45%,0.15)] border-[hsl(142,70%,45%,0.3)]';
+            case 'REQUEST_CHANGES': return 'text-red-400 bg-red-500/15 border-red-500/30';
+            default: return 'text-yellow-400 bg-yellow-500/15 border-yellow-500/30';
         }
     };
 
@@ -249,7 +242,7 @@ const PRManagementPage = () => {
 
     return (
         <div className="w-full h-full overflow-hidden flex flex-col">
-            {/* Top Bar - Repository selector with Add button */}
+            {/* Top Bar */}
             <div className="border-b border-[hsl(220,13%,14%)] px-6 py-4 flex items-center gap-4 bg-[hsl(220,13%,7%)]">
                 <div className="flex items-center gap-3">
                     <GitPullRequest className="w-5 h-5 text-[hsl(142,70%,55%)]" />
@@ -298,14 +291,12 @@ const PRManagementPage = () => {
 
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden">
-                {/* PR List - Left sidebar (wider, better framed) */}
+                {/* PR List - Left sidebar */}
                 <div className="w-72 border-r border-[hsl(220,13%,14%)] bg-[hsl(220,13%,6%)] flex flex-col">
-                    {/* Section header */}
                     <div className="px-4 py-3 border-b border-[hsl(220,13%,12%)]">
                         <p className="text-[10px] text-[hsl(210,11%,45%)] uppercase tracking-wider">Open Pull Requests</p>
                     </div>
 
-                    {/* PR List */}
                     <div className="flex-1 overflow-y-auto p-3">
                         {loadingPRs ? (
                             <div className="flex items-center justify-center py-12">
@@ -325,8 +316,8 @@ const PRManagementPage = () => {
                                         key={pr.id}
                                         onClick={() => handleSelectPR(pr)}
                                         className={`w-full text-left p-3 rounded-lg transition-colors ${selectedPR?.id === pr.id
-                                                ? 'bg-[hsl(142,70%,45%,0.12)] border border-[hsl(142,70%,45%,0.25)]'
-                                                : 'hover:bg-[hsl(220,13%,10%)] border border-transparent'
+                                            ? 'bg-[hsl(142,70%,45%,0.12)] border border-[hsl(142,70%,45%,0.25)]'
+                                            : 'hover:bg-[hsl(220,13%,10%)] border border-transparent'
                                             }`}
                                     >
                                         <div className="flex items-center gap-2 mb-1">
@@ -349,20 +340,20 @@ const PRManagementPage = () => {
                     {!selectedPR ? (
                         <div className="h-full flex items-center justify-center">
                             <div className="text-center">
-                                <GitPullRequest className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                                <p className="text-slate-400">Select a PR to review</p>
+                                <GitPullRequest className="w-16 h-16 text-[hsl(220,13%,20%)] mx-auto mb-4" />
+                                <p className="text-[hsl(210,11%,50%)]">Select a PR to review</p>
                             </div>
                         </div>
                     ) : (
                         <div className="max-w-4xl mx-auto space-y-6">
                             {/* PR Header */}
-                            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                            <div className="bg-[hsl(220,13%,8%)] rounded-lg p-6 border border-[hsl(220,13%,15%)]">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
-                                        <h2 className="text-2xl font-bold text-slate-200">
+                                        <h2 className="text-2xl font-bold text-[hsl(210,11%,90%)]">
                                             #{selectedPR.number} {selectedPR.title}
                                         </h2>
-                                        <div className="flex items-center gap-4 mt-3 text-sm text-slate-400">
+                                        <div className="flex items-center gap-4 mt-3 text-sm text-[hsl(210,11%,50%)]">
                                             <span className="flex items-center gap-1">
                                                 <User className="w-4 h-4" />
                                                 {selectedPR.authorName}
@@ -372,8 +363,8 @@ const PRManagementPage = () => {
                                                 {new Date(selectedPR.createdAt).toLocaleDateString()}
                                             </span>
                                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${selectedPR.state === 'open'
-                                                ? 'bg-emerald-500/20 text-emerald-400'
-                                                : 'bg-purple-500/20 text-purple-400'
+                                                ? 'bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)]'
+                                                : 'bg-purple-500/15 text-purple-400'
                                                 }`}>
                                                 {selectedPR.state}
                                             </span>
@@ -383,7 +374,7 @@ const PRManagementPage = () => {
                                         href={selectedPR.htmlUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm text-slate-300 transition-all"
+                                        className="flex items-center gap-1 px-3 py-1.5 bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,15%)] rounded-lg text-sm text-[hsl(210,11%,70%)] transition-all border border-[hsl(220,13%,18%)]"
                                     >
                                         <ExternalLink className="w-4 h-4" />
                                         View on GitHub
@@ -391,7 +382,7 @@ const PRManagementPage = () => {
                                 </div>
 
                                 {selectedPR.body && (
-                                    <p className="mt-4 text-slate-300 text-sm bg-slate-900/50 p-3 rounded-lg">
+                                    <p className="mt-4 text-[hsl(210,11%,70%)] text-sm bg-[hsl(220,13%,6%)] p-3 rounded-lg border border-[hsl(220,13%,12%)]">
                                         {selectedPR.body.length > 300
                                             ? selectedPR.body.substring(0, 300) + '...'
                                             : selectedPR.body}
@@ -404,7 +395,7 @@ const PRManagementPage = () => {
                                 <button
                                     onClick={handleAnalyzePR}
                                     disabled={analyzing}
-                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:from-slate-600 disabled:to-slate-600 rounded-lg font-medium text-white transition-all"
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,55%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] rounded-lg font-medium text-white transition-colors"
                                 >
                                     {analyzing ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -416,7 +407,7 @@ const PRManagementPage = () => {
                                 <button
                                     onClick={handleSummarizePR}
                                     disabled={summarizing}
-                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 rounded-lg font-medium text-white transition-all"
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] rounded-lg font-medium text-black transition-colors"
                                 >
                                     {summarizing ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -429,10 +420,10 @@ const PRManagementPage = () => {
 
                             {/* Analysis Results */}
                             {prAnalysis && (
-                                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 space-y-4">
+                                <div className="bg-[hsl(220,13%,8%)] rounded-lg p-6 border border-[hsl(220,13%,15%)] space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
-                                            <Bot className="w-5 h-5 text-purple-400" />
+                                        <h3 className="text-lg font-semibold text-[hsl(210,11%,90%)] flex items-center gap-2">
+                                            <Bot className="w-5 h-5 text-[hsl(217,91%,65%)]" />
                                             AI Code Review
                                         </h3>
                                         <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${getVerdictColor(prAnalysis.analysis?.verdict)}`}>
@@ -443,32 +434,32 @@ const PRManagementPage = () => {
 
                                     {/* Stats */}
                                     <div className="grid grid-cols-4 gap-3">
-                                        <div className="bg-slate-900/50 rounded-lg p-3 text-center">
-                                            <div className="text-2xl font-bold text-blue-400">{prAnalysis.filesChanged}</div>
-                                            <div className="text-xs text-slate-400">Files</div>
+                                        <div className="bg-[hsl(220,13%,6%)] rounded-lg p-3 text-center border border-[hsl(220,13%,12%)]">
+                                            <div className="text-2xl font-bold text-[hsl(217,91%,65%)]">{prAnalysis.filesChanged}</div>
+                                            <div className="text-xs text-[hsl(210,11%,50%)]">Files</div>
                                         </div>
-                                        <div className="bg-slate-900/50 rounded-lg p-3 text-center">
-                                            <div className="text-2xl font-bold text-emerald-400 flex items-center justify-center gap-1">
+                                        <div className="bg-[hsl(220,13%,6%)] rounded-lg p-3 text-center border border-[hsl(220,13%,12%)]">
+                                            <div className="text-2xl font-bold text-[hsl(142,70%,55%)] flex items-center justify-center gap-1">
                                                 <Plus className="w-4 h-4" />{prAnalysis.additions}
                                             </div>
-                                            <div className="text-xs text-slate-400">Additions</div>
+                                            <div className="text-xs text-[hsl(210,11%,50%)]">Additions</div>
                                         </div>
-                                        <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                                        <div className="bg-[hsl(220,13%,6%)] rounded-lg p-3 text-center border border-[hsl(220,13%,12%)]">
                                             <div className="text-2xl font-bold text-red-400 flex items-center justify-center gap-1">
                                                 <Minus className="w-4 h-4" />{prAnalysis.deletions}
                                             </div>
-                                            <div className="text-xs text-slate-400">Deletions</div>
+                                            <div className="text-xs text-[hsl(210,11%,50%)]">Deletions</div>
                                         </div>
-                                        <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                                        <div className="bg-[hsl(220,13%,6%)] rounded-lg p-3 text-center border border-[hsl(220,13%,12%)]">
                                             <div className="text-2xl font-bold text-yellow-400">{prAnalysis.analysis?.qualityScore}/10</div>
-                                            <div className="text-xs text-slate-400">Quality</div>
+                                            <div className="text-xs text-[hsl(210,11%,50%)]">Quality</div>
                                         </div>
                                     </div>
 
                                     {/* Summary */}
                                     {prAnalysis.analysis?.summary && (
-                                        <div className="bg-slate-900/50 rounded-lg p-4">
-                                            <p className="text-slate-300">{prAnalysis.analysis.summary}</p>
+                                        <div className="bg-[hsl(220,13%,6%)] rounded-lg p-4 border border-[hsl(220,13%,12%)]">
+                                            <p className="text-[hsl(210,11%,75%)]">{prAnalysis.analysis.summary}</p>
                                         </div>
                                     )}
 
@@ -480,7 +471,7 @@ const PRManagementPage = () => {
                                             </h4>
                                             <ul className="space-y-1">
                                                 {prAnalysis.analysis.issues.map((issue, i) => (
-                                                    <li key={i} className="text-sm text-slate-300 bg-red-500/10 rounded px-3 py-2 border-l-2 border-red-500">
+                                                    <li key={i} className="text-sm text-[hsl(210,11%,75%)] bg-red-500/10 rounded px-3 py-2 border-l-2 border-red-500">
                                                         {issue}
                                                     </li>
                                                 ))}
@@ -491,12 +482,12 @@ const PRManagementPage = () => {
                                     {/* Suggestions */}
                                     {prAnalysis.analysis?.suggestions?.length > 0 && (
                                         <div>
-                                            <h4 className="text-sm font-medium text-blue-400 mb-2 flex items-center gap-1">
-                                                <Sparkles className="w-4 h-4" /> Suggestions
+                                            <h4 className="text-sm font-medium text-[hsl(217,91%,65%)] mb-2 flex items-center gap-1">
+                                                <Lightbulb className="w-4 h-4" /> Suggestions
                                             </h4>
                                             <ul className="space-y-1">
                                                 {prAnalysis.analysis.suggestions.map((suggestion, i) => (
-                                                    <li key={i} className="text-sm text-slate-300 bg-blue-500/10 rounded px-3 py-2 border-l-2 border-blue-500">
+                                                    <li key={i} className="text-sm text-[hsl(210,11%,75%)] bg-[hsl(217,91%,60%,0.1)] rounded px-3 py-2 border-l-2 border-[hsl(217,91%,60%)]">
                                                         {suggestion}
                                                     </li>
                                                 ))}
@@ -510,7 +501,7 @@ const PRManagementPage = () => {
                                             <h4 className="text-sm font-medium text-yellow-400 mb-1 flex items-center gap-1">
                                                 <AlertTriangle className="w-4 h-4" /> Security Note
                                             </h4>
-                                            <p className="text-sm text-slate-300">{prAnalysis.analysis.security}</p>
+                                            <p className="text-sm text-[hsl(210,11%,75%)]">{prAnalysis.analysis.security}</p>
                                         </div>
                                     )}
                                 </div>
@@ -518,24 +509,23 @@ const PRManagementPage = () => {
 
                             {/* Summary Results */}
                             {prSummary && (
-                                <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 rounded-xl border border-slate-700 overflow-hidden">
-                                    {/* Header with OpenTriage branding */}
-                                    <div className="bg-gradient-to-r from-emerald-600/20 via-blue-600/20 to-purple-600/20 px-6 py-4 border-b border-slate-700/50">
+                                <div className="bg-[hsl(220,13%,8%)] rounded-lg border border-[hsl(220,13%,15%)] overflow-hidden">
+                                    {/* Header */}
+                                    <div className="bg-[hsl(220,13%,10%)] px-6 py-4 border-b border-[hsl(220,13%,15%)]">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                {/* OpenTriage Logo */}
                                                 <Logo size="sm" />
                                                 <div>
-                                                    <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                                                        <FileCode className="w-5 h-5 text-emerald-400" />
+                                                    <h3 className="text-lg font-bold text-[hsl(210,11%,90%)] flex items-center gap-2">
+                                                        <FileCode className="w-5 h-5 text-[hsl(142,70%,55%)]" />
                                                         AI-Generated Summary
                                                     </h3>
-                                                    <p className="text-xs text-slate-400">Powered by OpenTriage AI</p>
+                                                    <p className="text-xs text-[hsl(210,11%,50%)]">Powered by OpenTriage AI</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full border border-emerald-500/30 flex items-center gap-1">
-                                                    <Sparkles className="w-3 h-3" /> AI Generated
+                                                <span className="px-2 py-1 bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] text-xs font-medium rounded-full border border-[hsl(142,70%,45%,0.3)] flex items-center gap-1">
+                                                    <Bot className="w-3 h-3" /> AI Generated
                                                 </span>
                                             </div>
                                         </div>
@@ -544,30 +534,29 @@ const PRManagementPage = () => {
                                     {/* Summary Content */}
                                     <div className="p-6">
                                         <div className="prose prose-invert prose-sm max-w-none">
-                                            {/* Split summary into paragraphs for better readability */}
                                             {prSummary.split('\n\n').map((paragraph, idx) => (
                                                 <div key={idx} className="mb-4 last:mb-0">
                                                     {paragraph.startsWith('#') ? (
-                                                        <h4 className="text-base font-semibold text-slate-200 mb-2 flex items-center gap-2">
-                                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                                        <h4 className="text-base font-semibold text-[hsl(210,11%,90%)] mb-2 flex items-center gap-2">
+                                                            <span className="w-1.5 h-1.5 bg-[hsl(142,70%,55%)] rounded-full"></span>
                                                             {paragraph.replace(/^#+\s*/, '')}
                                                         </h4>
                                                     ) : paragraph.startsWith('-') || paragraph.startsWith('•') || paragraph.startsWith('*') ? (
                                                         <ul className="space-y-1.5 ml-4">
                                                             {paragraph.split('\n').map((item, i) => (
-                                                                <li key={i} className="text-slate-300 text-sm flex items-start gap-2">
-                                                                    <span className="text-emerald-400 mt-1">→</span>
+                                                                <li key={i} className="text-[hsl(210,11%,75%)] text-sm flex items-start gap-2">
+                                                                    <span className="text-[hsl(142,70%,55%)] mt-1">→</span>
                                                                     <span>{item.replace(/^[-•*]\s*/, '')}</span>
                                                                 </li>
                                                             ))}
                                                         </ul>
                                                     ) : paragraph.includes(':') && paragraph.split(':')[0].length < 30 ? (
-                                                        <div className="bg-slate-900/50 rounded-lg p-3 border-l-2 border-blue-500">
-                                                            <span className="text-blue-400 font-medium text-sm">{paragraph.split(':')[0]}:</span>
-                                                            <span className="text-slate-300 text-sm ml-1">{paragraph.split(':').slice(1).join(':')}</span>
+                                                        <div className="bg-[hsl(220,13%,6%)] rounded-lg p-3 border-l-2 border-[hsl(217,91%,60%)]">
+                                                            <span className="text-[hsl(217,91%,65%)] font-medium text-sm">{paragraph.split(':')[0]}:</span>
+                                                            <span className="text-[hsl(210,11%,75%)] text-sm ml-1">{paragraph.split(':').slice(1).join(':')}</span>
                                                         </div>
                                                     ) : (
-                                                        <p className="text-slate-300 text-sm leading-relaxed">{paragraph}</p>
+                                                        <p className="text-[hsl(210,11%,75%)] text-sm leading-relaxed">{paragraph}</p>
                                                     )}
                                                 </div>
                                             ))}
@@ -575,13 +564,13 @@ const PRManagementPage = () => {
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="px-6 py-3 bg-slate-900/30 border-t border-slate-700/50 flex items-center justify-between">
-                                        <p className="text-xs text-slate-500">
+                                    <div className="px-6 py-3 bg-[hsl(220,13%,6%)] border-t border-[hsl(220,13%,12%)] flex items-center justify-between">
+                                        <p className="text-xs text-[hsl(210,11%,40%)]">
                                             Summary generated for PR #{selectedPR?.number}
                                         </p>
                                         <button
                                             onClick={handleSummarizePR}
-                                            className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                                            className="text-xs text-[hsl(217,91%,65%)] hover:text-[hsl(217,91%,75%)] flex items-center gap-1"
                                         >
                                             <RefreshCw className="w-3 h-3" />
                                             Regenerate
@@ -591,9 +580,9 @@ const PRManagementPage = () => {
                             )}
 
                             {/* Comment Section */}
-                            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                                <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2 mb-4">
-                                    <MessageSquare className="w-5 h-5 text-blue-400" />
+                            <div className="bg-[hsl(220,13%,8%)] rounded-lg p-6 border border-[hsl(220,13%,15%)]">
+                                <h3 className="text-lg font-semibold text-[hsl(210,11%,90%)] flex items-center gap-2 mb-4">
+                                    <MessageSquare className="w-5 h-5 text-[hsl(217,91%,65%)]" />
                                     Write Comment
                                 </h3>
 
@@ -602,7 +591,7 @@ const PRManagementPage = () => {
                                     <select
                                         value={commentType}
                                         onChange={(e) => setCommentType(e.target.value)}
-                                        className="bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                                        className="bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
                                     >
                                         <option value="review">General Review</option>
                                         <option value="approval">Approval</option>
@@ -612,7 +601,7 @@ const PRManagementPage = () => {
                                     <select
                                         value={selectedTemplate}
                                         onChange={handleTemplateChange}
-                                        className="flex-1 bg-slate-900/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                                        className="flex-1 bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
                                     >
                                         <option value="">Use Template...</option>
                                         {templates.map(t => (
@@ -622,12 +611,12 @@ const PRManagementPage = () => {
                                     <button
                                         onClick={handleSuggestComment}
                                         disabled={suggesting}
-                                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-600 rounded-lg text-sm font-medium text-white transition-all"
+                                        className="flex items-center gap-2 px-4 py-2 bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,55%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] rounded-lg text-sm font-medium text-white transition-colors"
                                     >
                                         {suggesting ? (
                                             <Loader2 className="w-4 h-4 animate-spin" />
                                         ) : (
-                                            <Sparkles className="w-4 h-4" />
+                                            <Lightbulb className="w-4 h-4" />
                                         )}
                                         AI Suggest
                                     </button>

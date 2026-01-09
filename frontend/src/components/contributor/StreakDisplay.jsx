@@ -57,7 +57,7 @@ const StreakDisplay = () => {
         if (days >= 30) return 'text-red-500';
         if (days >= 14) return 'text-orange-500';
         if (days >= 7) return 'text-yellow-500';
-        return 'text-slate-400';
+        return 'text-[hsl(210,11%,50%)]';
     };
 
     const getFireAnimation = (days) => {
@@ -66,11 +66,11 @@ const StreakDisplay = () => {
     };
 
     const getContributionColor = (count) => {
-        if (count === 0) return 'bg-slate-700';
-        if (count === 1) return 'bg-emerald-900';
-        if (count === 2) return 'bg-emerald-700';
-        if (count === 3) return 'bg-emerald-500';
-        return 'bg-emerald-400';
+        if (count === 0) return 'bg-[hsl(220,13%,12%)]';
+        if (count === 1) return 'bg-[hsl(142,70%,20%)]';
+        if (count === 2) return 'bg-[hsl(142,70%,35%)]';
+        if (count === 3) return 'bg-[hsl(142,70%,45%)]';
+        return 'bg-[hsl(142,70%,55%)]';
     };
 
     // Generate last 52 weeks of calendar data
@@ -104,12 +104,12 @@ const StreakDisplay = () => {
 
     if (loading) {
         return (
-            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="bg-[hsl(220,13%,8%)] rounded-xl p-4 border border-[hsl(220,13%,15%)]">
                 <div className="flex items-center gap-3">
-                    <div className="animate-pulse bg-slate-700 rounded-full w-12 h-12"></div>
+                    <div className="animate-pulse bg-[hsl(220,13%,12%)] rounded-full w-12 h-12"></div>
                     <div className="flex-1">
-                        <div className="animate-pulse bg-slate-700 rounded h-4 w-24 mb-2"></div>
-                        <div className="animate-pulse bg-slate-700 rounded h-3 w-16"></div>
+                        <div className="animate-pulse bg-[hsl(220,13%,12%)] rounded h-4 w-24 mb-2"></div>
+                        <div className="animate-pulse bg-[hsl(220,13%,12%)] rounded h-3 w-16"></div>
                     </div>
                 </div>
             </div>
@@ -123,7 +123,7 @@ const StreakDisplay = () => {
     const calendarGrid = generateCalendarGrid();
 
     return (
-        <div className="bg-gradient-to-r from-slate-800/50 to-orange-900/20 rounded-xl p-4 border border-orange-500/20">
+        <div className="bg-gradient-to-r from-[hsl(220,13%,8%)] to-[hsl(25,80%,15%,0.2)] rounded-xl p-4 border border-orange-500/20">
             <div className="flex items-center justify-between mb-4">
                 {/* Streak Display */}
                 <div className="flex items-center gap-4">
@@ -141,11 +141,11 @@ const StreakDisplay = () => {
                             <span className={`text-3xl font-bold ${getStreakIntensity(streak.current_streak)}`}>
                                 {streak.current_streak}
                             </span>
-                            <span className="text-slate-400 text-sm">day streak</span>
+                            <span className="text-[hsl(210,11%,50%)] text-sm">day streak</span>
                         </div>
 
                         {streak.is_active ? (
-                            <p className="text-emerald-400 text-sm flex items-center gap-1">
+                            <p className="text-[hsl(142,70%,55%)] text-sm flex items-center gap-1">
                                 <TrendingUp className="w-4 h-4" />
                                 Keep it going!
                             </p>
@@ -160,21 +160,21 @@ const StreakDisplay = () => {
 
                 {/* Stats */}
                 <div className="text-right">
-                    <div className="flex items-center gap-1 text-slate-400 text-sm">
+                    <div className="flex items-center gap-1 text-[hsl(210,11%,50%)] text-sm">
                         <span>Longest:</span>
-                        <span className="font-bold text-slate-200">{streak.longest_streak} days</span>
+                        <span className="font-bold text-[hsl(210,11%,90%)]">{streak.longest_streak} days</span>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-xs text-[hsl(210,11%,40%)] mt-1">
                         {streak.total_contribution_days} total active days
                     </div>
                 </div>
             </div>
 
             {/* Contribution Calendar */}
-            <div className="mt-4 pt-4 border-t border-slate-700/50">
+            <div className="mt-4 pt-4 border-t border-[hsl(220,13%,15%)]">
                 <div className="flex items-center gap-2 mb-3">
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm text-slate-400">Contribution Activity</span>
+                    <Calendar className="w-4 h-4 text-[hsl(210,11%,50%)]" />
+                    <span className="text-sm text-[hsl(210,11%,50%)]">Contribution Activity</span>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -196,26 +196,26 @@ const StreakDisplay = () => {
 
                 {/* Legend */}
                 <div className="flex items-center justify-end gap-2 mt-2">
-                    <span className="text-xs text-slate-500">Less</span>
+                    <span className="text-xs text-[hsl(210,11%,40%)]">Less</span>
                     <div className="flex gap-[2px]">
-                        <div className="w-2.5 h-2.5 rounded-sm bg-slate-700" />
-                        <div className="w-2.5 h-2.5 rounded-sm bg-emerald-900" />
-                        <div className="w-2.5 h-2.5 rounded-sm bg-emerald-700" />
-                        <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />
-                        <div className="w-2.5 h-2.5 rounded-sm bg-emerald-400" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(220,13%,12%)]" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(142,70%,20%)]" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(142,70%,35%)]" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(142,70%,45%)]" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(142,70%,55%)]" />
                     </div>
-                    <span className="text-xs text-slate-500">More</span>
+                    <span className="text-xs text-[hsl(210,11%,40%)]">More</span>
                 </div>
             </div>
 
             {/* Progress to next milestone */}
             {streak.current_streak > 0 && streak.current_streak < 30 && (
                 <div className="mt-4">
-                    <div className="flex justify-between text-xs text-slate-400 mb-1">
+                    <div className="flex justify-between text-xs text-[hsl(210,11%,50%)] mb-1">
                         <span>Progress to 30-day streak</span>
                         <span>{streak.current_streak}/30</span>
                     </div>
-                    <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <div className="h-2 bg-[hsl(220,13%,12%)] rounded-full overflow-hidden">
                         <div
                             className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500"
                             style={{ width: `${(streak.current_streak / 30) * 100}%` }}

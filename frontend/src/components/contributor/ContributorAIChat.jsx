@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Send, Bot, User, Sparkles, ChevronDown, BookOpen, ExternalLink, AlertCircle, RefreshCw } from 'lucide-react';
+import { X, Send, Bot, User, ChevronDown, BookOpen, ExternalLink, AlertCircle, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { ragApi } from '../../services/api';
@@ -64,7 +64,6 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
         try {
           await ragApi.indexRepository(selectedRepo);
           toast.success('Documentation loaded!', { id: toastId });
-          // Add a system message confirming mode switch
           setMessages(prev => [
             ...prev,
             {
@@ -98,14 +97,11 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
       let relatedIssues = [];
 
       if (selectedRepo !== 'all') {
-        // Use RAG API for specific repo
         const response = await ragApi.askQuestion(userMessage, selectedRepo);
         responseContent = response.answer;
         sources = response.sources || [];
         relatedIssues = response.related_issues || [];
       } else {
-        // Use General Chat API
-        // Add context about user's contributions and selected repo
         const context = {
           totalContributions: issues.length,
           pullRequests: issues.filter(i => i.isPR).length,
@@ -161,31 +157,30 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
   return (
     <div
       data-testid="contributor-ai-chat"
-      className="fixed bottom-24 right-6 z-50 w-[450px] h-[500px] flex flex-col pointer-events-none"
+      className="fixed bottom-24 right-6 z-50 w-[420px] h-[480px] flex flex-col pointer-events-none"
     >
       <div
-        className="bg-slate-800 border border-slate-700 rounded-xl w-full h-full flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-10 origin-bottom-right duration-200 pointer-events-auto"
+        className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg w-full h-full flex flex-col overflow-hidden shadow-xl animate-in fade-in zoom-in-95 slide-in-from-bottom-10 origin-bottom-right duration-200 pointer-events-auto"
       >
         {/* Header */}
-        <div className="p-4 border-b border-slate-700 bg-gradient-to-r from-emerald-600/10 to-blue-600/10 space-y-3">
+        <div className="p-4 border-b border-[hsl(220,13%,15%)] space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-                <Bot className="w-6 h-6 text-white" />
+              <div className="w-9 h-9 bg-[hsl(142,70%,45%)] rounded-full flex items-center justify-center">
+                <Bot className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+                <h2 className="text-base font-semibold text-[hsl(210,11%,90%)]">
                   Project Assistant
-                  <Sparkles className="w-4 h-4 text-emerald-400" />
                 </h2>
-                <p className="text-xs text-slate-400">Your guide to the codebase</p>
+                <p className="text-xs text-[hsl(210,11%,50%)]">Your guide to the codebase</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-lg"
+              className="text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] transition-colors p-2 hover:bg-[hsl(220,13%,12%)] rounded-md"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
@@ -196,14 +191,14 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
                 value={selectedRepo}
                 onChange={(e) => setSelectedRepo(e.target.value)}
                 disabled={loading || isIndexing}
-                className="w-full appearance-none bg-slate-900/50 border border-slate-600 rounded-lg pl-3 pr-8 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer disabled:opacity-50"
+                className="w-full appearance-none bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-md pl-3 pr-8 py-2 text-sm text-[hsl(210,11%,85%)] focus:outline-none focus:border-[hsl(142,70%,45%)] transition-colors cursor-pointer disabled:opacity-50"
               >
                 <option value="all">General Chat (All Repos)</option>
                 {repositories.map(repo => (
                   <option key={repo} value={repo}>Project: {repo}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(210,11%,50%)] pointer-events-none" />
             </div>
 
             {selectedRepo !== 'all' && (
@@ -222,9 +217,9 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
                   }
                 }}
                 disabled={isIndexing}
-                className={`p-2 rounded-lg transition-colors border ${isIndexing
-                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 animate-pulse'
-                  : 'bg-slate-700 hover:bg-slate-600 border-slate-600 text-slate-300'
+                className={`p-2 rounded-md transition-colors border ${isIndexing
+                  ? 'bg-[hsl(142,70%,45%,0.15)] border-[hsl(142,70%,45%,0.3)] text-[hsl(142,70%,55%)]'
+                  : 'bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,15%)] border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)]'
                   }`}
                 title="Refresh documentation"
               >
@@ -235,7 +230,7 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-auto p-4 space-y-4 bg-slate-900/50">
+        <div className="flex-1 overflow-auto p-4 space-y-4">
           {messages.map((message, index) => (
             <div
               key={index}
@@ -243,34 +238,34 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
                 }`}
             >
               {message.role === 'assistant' && (
-                <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                  <Bot className="w-5 h-5 text-white" />
+                <div className="w-7 h-7 bg-[hsl(142,70%,45%)] rounded-full flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-white" />
                 </div>
               )}
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-md ${message.role === 'user'
-                  ? 'bg-emerald-600 text-white rounded-br-none'
+                className={`max-w-[80%] rounded-lg px-3 py-2 ${message.role === 'user'
+                  ? 'bg-[hsl(142,70%,45%)] text-white'
                   : message.isError
-                    ? 'bg-red-500/20 text-red-200 border border-red-500/30 rounded-bl-none'
-                    : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-bl-none'
+                    ? 'bg-red-500/15 text-red-200 border border-red-500/25'
+                    : 'bg-[hsl(220,13%,12%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,85%)]'
                   }`}
               >
-                <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-strong:text-emerald-300 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline">
+                <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:my-2 prose-strong:text-[hsl(142,70%,60%)] prose-a:text-[hsl(217,91%,65%)] prose-a:no-underline hover:prose-a:underline">
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                 </div>
 
                 {/* Sources & Related Issues (RAG) */}
                 {(message.sources?.length > 0 || message.relatedIssues?.length > 0) && (
-                  <div className="mt-3 pt-3 border-t border-slate-600/50 space-y-3">
+                  <div className="mt-3 pt-3 border-t border-[hsl(220,13%,20%)] space-y-2">
                     {/* Sources */}
                     {message.sources?.length > 0 && (
                       <div className="space-y-1">
-                        <p className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+                        <p className="text-xs font-medium text-[hsl(142,70%,55%)] flex items-center gap-1">
                           <BookOpen className="w-3 h-3" />
                           Sources
                         </p>
                         {message.sources.slice(0, 2).map((source, idx) => (
-                          <div key={idx} className="text-xs text-slate-400 truncate bg-slate-900/30 px-2 py-1 rounded">
+                          <div key={idx} className="text-xs text-[hsl(210,11%,50%)] truncate bg-[hsl(220,13%,8%)] px-2 py-1 rounded">
                             {source.title || source.source || 'Documentation'}
                           </div>
                         ))}
@@ -280,7 +275,7 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
                     {/* Related Issues */}
                     {message.relatedIssues?.length > 0 && (
                       <div className="space-y-1">
-                        <p className="text-xs font-semibold text-blue-400 flex items-center gap-1">
+                        <p className="text-xs font-medium text-[hsl(217,91%,65%)] flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           Related Issues
                         </p>
@@ -290,7 +285,7 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
                             href={issue.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-blue-400 hover:text-blue-300 hover:underline truncate flex items-center gap-1"
+                            className="text-xs text-[hsl(217,91%,65%)] hover:underline truncate flex items-center gap-1"
                           >
                             #{issue.number} {issue.title}
                             <ExternalLink className="w-3 h-3" />
@@ -302,22 +297,22 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
                 )}
               </div>
               {message.role === 'user' && (
-                <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-7 h-7 bg-[hsl(220,13%,15%)] rounded-full flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-[hsl(210,11%,60%)]" />
                 </div>
               )}
             </div>
           ))}
           {loading && (
             <div className="flex gap-3 justify-start">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
-                <Bot className="w-5 h-5 text-white" />
+              <div className="w-7 h-7 bg-[hsl(142,70%,45%)] rounded-full flex items-center justify-center">
+                <Bot className="w-4 h-4 text-white" />
               </div>
-              <div className="bg-slate-800 border border-slate-700 rounded-2xl rounded-bl-none p-4 shadow-md">
+              <div className="bg-[hsl(220,13%,12%)] border border-[hsl(220,13%,18%)] rounded-lg p-3">
                 <div className="flex gap-1.5">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce delay-75" />
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce delay-150" />
+                  <div className="w-2 h-2 bg-[hsl(142,70%,55%)] rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-[hsl(142,70%,55%)] rounded-full animate-bounce delay-75" />
+                  <div className="w-2 h-2 bg-[hsl(142,70%,55%)] rounded-full animate-bounce delay-150" />
                 </div>
               </div>
             </div>
@@ -327,14 +322,14 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
 
         {/* Quick Questions */}
         {messages.length === 1 && (
-          <div className="px-4 pb-2 bg-slate-900/50">
-            <p className="text-xs text-slate-400 mb-2 font-medium">Quick questions:</p>
+          <div className="px-4 pb-2">
+            <p className="text-xs text-[hsl(210,11%,40%)] mb-2">Quick questions:</p>
             <div className="flex flex-wrap gap-2">
               {quickQuestions.map((q, i) => (
                 <button
                   key={i}
                   onClick={() => setInput(q)}
-                  className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-emerald-500/50 text-slate-300 hover:text-emerald-300 px-3 py-1.5 rounded-full transition-all"
+                  className="text-xs bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,15%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)] hover:text-[hsl(210,11%,80%)] px-3 py-1.5 rounded-md transition-colors"
                 >
                   {q}
                 </button>
@@ -344,7 +339,7 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
         )}
 
         {/* Input */}
-        <div className="p-4 border-t border-slate-700 bg-slate-800">
+        <div className="p-3 border-t border-[hsl(220,13%,15%)]">
           <div className="flex gap-2">
             <input
               data-testid="contributor-chat-input"
@@ -354,14 +349,14 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
               onKeyPress={handleKeyPress}
               placeholder="Ask about opportunities, contributions, or career advice..."
               disabled={loading}
-              className="flex-1 bg-slate-900 border border-slate-600 rounded-xl px-4 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors disabled:opacity-50"
+              className="flex-1 bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-md px-3 py-2 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(142,70%,45%)] transition-colors disabled:opacity-50"
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || loading}
-              className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-white px-4 py-2 rounded-xl transition-all duration-300 active:scale-[0.98] disabled:scale-100 shadow-lg shadow-emerald-500/20"
+              className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,15%)] disabled:text-[hsl(210,11%,40%)] text-white px-3 py-2 rounded-md transition-colors"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4" />
             </button>
           </div>
         </div>

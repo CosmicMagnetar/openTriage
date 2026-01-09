@@ -1,29 +1,29 @@
 import { useState } from 'react';
-import { Trophy, Plus, Eye } from 'lucide-react';
+import { Trophy, Plus, Settings } from 'lucide-react';
 import BadgeSelectionModal from './BadgeSelectionModal';
 
 /**
  * FeaturedBadges - Displays up to 3 featured badges in the profile header
- * Similar to LeetCode's achievement showcase
+ * GitHub-style flat design
  */
 const FeaturedBadges = ({ featuredBadges = [], allBadges = [], onUpdate, username }) => {
     const [showModal, setShowModal] = useState(false);
 
-    const getRarityGlow = (rarity) => {
+    const getRarityBorder = (rarity) => {
         switch (rarity) {
-            case 'legendary': return 'ring-yellow-500/50 shadow-yellow-500/30';
-            case 'rare': return 'ring-purple-500/50 shadow-purple-500/30';
-            case 'uncommon': return 'ring-blue-500/50 shadow-blue-500/30';
-            default: return 'ring-slate-500/50 shadow-slate-500/30';
+            case 'legendary': return 'border-yellow-500/50';
+            case 'rare': return 'border-purple-500/50';
+            case 'uncommon': return 'border-blue-500/50';
+            default: return 'border-[hsl(220,13%,25%)]';
         }
     };
 
     const getRarityBg = (rarity) => {
         switch (rarity) {
-            case 'legendary': return 'from-yellow-500 to-amber-600';
-            case 'rare': return 'from-purple-500 to-pink-600';
-            case 'uncommon': return 'from-blue-500 to-cyan-600';
-            default: return 'from-slate-500 to-slate-600';
+            case 'legendary': return 'bg-yellow-500/10';
+            case 'rare': return 'bg-purple-500/10';
+            case 'uncommon': return 'bg-blue-500/10';
+            default: return 'bg-[hsl(220,13%,12%)]';
         }
     };
 
@@ -43,38 +43,32 @@ const FeaturedBadges = ({ featuredBadges = [], allBadges = [], onUpdate, usernam
 
                         if (badge) {
                             return (
-                                <div
+                                <button
                                     key={badge.badge?.id || index}
-                                    className={`relative group w-12 h-12 rounded-xl bg-gradient-to-br ${getRarityBg(badge.badge?.rarity)} 
-                                        ring-2 ${getRarityGlow(badge.badge?.rarity)} shadow-lg
-                                        flex items-center justify-center cursor-pointer
-                                        hover:scale-110 transition-transform duration-200`}
                                     onClick={() => setShowModal(true)}
+                                    className={`relative w-10 h-10 rounded-md ${getRarityBg(badge.badge?.rarity)} 
+                                        border ${getRarityBorder(badge.badge?.rarity)}
+                                        flex items-center justify-center cursor-pointer
+                                        hover:border-[hsl(210,11%,40%)] transition-colors`}
                                     title={badge.badge?.name}
                                 >
                                     {badge.badge?.image_url ? (
                                         <img
                                             src={badge.badge.image_url}
                                             alt={badge.badge.name}
-                                            className="w-full h-full object-contain rounded-xl"
+                                            className="w-full h-full object-contain rounded-md"
                                             onError={(e) => {
                                                 e.target.style.display = 'none';
-                                                e.target.nextSibling.style.display = 'block';
+                                                e.target.nextSibling.style.display = 'flex';
                                             }}
                                         />
                                     ) : null}
-                                    <span className={`text-2xl ${badge.badge?.image_url ? 'hidden' : 'block'}`}>
+                                    <span
+                                        className={`text-xl ${badge.badge?.image_url ? 'hidden' : 'flex'} items-center justify-center`}
+                                    >
                                         {badge.badge?.icon || '🏆'}
                                     </span>
-
-                                    {/* Tooltip */}
-                                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100
-                                        transition-opacity whitespace-nowrap z-10">
-                                        <span className="px-2 py-1 bg-slate-900 text-white text-xs rounded shadow-lg">
-                                            {badge.badge?.name}
-                                        </span>
-                                    </div>
-                                </div>
+                                </button>
                             );
                         }
 
@@ -83,26 +77,27 @@ const FeaturedBadges = ({ featuredBadges = [], allBadges = [], onUpdate, usernam
                             <button
                                 key={index}
                                 onClick={() => setShowModal(true)}
-                                className="w-12 h-12 rounded-xl border-2 border-dashed border-slate-600 
-                                    flex items-center justify-center text-slate-500
-                                    hover:border-slate-500 hover:text-slate-400 transition-colors"
+                                className="w-10 h-10 rounded-md border border-dashed border-[hsl(220,13%,20%)] 
+                                    flex items-center justify-center text-[hsl(210,11%,40%)]
+                                    hover:border-[hsl(220,13%,30%)] hover:text-[hsl(210,11%,50%)] transition-colors"
                                 title="Add featured badge"
                             >
-                                <Plus className="w-5 h-5" />
+                                <Plus className="w-4 h-4" />
                             </button>
                         );
                     })}
                 </div>
 
-                {/* View All Button */}
+                {/* Edit Button */}
                 {earnedBadges.length > 0 && (
                     <button
                         onClick={() => setShowModal(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500/20 text-yellow-400 
-                            rounded-lg text-sm font-medium hover:bg-yellow-500/30 transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-[hsl(210,11%,50%)] 
+                            text-sm hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,12%)] 
+                            rounded-md transition-colors"
                     >
-                        <Eye className="w-4 h-4" />
-                        View All
+                        <Settings className="w-3.5 h-3.5" />
+                        Edit
                     </button>
                 )}
             </div>

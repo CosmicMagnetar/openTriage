@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Trophy, X, Check, Sparkles, Lock } from 'lucide-react';
+import { Trophy, X, Check, Lock } from 'lucide-react';
 import { profileApi } from '../../services/api';
 import { toast } from 'sonner';
 
 /**
  * BadgeSelectionModal - Full-screen modal for selecting up to 3 featured badges
- * Similar to LeetCode's badge selection interface
+ * GitHub-style flat design
  */
 const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges = [], onSave, username }) => {
     const [selectedBadgeIds, setSelectedBadgeIds] = useState([]);
@@ -21,33 +21,33 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
 
     const getRarityColor = (rarity) => {
         switch (rarity) {
-            case 'legendary': return 'from-yellow-500 to-amber-600';
-            case 'rare': return 'from-purple-500 to-pink-600';
-            case 'uncommon': return 'from-blue-500 to-cyan-600';
-            default: return 'from-slate-500 to-slate-600';
+            case 'legendary': return 'border-yellow-500/50 bg-yellow-500/10';
+            case 'rare': return 'border-purple-500/50 bg-purple-500/10';
+            case 'uncommon': return 'border-blue-500/50 bg-blue-500/10';
+            default: return 'border-[hsl(220,13%,25%)] bg-[hsl(220,13%,12%)]';
         }
     };
 
-    const getRarityBorder = (rarity) => {
+    const getRarityText = (rarity) => {
         switch (rarity) {
-            case 'legendary': return 'border-yellow-500/50';
-            case 'rare': return 'border-purple-500/50';
-            case 'uncommon': return 'border-blue-500/50';
-            default: return 'border-slate-600';
+            case 'legendary': return 'text-yellow-400';
+            case 'rare': return 'text-purple-400';
+            case 'uncommon': return 'text-blue-400';
+            default: return 'text-[hsl(210,11%,50%)]';
         }
     };
 
     const getRarityLabel = (rarity) => {
         switch (rarity) {
-            case 'legendary': return { bg: 'bg-yellow-500/20', text: 'text-yellow-400' };
-            case 'rare': return { bg: 'bg-purple-500/20', text: 'text-purple-400' };
-            case 'uncommon': return { bg: 'bg-blue-500/20', text: 'text-blue-400' };
-            default: return { bg: 'bg-slate-500/20', text: 'text-slate-400' };
+            case 'legendary': return { bg: 'bg-yellow-500/15', text: 'text-yellow-400', border: 'border-yellow-500/25' };
+            case 'rare': return { bg: 'bg-purple-500/15', text: 'text-purple-400', border: 'border-purple-500/25' };
+            case 'uncommon': return { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/25' };
+            default: return { bg: 'bg-[hsl(220,13%,15%)]', text: 'text-[hsl(210,11%,50%)]', border: 'border-[hsl(220,13%,20%)]' };
         }
     };
 
     const toggleBadge = (badgeId, earned) => {
-        if (!earned) return; // Can't select unearned badges
+        if (!earned) return;
 
         if (selectedBadgeIds.includes(badgeId)) {
             setSelectedBadgeIds(selectedBadgeIds.filter(id => id !== badgeId));
@@ -63,7 +63,6 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
             setSaving(true);
             await profileApi.updateFeaturedBadges(username, selectedBadgeIds);
 
-            // Get selected badge objects for parent component
             const selectedBadgeObjects = allBadges.filter(b =>
                 selectedBadgeIds.includes(b.badge?.id)
             );
@@ -72,7 +71,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                 onSave(selectedBadgeObjects);
             }
 
-            toast.success('Featured badges updated!');
+            toast.success('Featured badges updated');
             onClose();
         } catch (error) {
             console.error('Failed to save featured badges:', error);
@@ -94,45 +93,39 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
             onClick={onClose}
         >
             <div
-                className="bg-slate-900 rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden border border-slate-700 shadow-2xl"
+                className="bg-[hsl(220,13%,8%)] rounded-lg max-w-3xl w-full max-h-[85vh] overflow-hidden border border-[hsl(220,13%,15%)]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-700">
+                <div className="flex items-center justify-between p-5 border-b border-[hsl(220,13%,15%)]">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-                            <Trophy className="w-5 h-5 text-yellow-400" />
-                        </div>
+                        <Trophy className="w-5 h-5 text-[hsl(210,11%,50%)]" />
                         <div>
-                            <h2 className="text-xl font-bold text-white">Featured Badges</h2>
-                            <p className="text-sm text-slate-400">Select up to 3 badges to showcase on your profile</p>
+                            <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">Featured Badges</h2>
+                            <p className="text-sm text-[hsl(210,11%,50%)]">Select up to 3 badges to showcase</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="w-10 h-10 rounded-lg bg-slate-800 text-slate-400 hover:text-white 
-                            hover:bg-slate-700 flex items-center justify-center transition-colors"
+                        className="p-2 text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,12%)] rounded-md transition-colors"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Selection Status */}
-                <div className="px-6 py-3 bg-slate-800/50 border-b border-slate-700 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-yellow-400" />
-                        <span className="text-sm text-slate-300">
-                            Selected: <span className="font-bold text-yellow-400">{selectedBadgeIds.length}/3</span>
-                        </span>
-                    </div>
+                <div className="px-5 py-3 bg-[hsl(220,13%,6%)] border-b border-[hsl(220,13%,15%)] flex items-center justify-between">
+                    <span className="text-sm text-[hsl(210,11%,60%)]">
+                        Selected: <span className="font-medium text-[hsl(210,11%,90%)]">{selectedBadgeIds.length}/3</span>
+                    </span>
                     {selectedBadgeIds.length > 0 && (
                         <button
                             onClick={() => setSelectedBadgeIds([])}
-                            className="text-sm text-slate-400 hover:text-white transition-colors"
+                            className="text-sm text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] transition-colors"
                         >
                             Clear selection
                         </button>
@@ -140,7 +133,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                 </div>
 
                 {/* Badge Grid */}
-                <div className="p-6 overflow-y-auto max-h-[50vh] space-y-6">
+                <div className="p-5 overflow-y-auto max-h-[50vh] space-y-6">
                     {['legendary', 'rare', 'uncommon', 'common'].map((rarity) => {
                         const badges = groupedBadges[rarity];
                         if (badges.length === 0) return null;
@@ -150,10 +143,10 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                         return (
                             <div key={rarity}>
                                 <div className="flex items-center gap-2 mb-3">
-                                    <span className={`px-2 py-0.5 rounded text-xs font-medium uppercase ${rarityStyle.bg} ${rarityStyle.text}`}>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-medium uppercase border ${rarityStyle.bg} ${rarityStyle.text} ${rarityStyle.border}`}>
                                         {rarity}
                                     </span>
-                                    <span className="text-xs text-slate-500">
+                                    <span className="text-xs text-[hsl(210,11%,40%)]">
                                         {badges.filter(b => b.earned).length} / {badges.length} earned
                                     </span>
                                 </div>
@@ -169,19 +162,17 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                                                 key={badge.id}
                                                 onClick={() => toggleBadge(badge.id, earned)}
                                                 disabled={!earned}
-                                                className={`relative aspect-square rounded-xl p-2 transition-all duration-200
+                                                className={`relative aspect-square rounded-lg p-2 transition-all border-2
                                                     ${earned
                                                         ? isSelected
-                                                            ? `bg-gradient-to-br ${getRarityColor(badge.rarity)} ring-2 ring-white shadow-lg scale-105`
-                                                            : `bg-gradient-to-br ${getRarityColor(badge.rarity)} hover:scale-105 cursor-pointer`
-                                                        : 'bg-slate-800/50 opacity-40 cursor-not-allowed grayscale'
-                                                    }
-                                                    border ${!earned ? 'border-slate-700' : getRarityBorder(badge.rarity)}`}
+                                                            ? `${getRarityColor(badge.rarity)} ring-2 ring-[hsl(142,70%,55%)]`
+                                                            : `${getRarityColor(badge.rarity)} hover:border-[hsl(210,11%,35%)]`
+                                                        : 'bg-[hsl(220,13%,10%)] border-[hsl(220,13%,15%)] opacity-40 cursor-not-allowed'
+                                                    }`}
                                             >
                                                 {/* Selected Checkmark */}
                                                 {isSelected && (
-                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full 
-                                                        flex items-center justify-center shadow-lg z-10">
+                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-[hsl(142,70%,45%)] rounded-full flex items-center justify-center">
                                                         <Check className="w-3 h-3 text-white" />
                                                     </div>
                                                 )}
@@ -189,7 +180,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                                                 {/* Lock icon for unearned */}
                                                 {!earned && (
                                                     <div className="absolute inset-0 flex items-center justify-center">
-                                                        <Lock className="w-5 h-5 text-slate-500" />
+                                                        <Lock className="w-5 h-5 text-[hsl(210,11%,30%)]" />
                                                     </div>
                                                 )}
 
@@ -199,7 +190,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                                                         <img
                                                             src={badge.image_url}
                                                             alt={badge.name}
-                                                            className="w-full h-full object-contain rounded-lg"
+                                                            className="w-full h-full object-contain rounded"
                                                             onError={(e) => {
                                                                 e.target.style.display = 'none';
                                                                 e.target.nextSibling.style.display = 'block';
@@ -208,14 +199,6 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                                                     ) : null}
                                                     <span className={`text-3xl ${badge.image_url ? 'hidden' : 'block'}`}>
                                                         {badge.icon || '🏆'}
-                                                    </span>
-                                                </div>
-
-                                                {/* Tooltip */}
-                                                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100
-                                                    transition-opacity whitespace-nowrap pointer-events-none z-20">
-                                                    <span className="px-2 py-1 bg-slate-900 text-white text-xs rounded shadow-lg">
-                                                        {badge.name}
                                                     </span>
                                                 </div>
                                             </button>
@@ -228,30 +211,25 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-700 bg-slate-800/50">
+                <div className="flex items-center justify-end gap-3 p-5 border-t border-[hsl(220,13%,15%)] bg-[hsl(220,13%,6%)]">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg font-medium
-                            hover:bg-slate-600 transition-colors"
+                        className="px-4 py-2 bg-[hsl(220,13%,12%)] text-[hsl(210,11%,75%)] rounded-md font-medium hover:bg-[hsl(220,13%,15%)] transition-colors border border-[hsl(220,13%,18%)]"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-slate-900 rounded-lg font-medium
-                            hover:bg-yellow-400 disabled:opacity-50 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-[hsl(142,70%,45%)] text-black rounded-md font-medium hover:bg-[hsl(142,70%,50%)] disabled:opacity-50 transition-colors"
                     >
                         {saving ? (
                             <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-900"></div>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
                                 Saving...
                             </>
                         ) : (
-                            <>
-                                <Sparkles className="w-4 h-4" />
-                                Save Featured Badges
-                            </>
+                            'Save Featured Badges'
                         )}
                     </button>
                 </div>

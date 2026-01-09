@@ -26,10 +26,10 @@ const ContributorMetrics = () => {
 
     if (loading) {
         return (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-full flex items-center justify-center p-8">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full" />
-                    <p className="text-slate-400">Loading metrics...</p>
+                    <div className="animate-spin w-8 h-8 border-2 border-[hsl(142,70%,45%)] border-t-transparent rounded-full" />
+                    <p className="text-[hsl(210,11%,50%)] text-sm">Loading metrics...</p>
                 </div>
             </div>
         );
@@ -44,18 +44,18 @@ const ContributorMetrics = () => {
         : 0;
 
     return (
-        <div className="w-full h-full overflow-auto p-8">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="w-full h-full overflow-auto p-6">
+            <div className="max-w-6xl mx-auto space-y-6">
                 {/* Header */}
                 <div>
-                    <h1 className="text-4xl font-bold text-slate-200 mb-2">Contribution Metrics</h1>
-                    <p className="text-slate-400">
-                        Track your open source contribution activity and impact
+                    <h1 className="text-2xl font-bold text-[hsl(210,11%,90%)] mb-1">Contribution Metrics</h1>
+                    <p className="text-[hsl(210,11%,50%)] text-sm">
+                        Track your open source contribution activity
                     </p>
                 </div>
 
                 {/* Overview Stats */}
-                <div className="grid grid-cols-4 gap-6">
+                <div className="grid grid-cols-4 gap-4">
                     <MetricCard
                         icon={TrendingUp}
                         label="Total Contributions"
@@ -87,13 +87,13 @@ const ContributorMetrics = () => {
                 </div>
 
                 {/* Pull Requests Section */}
-                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <GitPullRequest className="w-6 h-6 text-purple-400" />
-                        <h2 className="text-2xl font-bold text-slate-200">Pull Requests</h2>
+                <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg p-5">
+                    <div className="flex items-center gap-3 mb-5">
+                        <GitPullRequest className="w-5 h-5 text-purple-400" />
+                        <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">Pull Requests</h2>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-3 gap-4">
                         <StatBox
                             label="Total PRs"
                             value={metrics?.totalPRs || 0}
@@ -115,44 +115,44 @@ const ContributorMetrics = () => {
                     </div>
 
                     {/* PR Progress Bar */}
-                    <div className="mt-6">
-                        <div className="flex justify-between text-sm text-slate-400 mb-2">
+                    <div className="mt-5">
+                        <div className="flex justify-between text-sm text-[hsl(210,11%,50%)] mb-2">
                             <span>PR Status Distribution</span>
                             <span>{metrics?.totalPRs || 0} total</span>
                         </div>
-                        <div className="h-4 bg-slate-900 rounded-full overflow-hidden flex">
+                        <div className="h-2 bg-[hsl(220,13%,12%)] rounded-full overflow-hidden flex">
                             <div
-                                className="bg-emerald-500 transition-all duration-500"
+                                className="bg-[hsl(142,70%,45%)] transition-all duration-500"
                                 style={{ width: `${(metrics?.mergedPRs / (metrics?.totalPRs || 1)) * 100}%` }}
                                 title={`Merged: ${metrics?.mergedPRs || 0}`}
                             />
                             <div
-                                className="bg-blue-500 transition-all duration-500"
+                                className="bg-[hsl(217,91%,60%)] transition-all duration-500"
                                 style={{ width: `${(metrics?.openPRs / (metrics?.totalPRs || 1)) * 100}%` }}
                                 title={`Open: ${metrics?.openPRs || 0}`}
                             />
                         </div>
                         <div className="flex gap-4 mt-2 text-xs">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-emerald-500 rounded-full" />
-                                <span className="text-slate-400">Merged ({metrics?.mergedPRs || 0})</span>
+                                <div className="w-2.5 h-2.5 bg-[hsl(142,70%,45%)] rounded-full" />
+                                <span className="text-[hsl(210,11%,50%)]">Merged ({metrics?.mergedPRs || 0})</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                                <span className="text-slate-400">Open ({metrics?.openPRs || 0})</span>
+                                <div className="w-2.5 h-2.5 bg-[hsl(217,91%,60%)] rounded-full" />
+                                <span className="text-[hsl(210,11%,50%)]">Open ({metrics?.openPRs || 0})</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Issues Section */}
-                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                        <AlertCircle className="w-6 h-6 text-orange-400" />
-                        <h2 className="text-2xl font-bold text-slate-200">Issues</h2>
+                <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg p-5">
+                    <div className="flex items-center gap-3 mb-5">
+                        <AlertCircle className="w-5 h-5 text-orange-400" />
+                        <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">Issues</h2>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-3 gap-4">
                         <StatBox
                             label="Total Issues"
                             value={metrics?.totalIssues || 0}
@@ -174,44 +174,44 @@ const ContributorMetrics = () => {
                     </div>
 
                     {/* Issue Progress Bar */}
-                    <div className="mt-6">
-                        <div className="flex justify-between text-sm text-slate-400 mb-2">
+                    <div className="mt-5">
+                        <div className="flex justify-between text-sm text-[hsl(210,11%,50%)] mb-2">
                             <span>Issue Status Distribution</span>
                             <span>{metrics?.totalIssues || 0} total</span>
                         </div>
-                        <div className="h-4 bg-slate-900 rounded-full overflow-hidden flex">
+                        <div className="h-2 bg-[hsl(220,13%,12%)] rounded-full overflow-hidden flex">
                             <div
-                                className="bg-emerald-500 transition-all duration-500"
+                                className="bg-[hsl(142,70%,45%)] transition-all duration-500"
                                 style={{ width: `${(metrics?.closedIssues / (metrics?.totalIssues || 1)) * 100}%` }}
                                 title={`Closed: ${metrics?.closedIssues || 0}`}
                             />
                             <div
-                                className="bg-blue-500 transition-all duration-500"
+                                className="bg-[hsl(217,91%,60%)] transition-all duration-500"
                                 style={{ width: `${(metrics?.openIssues / (metrics?.totalIssues || 1)) * 100}%` }}
                                 title={`Open: ${metrics?.openIssues || 0}`}
                             />
                         </div>
                         <div className="flex gap-4 mt-2 text-xs">
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-emerald-500 rounded-full" />
-                                <span className="text-slate-400">Closed ({metrics?.closedIssues || 0})</span>
+                                <div className="w-2.5 h-2.5 bg-[hsl(142,70%,45%)] rounded-full" />
+                                <span className="text-[hsl(210,11%,50%)]">Closed ({metrics?.closedIssues || 0})</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                                <span className="text-slate-400">Open ({metrics?.openIssues || 0})</span>
+                                <div className="w-2.5 h-2.5 bg-[hsl(217,91%,60%)] rounded-full" />
+                                <span className="text-[hsl(210,11%,50%)]">Open ({metrics?.openIssues || 0})</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Activity Summary */}
-                <div className="grid grid-cols-2 gap-6">
-                    <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/30 rounded-xl p-6">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-[hsl(220,13%,8%)] border border-[hsl(142,70%,45%,0.2)] rounded-lg p-5">
                         <div className="flex items-center gap-3 mb-4">
-                            <Award className="w-8 h-8 text-emerald-400" />
+                            <Award className="w-6 h-6 text-[hsl(142,70%,55%)]" />
                             <div>
-                                <h3 className="text-xl font-bold text-emerald-400">Contribution Impact</h3>
-                                <p className="text-sm text-slate-400">Your open source footprint</p>
+                                <h3 className="text-base font-semibold text-[hsl(142,70%,55%)]">Contribution Impact</h3>
+                                <p className="text-xs text-[hsl(210,11%,50%)]">Your open source footprint</p>
                             </div>
                         </div>
                         <div className="space-y-3">
@@ -221,12 +221,12 @@ const ContributorMetrics = () => {
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/30 rounded-xl p-6">
+                    <div className="bg-[hsl(220,13%,8%)] border border-purple-500/20 rounded-lg p-5">
                         <div className="flex items-center gap-3 mb-4">
-                            <Calendar className="w-8 h-8 text-purple-400" />
+                            <Calendar className="w-6 h-6 text-purple-400" />
                             <div>
-                                <h3 className="text-xl font-bold text-purple-400">Activity Overview</h3>
-                                <p className="text-sm text-slate-400">Recent contribution stats</p>
+                                <h3 className="text-base font-semibold text-purple-400">Activity Overview</h3>
+                                <p className="text-xs text-[hsl(210,11%,50%)]">Recent contribution stats</p>
                             </div>
                         </div>
                         <div className="space-y-3">
@@ -243,39 +243,39 @@ const ContributorMetrics = () => {
 
 const MetricCard = ({ icon: Icon, label, value, color, trend }) => {
     const colors = {
-        emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-        purple: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
-        blue: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
-        orange: 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+        emerald: 'border-[hsl(142,70%,45%,0.25)] text-[hsl(142,70%,55%)]',
+        purple: 'border-purple-500/25 text-purple-400',
+        blue: 'border-[hsl(217,91%,60%,0.25)] text-[hsl(217,91%,65%)]',
+        orange: 'border-orange-500/25 text-orange-400'
     };
 
     return (
-        <div className={`bg-slate-800/80 backdrop-blur-sm border rounded-xl p-6 transition-all duration-300 hover:scale-[1.02] ${colors[color]}`}>
-            <div className="flex items-center gap-3 mb-4">
-                <Icon className="w-6 h-6" />
-                <span className="text-sm font-medium text-slate-400">{label}</span>
+        <div className={`bg-[hsl(220,13%,8%)] border rounded-lg p-4 transition-colors ${colors[color]}`}>
+            <div className="flex items-center gap-2 mb-3">
+                <Icon className="w-4 h-4" />
+                <span className="text-sm text-[hsl(210,11%,50%)]">{label}</span>
             </div>
-            <div className="text-4xl font-bold mb-2">{value}</div>
-            <div className="text-xs text-slate-500">{trend}</div>
+            <div className="text-3xl font-bold mb-1">{value}</div>
+            <div className="text-xs text-[hsl(210,11%,40%)]">{trend}</div>
         </div>
     );
 };
 
 const StatBox = ({ label, value, icon: Icon, color }) => {
     const colors = {
-        emerald: 'text-emerald-400',
+        emerald: 'text-[hsl(142,70%,55%)]',
         purple: 'text-purple-400',
-        blue: 'text-blue-400',
+        blue: 'text-[hsl(217,91%,65%)]',
         orange: 'text-orange-400'
     };
 
     return (
-        <div className="bg-slate-900/50 rounded-lg p-4">
+        <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
             <div className="flex items-center gap-2 mb-2">
-                <Icon className={`w-5 h-5 ${colors[color]}`} />
-                <span className="text-sm text-slate-400">{label}</span>
+                <Icon className={`w-4 h-4 ${colors[color]}`} />
+                <span className="text-sm text-[hsl(210,11%,50%)]">{label}</span>
             </div>
-            <div className={`text-3xl font-bold ${colors[color]}`}>{value}</div>
+            <div className={`text-2xl font-bold ${colors[color]}`}>{value}</div>
         </div>
     );
 };
@@ -283,8 +283,8 @@ const StatBox = ({ label, value, icon: Icon, color }) => {
 const ImpactItem = ({ label, value }) => {
     return (
         <div className="flex justify-between items-center">
-            <span className="text-slate-300">{label}</span>
-            <span className="text-xl font-bold text-white">{value}</span>
+            <span className="text-[hsl(210,11%,60%)] text-sm">{label}</span>
+            <span className="text-lg font-semibold text-[hsl(210,11%,90%)]">{value}</span>
         </div>
     );
 };

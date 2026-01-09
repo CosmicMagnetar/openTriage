@@ -45,7 +45,7 @@ const ParticipantIssueCard = ({ issue }) => {
     <>
       <div
         data-testid={`participant-issue-${issue.number}`}
-        className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-emerald-400 hover:scale-[1.01] transition-all duration-300"
+        className="bg-[hsl(220,13%,8%)] backdrop-blur-sm border border-[hsl(220,13%,15%)] rounded-xl p-6 hover:border-[hsl(142,70%,50%)] hover:scale-[1.01] transition-all duration-300"
       >
         <div className="flex items-start gap-4">
           <div className="flex-1 min-w-0">
@@ -57,30 +57,30 @@ const ParticipantIssueCard = ({ issue }) => {
                   PR
                 </span>
               ) : (
-                <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                <span className="text-xs px-2 py-0.5 rounded bg-[hsl(217,91%,60%,0.15)] text-[hsl(217,91%,65%)] border border-[hsl(217,91%,60%,0.25)]">
                   Issue
                 </span>
               )}
               <span className={`text-xs px-2 py-0.5 rounded ${issue.state === 'open'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-slate-700 text-slate-400 border border-slate-600'
+                ? 'bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] border border-[hsl(142,70%,45%,0.25)]'
+                : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,50%)] border border-[hsl(220,13%,20%)]'
                 }`}>
                 {issue.state}
               </span>
             </div>
 
             {/* Issue Title */}
-            <h3 className="text-lg font-semibold text-slate-200 mb-2">
+            <h3 className="text-lg font-semibold text-[hsl(210,11%,90%)] mb-2">
               #{issue.number} {issue.title}
             </h3>
 
             {/* Metadata */}
-            <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
+            <div className="flex items-center gap-4 text-sm text-[hsl(210,11%,50%)] mb-4">
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
                 <span>Submitted {new Date(issue.createdAt).toLocaleDateString()}</span>
               </div>
-              <span className="text-emerald-400">{issue.repoName}</span>
+              <span className="text-[hsl(142,70%,55%)]">{issue.repoName}</span>
             </div>
 
             {/* Plain English Status */}
@@ -91,9 +91,9 @@ const ParticipantIssueCard = ({ issue }) => {
 
             {/* AI Summary */}
             {triage && (
-              <div className="mt-4 pt-4 border-t border-slate-700">
-                <p className="text-sm text-slate-400">
-                  <span className="font-medium text-slate-300">Summary:</span> {triage.summary}
+              <div className="mt-4 pt-4 border-t border-[hsl(220,13%,15%)]">
+                <p className="text-sm text-[hsl(210,11%,50%)]">
+                  <span className="font-medium text-[hsl(210,11%,75%)]">Summary:</span> {triage.summary}
                 </p>
               </div>
             )}
@@ -103,7 +103,7 @@ const ParticipantIssueCard = ({ issue }) => {
           <div className="flex flex-col gap-2">
             <button
               onClick={() => setShowReplyModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black rounded-lg text-sm font-medium transition-all"
             >
               <MessageSquare className="w-4 h-4" />
               Reply
@@ -112,7 +112,7 @@ const ParticipantIssueCard = ({ issue }) => {
               href={issue.htmlUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-medium transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,18%)] text-[hsl(210,11%,75%)] rounded-lg text-sm font-medium transition-all border border-[hsl(220,13%,18%)]"
             >
               <ExternalLink className="w-4 h-4" />
               GitHub

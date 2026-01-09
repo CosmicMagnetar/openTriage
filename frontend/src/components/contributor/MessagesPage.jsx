@@ -89,16 +89,16 @@ const MessagesPage = () => {
         <div className="h-full flex">
             {/* Left Panel - Conversations List */}
             <div className={`w-80 border-r border-[hsl(220,13%,12%)] flex flex-col ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
-                <div className="p-4 border-b border-slate-700">
-                    <h1 className="text-xl font-bold text-slate-200 mb-3">Messages</h1>
+                <div className="p-4 border-b border-[hsl(220,13%,15%)]">
+                    <h1 className="text-xl font-bold text-[hsl(210,11%,90%)] mb-3">Messages</h1>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(210,11%,40%)]" />
                         <input
                             type="text"
                             placeholder="Search conversations..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                            className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg pl-10 pr-4 py-2 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,40%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
                         />
                     </div>
                 </div>
@@ -109,7 +109,7 @@ const MessagesPage = () => {
                             <button
                                 key={conv.user_id}
                                 onClick={() => setSelectedChat(conv)}
-                                className={`w-full p-4 flex items-center gap-3 hover:bg-slate-800/50 transition-colors border-b border-slate-700/50 ${selectedChat?.user_id === conv.user_id ? 'bg-slate-800' : ''
+                                className={`w-full p-4 flex items-center gap-3 hover:bg-[hsl(220,13%,10%)] transition-colors border-b border-[hsl(220,13%,12%)] ${selectedChat?.user_id === conv.user_id ? 'bg-[hsl(220,13%,10%)]' : ''
                                     }`}
                             >
                                 <div className="relative">
@@ -120,19 +120,19 @@ const MessagesPage = () => {
                                         onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                                     />
                                     {conv.unread_count > 0 && (
-                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-[hsl(217,91%,60%)] text-white text-xs rounded-full flex items-center justify-center">
                                             {conv.unread_count}
                                         </span>
                                     )}
                                 </div>
                                 <div className="flex-1 text-left min-w-0">
-                                    <div className="font-medium text-slate-200 truncate">@{conv.username}</div>
-                                    <p className="text-sm text-slate-500 truncate">{conv.last_message}</p>
+                                    <div className="font-medium text-[hsl(210,11%,90%)] truncate">@{conv.username}</div>
+                                    <p className="text-sm text-[hsl(210,11%,40%)] truncate">{conv.last_message}</p>
                                 </div>
                             </button>
                         ))
                     ) : (
-                        <div className="p-8 text-center text-slate-500">
+                        <div className="p-8 text-center text-[hsl(210,11%,40%)]">
                             <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
                             <p>No conversations yet</p>
                             <p className="text-sm mt-1">Start chatting with mentors from the Find a Mentor panel!</p>
@@ -146,10 +146,10 @@ const MessagesPage = () => {
                 {selectedChat ? (
                     <>
                         {/* Chat Header */}
-                        <div className="p-4 border-b border-slate-700 flex items-center gap-3 bg-slate-800">
+                        <div className="p-4 border-b border-[hsl(220,13%,15%)] flex items-center gap-3 bg-[hsl(220,13%,8%)]">
                             <button
                                 onClick={() => setSelectedChat(null)}
-                                className="md:hidden p-2 text-slate-400 hover:text-white"
+                                className="md:hidden p-2 text-[hsl(210,11%,50%)] hover:text-white"
                             >
                                 <ArrowLeft className="w-5 h-5" />
                             </button>
@@ -160,8 +160,8 @@ const MessagesPage = () => {
                                 onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                             />
                             <div>
-                                <div className="font-bold text-slate-200">@{selectedChat.username}</div>
-                                <div className="text-xs text-slate-400">Click to view profile</div>
+                                <div className="font-bold text-[hsl(210,11%,90%)]">@{selectedChat.username}</div>
+                                <div className="text-xs text-[hsl(210,11%,50%)]">Click to view profile</div>
                             </div>
                         </div>
 
@@ -173,11 +173,11 @@ const MessagesPage = () => {
                                     return (
                                         <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`max-w-[70%] rounded-2xl px-4 py-2 ${isMe
-                                                ? 'bg-blue-600 text-white rounded-br-none'
-                                                : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
+                                                ? 'bg-[hsl(217,91%,50%)] text-white rounded-br-none'
+                                                : 'bg-[hsl(220,13%,10%)] text-[hsl(210,11%,90%)] rounded-bl-none border border-[hsl(220,13%,18%)]'
                                                 }`}>
                                                 <p>{msg.content}</p>
-                                                <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-slate-500'}`}>
+                                                <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-[hsl(210,11%,40%)]'}`}>
                                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
@@ -185,7 +185,7 @@ const MessagesPage = () => {
                                     );
                                 })
                             ) : (
-                                <div className="text-center text-slate-500 py-8">
+                                <div className="text-center text-[hsl(210,11%,40%)] py-8">
                                     <p>No messages yet. Start the conversation!</p>
                                 </div>
                             )}
@@ -222,7 +222,7 @@ const MessagesPage = () => {
                         </form>
                     </>
                 ) : (
-                    <div className="flex-1 flex items-center justify-center text-slate-500">
+                    <div className="flex-1 flex items-center justify-center text-[hsl(210,11%,40%)]">
                         <div className="text-center">
                             <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-20" />
                             <p className="text-lg">Select a conversation</p>

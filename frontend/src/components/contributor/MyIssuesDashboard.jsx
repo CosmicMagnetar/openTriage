@@ -3,8 +3,10 @@ import axios from 'axios';
 import ParticipantIssueCard from './ParticipantIssueCard';
 import OpportunitiesPanel from './OpportunitiesPanel';
 import OrganizationsPanel from './OrganizationsPanel';
-import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, ChevronDown, ArrowUpDown, Building2 } from 'lucide-react';
+import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, ChevronDown, ArrowUpDown, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+
+const ITEMS_PER_PAGE = 10;
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -16,10 +18,11 @@ const MyIssuesDashboard = () => {
   const [showOpportunities, setShowOpportunities] = useState(false);
   const [showOrganizations, setShowOrganizations] = useState(false);
 
-  // Filtering and sorting state
+  // Filtering, sorting, and pagination state
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'prs', 'issues'
   const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest', 'repo'
   const [selectedRepo, setSelectedRepo] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadDashboardData();
@@ -109,6 +112,18 @@ const MyIssuesDashboard = () => {
     return filtered;
   }, [issues, activeFilter, sortBy, selectedRepo]);
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAndSortedIssues.length / ITEMS_PER_PAGE);
+  const paginatedIssues = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedIssues.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAndSortedIssues, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, selectedRepo, sortBy]);
+
   const stats = dashboardStats || {
     totalContributions: issues.length,
     totalPRs: issues.filter(i => i.isPR).length,
@@ -124,8 +139,8 @@ const MyIssuesDashboard = () => {
     return (
       <div className="w-full h-full flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full" />
-          <p className="text-slate-400">Loading your contributions...</p>
+          <div className="animate-spin w-12 h-12 border-4 border-[hsl(142,70%,45%)] border-t-transparent rounded-full" />
+          <p className="text-[hsl(210,11%,50%)]">Loading your contributions...</p>
         </div>
       </div>
     );
@@ -137,23 +152,23 @@ const MyIssuesDashboard = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-slate-200 mb-2 flex items-center gap-3">
+            <h1 className="text-4xl font-bold text-[hsl(210,11%,90%)] mb-2 flex items-center gap-3">
               My Contributions
               {autoSyncing && (
-                <span className="text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 flex items-center gap-2 animate-pulse">
+                <span className="text-xs bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] px-3 py-1 rounded-full border border-[hsl(142,70%,45%,0.25)] flex items-center gap-2 animate-pulse">
                   <RefreshCw className="w-3 h-3 animate-spin" />
                   Syncing...
                 </span>
               )}
             </h1>
-            <p className="text-slate-400">
+            <p className="text-[hsl(210,11%,50%)]">
               Track your issues and pull requests across all repositories • Auto-syncs every 30s
             </p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={loadIssues}
-              className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-lg font-medium transition-all duration-300 active:scale-[0.98]"
+              className="bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,18%)] text-white px-4 py-3 rounded-lg font-medium transition-all duration-300 active:scale-[0.98] border border-[hsl(220,13%,18%)]"
             >
               <RefreshCw className="w-5 h-5" />
             </button>
@@ -168,7 +183,7 @@ const MyIssuesDashboard = () => {
             <button
               data-testid="organizations-button"
               onClick={() => setShowOrganizations(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
+              className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,55%)] text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
             >
               <Building2 className="w-5 h-5" />
               Organizations
@@ -207,15 +222,15 @@ const MyIssuesDashboard = () => {
 
         {/* Issues List */}
         {issues.length === 0 ? (
-          <div className="bg-slate-800/50 rounded-xl p-12 text-center">
-            <FileQuestion className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400 mb-2">No contributions found yet</p>
-            <p className="text-sm text-slate-500 mb-4">
+          <div className="bg-[hsl(220,13%,8%)] rounded-xl p-12 text-center border border-[hsl(220,13%,15%)]">
+            <FileQuestion className="w-16 h-16 text-[hsl(220,13%,20%)] mx-auto mb-4" />
+            <p className="text-[hsl(210,11%,50%)] mb-2">No contributions found yet</p>
+            <p className="text-sm text-[hsl(210,11%,40%)] mb-4">
               Start contributing to open source projects!
             </p>
             <button
               onClick={() => setShowOpportunities(true)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-lg font-medium transition-all duration-300"
+              className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black px-6 py-3 rounded-lg font-medium transition-all duration-300"
             >
               Explore Opportunities
             </button>
@@ -224,7 +239,7 @@ const MyIssuesDashboard = () => {
           <div>
             {/* Filter and Sort Controls */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
-              <h2 className="text-2xl font-bold text-slate-200">Your Issues & PRs</h2>
+              <h2 className="text-2xl font-bold text-[hsl(210,11%,90%)]">Your Issues & PRs</h2>
 
               <div className="flex flex-wrap items-center gap-3">
                 {/* Type Filter Buttons */}
@@ -233,8 +248,8 @@ const MyIssuesDashboard = () => {
                     data-testid="filter-all"
                     onClick={() => setActiveFilter('all')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === 'all'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
+                      ? 'bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] border border-[hsl(142,70%,45%,0.25)]'
+                      : 'bg-[hsl(220,13%,10%)] text-[hsl(210,11%,50%)] border border-[hsl(220,13%,18%)] hover:border-[hsl(142,70%,45%)]'
                       }`}
                   >
                     All ({stats.totalContributions})
@@ -243,8 +258,8 @@ const MyIssuesDashboard = () => {
                     data-testid="filter-prs"
                     onClick={() => setActiveFilter('prs')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === 'prs'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
+                      ? 'bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] border border-[hsl(142,70%,45%,0.25)]'
+                      : 'bg-[hsl(220,13%,10%)] text-[hsl(210,11%,50%)] border border-[hsl(220,13%,18%)] hover:border-[hsl(142,70%,45%)]'
                       }`}
                   >
                     PRs ({stats.totalPRs})
@@ -253,8 +268,8 @@ const MyIssuesDashboard = () => {
                     data-testid="filter-issues"
                     onClick={() => setActiveFilter('issues')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === 'issues'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-emerald-500'
+                      ? 'bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] border border-[hsl(142,70%,45%,0.25)]'
+                      : 'bg-[hsl(220,13%,10%)] text-[hsl(210,11%,50%)] border border-[hsl(220,13%,18%)] hover:border-[hsl(142,70%,45%)]'
                       }`}
                   >
                     Issues ({stats.totalIssues})
@@ -267,14 +282,14 @@ const MyIssuesDashboard = () => {
                     data-testid="repo-filter"
                     value={selectedRepo}
                     onChange={(e) => setSelectedRepo(e.target.value)}
-                    className="appearance-none bg-slate-800 text-slate-300 border border-slate-700 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                    className="appearance-none bg-[hsl(220,13%,10%)] text-[hsl(210,11%,75%)] border border-[hsl(220,13%,18%)] rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:border-[hsl(142,70%,45%)] transition-all cursor-pointer"
                   >
                     <option value="all">All Repositories</option>
                     {repositories.map(repo => (
                       <option key={repo} value={repo}>{repo}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(210,11%,50%)] pointer-events-none" />
                 </div>
 
                 {/* Sort Dropdown */}
@@ -283,43 +298,93 @@ const MyIssuesDashboard = () => {
                     data-testid="sort-by"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none bg-slate-800 text-slate-300 border border-slate-700 rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                    className="appearance-none bg-[hsl(220,13%,10%)] text-[hsl(210,11%,75%)] border border-[hsl(220,13%,18%)] rounded-lg px-4 py-2 pr-10 text-sm focus:outline-none focus:border-[hsl(142,70%,45%)] transition-all cursor-pointer"
                   >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
                     <option value="repo">By Repository</option>
                   </select>
-                  <ArrowUpDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <ArrowUpDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(210,11%,50%)] pointer-events-none" />
                 </div>
               </div>
             </div>
 
             {/* Filtered Results Count */}
-            {(activeFilter !== 'all' || selectedRepo !== 'all') && (
-              <div className="mb-4 text-sm text-slate-400">
-                Showing {filteredAndSortedIssues.length} of {issues.length} items
-                {selectedRepo !== 'all' && <span> in <span className="text-emerald-400">{selectedRepo}</span></span>}
+            {(activeFilter !== 'all' || selectedRepo !== 'all' || totalPages > 1) && (
+              <div className="mb-4 text-sm text-[hsl(210,11%,50%)]">
+                Showing {paginatedIssues.length} of {filteredAndSortedIssues.length} items
+                {selectedRepo !== 'all' && <span> in <span className="text-[hsl(142,70%,55%)]">{selectedRepo}</span></span>}
+                {totalPages > 1 && <span> • Page {currentPage} of {totalPages}</span>}
               </div>
             )}
 
             {/* Issues Grid */}
             <div className="grid gap-4">
-              {filteredAndSortedIssues.length > 0 ? (
-                filteredAndSortedIssues.map((issue) => (
+              {paginatedIssues.length > 0 ? (
+                paginatedIssues.map((issue) => (
                   <ParticipantIssueCard key={issue.id} issue={issue} />
                 ))
               ) : (
-                <div className="bg-slate-800/50 rounded-xl p-8 text-center">
-                  <p className="text-slate-400">No items match your current filters</p>
+                <div className="bg-[hsl(220,13%,8%)] rounded-xl p-8 text-center border border-[hsl(220,13%,15%)]">
+                  <p className="text-[hsl(210,11%,50%)]">No items match your current filters</p>
                   <button
                     onClick={() => { setActiveFilter('all'); setSelectedRepo('all'); }}
-                    className="mt-3 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+                    className="mt-3 text-sm text-[hsl(142,70%,55%)] hover:text-[hsl(142,70%,65%)] transition-colors"
                   >
                     Clear filters
                   </button>
                 </div>
               )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-md bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,15%)] hover:text-[hsl(210,11%,80%)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {/* Page numbers */}
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded-md text-sm font-medium transition-colors ${currentPage === pageNum
+                            ? 'bg-[hsl(142,70%,45%)] text-black'
+                            : 'bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,15%)]'
+                          }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-md bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,15%)] hover:text-[hsl(210,11%,80%)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -342,20 +407,20 @@ const MyIssuesDashboard = () => {
 
 const StatCard = ({ icon: Icon, label, value, color }) => {
   const colors = {
-    emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-    purple: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
-    blue: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
-    red: 'bg-red-500/10 border-red-500/30 text-red-400'
+    emerald: 'bg-[hsl(142,70%,45%,0.1)] border-[hsl(142,70%,45%,0.25)] text-[hsl(142,70%,55%)]',
+    purple: 'bg-purple-500/10 border-purple-500/25 text-purple-400',
+    blue: 'bg-[hsl(217,91%,60%,0.1)] border-[hsl(217,91%,60%,0.25)] text-[hsl(217,91%,65%)]',
+    red: 'bg-red-500/10 border-red-500/25 text-red-400'
   };
 
   return (
     <div
-      className={`bg-slate-800/80 backdrop-blur-sm border rounded-xl p-6 transition-all duration-300 hover:scale-[1.02] ${colors[color]
+      className={`bg-[hsl(220,13%,8%)] backdrop-blur-sm border rounded-xl p-6 transition-all duration-300 hover:scale-[1.02] ${colors[color]
         }`}
     >
       <div className="flex items-center gap-3 mb-3">
         <Icon className="w-6 h-6" />
-        <span className="text-sm font-medium text-slate-400">{label}</span>
+        <span className="text-sm font-medium text-[hsl(210,11%,50%)]">{label}</span>
       </div>
       <div className="text-3xl font-bold">{value}</div>
     </div>
