@@ -1,5 +1,4 @@
-import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, Bot, ExternalLink } from 'lucide-react';
-import MaintainerAIChat from './MaintainerAIChat';
+import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, ExternalLink } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import useIssueStore from '../../stores/issueStore';
 import axios from 'axios';
@@ -15,7 +14,6 @@ const IssueDetailPanel = () => {
   const [loadingComments, setLoadingComments] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [showAiChat, setShowAiChat] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
@@ -306,16 +304,9 @@ const IssueDetailPanel = () => {
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Type your reply..."
-                className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg p-3 pr-12 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(217,91%,60%)] transition-colors resize-none"
+                className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg p-3 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(217,91%,60%)] transition-colors resize-none"
                 rows={4}
               />
-              <button
-                onClick={() => setShowAiChat(true)}
-                className="absolute bottom-3 right-3 p-2 text-[hsl(217,91%,65%)] hover:bg-[hsl(217,91%,60%,0.15)] rounded-lg transition-colors"
-                title="Ask AI Assistant"
-              >
-                <Bot className="w-4 h-4" />
-              </button>
             </div>
 
             <button
@@ -329,14 +320,6 @@ const IssueDetailPanel = () => {
           </div>
         </div>
       </div>
-
-      {/* Maintainer AI Chat */}
-      {showAiChat && (
-        <MaintainerAIChat
-          issue={selectedIssue}
-          onClose={() => setShowAiChat(false)}
-        />
-      )}
     </div>
   );
 };
