@@ -3,7 +3,8 @@
  * Centralized API client for all backend calls
  */
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+// Use VITE_BACKEND_URL for the new Next.js/Turso backend (port 3000)
+const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
 /**
  * Make an authenticated API request
