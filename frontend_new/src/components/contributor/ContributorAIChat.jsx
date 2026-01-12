@@ -34,7 +34,9 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
           const response = await axios.get(`${API}/contributor/my-issues`, {
             headers: { Authorization: `Bearer ${token}` }
           });
-          setInternalIssues(response.data);
+          // Backend returns { items: [...], total, pages, limit }
+          // Extract items array or use empty array as fallback
+          setInternalIssues(response.data?.items || response.data || []);
         } catch (error) {
           console.error('Failed to fetch issues for chat context:', error);
         }

@@ -19,7 +19,9 @@ const OrganizationsPanel = ({ onClose }) => {
                 const response = await axios.get(`${API}/contributor/my-issues`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                const repos = [...new Set(response.data.map(i => i.repoName).filter(Boolean))];
+                // Backend returns { items: [...], total, pages, limit }
+                const issues = response.data?.items || response.data || [];
+                const repos = [...new Set(issues.map(i => i.repoName).filter(Boolean))];
                 setContributedRepos(repos);
             } catch (error) {
                 console.error('Failed to fetch contributions:', error);
