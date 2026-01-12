@@ -22,7 +22,7 @@ export function useChatPolling(issueId, options = {}) {
     if (!issueId) return;
 
     const token = localStorage.getItem('token');
-    const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+    const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
     
     try {
       const url = `${API_BASE}/api/issues/${issueId}/messages`;
@@ -85,7 +85,7 @@ export function useChatPolling(issueId, options = {}) {
   // Function to send a message
   const sendMessage = async (content, messageType = 'text') => {
     const token = localStorage.getItem('token');
-    const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+    const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
     const response = await fetch(`${API_BASE}/api/issues/${issueId}/messages`, {
       method: 'POST',
