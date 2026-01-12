@@ -68,7 +68,7 @@ export async function getUserCalendar(username: string) {
         .leftJoin(users, eq(issues.authorName, users.username))
         .where(eq(users.username, username))
         .groupBy(sql`substr(${issues.createdAt}, 1, 10)`)
-        .orderBy(sql`day`);
+        .orderBy(sql`substr(${issues.createdAt}, 1, 10)`);
 
     return activity;
 }
