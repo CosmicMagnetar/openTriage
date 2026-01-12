@@ -187,7 +187,7 @@ async def triage_issue(request: TriageRequest):
             isPR=request.isPR
         )
         
-        result = ai_triage_service.classify_issue(issue)
+        result = await ai_triage_service.classify_issue(issue)
         return result
     except Exception as e:
         logger.error(f"Triage error: {e}")
@@ -206,7 +206,7 @@ async def chat(request: ChatRequest):
     Passes directly to ai_chat_service.chat()
     """
     try:
-        response = ai_chat_service.chat(
+        response = await ai_chat_service.chat(
             message=request.message,
             history=request.history,
             context=request.context
