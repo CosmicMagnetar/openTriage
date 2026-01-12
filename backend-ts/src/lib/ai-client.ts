@@ -97,3 +97,16 @@ export async function generateHype(pr: {
         deletions: pr.deletions || 0,
     });
 }
+
+export async function ragChat(question: string, repoName?: string, topK = 5) {
+    return callAIEngine("/rag/chat", { question, repo_name: repoName, top_k: topK });
+}
+
+export async function ragIndex(repoName: string, githubAccessToken?: string) {
+    return callAIEngine("/rag/index", { repo_name: repoName, github_access_token: githubAccessToken });
+}
+
+export async function ragSearch(query: string, repoName?: string, limit = 10) {
+    return callAIEngine("/rag/search", { query, repo_name: repoName, limit });
+}
+
