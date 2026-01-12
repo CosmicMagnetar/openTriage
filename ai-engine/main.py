@@ -53,11 +53,15 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(","),
+    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,https://open-triage.vercel.app,https://opentriage.onrender.com").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Import and include data routes (contributor, messaging, auth)
+from routes.data_routes import router as data_router
+app.include_router(data_router)
 
 
 # =============================================================================

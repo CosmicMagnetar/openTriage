@@ -39,3 +39,6 @@ uuid>=1.30
 
 # Async utilities
 asyncio-throttle>=1.0.2
+
+# JWT Authentication
+PyJWT>=2.8.0
