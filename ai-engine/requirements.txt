@@ -1,0 +1,41 @@
+# OpenTriage AI Engine - Full Backend Requirements
+# Scanned from original backend services
+
+# Web Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.9
+
+# HTTP Client
+httpx>=0.28.0
+
+# AI/ML - OpenAI API
+openai>=1.58.0
+
+# Data Validation
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Database (Motor for MongoDB async)
+motor>=3.6.0
+pymongo>=4.10.0
+
+# Data Processing
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Spark (optional - may not be used in HF deployment)
+# pyspark>=3.5.0
+# py4j>=0.10.9
+
+# Typing Extensions
+typing-extensions>=4.12.0
+
+# UUID generation
+uuid>=1.30
+
+# Async utilities
+asyncio-throttle>=1.0.2

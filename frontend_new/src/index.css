@@ -1,0 +1,182 @@
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
+
+/* Clean, Minimal Dark Interface */
+body {
+    margin: 0;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+    font-family:
+        source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+@layer base {
+    :root {
+        /* Deep black/near-black - minimal and calm */
+        --background: 220 13% 5%;
+        --foreground: 210 11% 85%;
+
+        --card: 220 13% 8%;
+        --card-foreground: 210 11% 85%;
+
+        --popover: 220 13% 8%;
+        --popover-foreground: 210 11% 85%;
+
+        --primary: 142 70% 45%;
+        --primary-foreground: 0 0% 0%;
+
+        --secondary: 220 13% 12%;
+        --secondary-foreground: 210 11% 75%;
+
+        --muted: 220 13% 12%;
+        --muted-foreground: 210 11% 50%;
+
+        --accent: 220 13% 15%;
+        --accent-foreground: 210 11% 85%;
+
+        --destructive: 0 62% 50%;
+        --destructive-foreground: 0 0% 98%;
+
+        --border: 220 13% 15%;
+        --input: 220 13% 12%;
+        --ring: 142 70% 45%;
+
+        --chart-1: 142 70% 45%;
+        --chart-2: 217 91% 60%;
+        --chart-3: 0 70% 50%;
+        --chart-4: 38 92% 50%;
+        --chart-5: 280 65% 60%;
+
+        --radius: 0.5rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* Debug wrapper styles */
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+
+    [data-debug-wrapper="true"]>* {
+        margin-left: inherit;
+        margin-right: inherit;
+        margin-top: inherit;
+        margin-bottom: inherit;
+        padding-left: inherit;
+        padding-right: inherit;
+        padding-top: inherit;
+        padding-bottom: inherit;
+        column-gap: inherit;
+        row-gap: inherit;
+        gap: inherit;
+        border-left-width: inherit;
+        border-right-width: inherit;
+        border-top-width: inherit;
+        border-bottom-width: inherit;
+        border-left-style: inherit;
+        border-right-style: inherit;
+        border-top-style: inherit;
+        border-bottom-style: inherit;
+        border-left-color: inherit;
+        border-right-color: inherit;
+        border-top-color: inherit;
+        border-bottom-color: inherit;
+    }
+}
+
+/* ========== Animations ========== */
+
+/* Loading bar animation */
+@keyframes loading-bar {
+    0% { width: 0; margin-left: 0; }
+    50% { width: 60%; margin-left: 20%; }
+    100% { width: 0; margin-left: 100%; }
+}
+
+.animate-loading-bar {
+    animation: loading-bar 1.5s ease-in-out infinite;
+}
+
+/* Page transition */
+.page-transition {
+    animation: page-fade-in 0.2s ease-out;
+}
+
+@keyframes page-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Card hover */
+.card-interactive {
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-interactive:hover {
+    border-color: hsl(220, 13%, 22%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px hsla(0, 0%, 0%, 0.3);
+}
+
+/* Button press */
+.btn-press:active {
+    transform: scale(0.98);
+}
+
+/* Smooth scroll */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Focus ring */
+.focus-ring:focus-visible {
+    outline: 2px solid hsl(142, 70%, 45%);
+    outline-offset: 2px;
+}
+
+/* Hide scrollbar but allow scroll */
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* ========== Responsive utilities ========== */
+
+@media (max-width: 768px) {
+    .mobile-full {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .mobile-stack {
+        flex-direction: column !important;
+    }
+    
+    .mobile-hide {
+        display: none !important;
+    }
+}
