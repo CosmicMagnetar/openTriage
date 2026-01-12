@@ -361,7 +361,7 @@ async def send_message(request: SendMessageRequest, user: dict = Depends(get_cur
     }
     
     await db.messages.insert_one(message)
-    del message["_id"] if "_id" in message else None
+    message.pop("_id", None)  # Remove MongoDB's _id if present
     
     return message
 
