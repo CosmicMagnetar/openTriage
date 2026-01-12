@@ -136,6 +136,80 @@ interface MongoChatHistory {
     createdAt?: Date | string;
 }
 
+interface MongoMentor {
+    _id?: ObjectId;
+    id?: string;
+    userId: string;
+    username: string;
+    expertiseLevel?: string;
+    availabilityHoursPerWeek?: number;
+    timezone?: string;
+    isActive?: boolean;
+    bio?: string;
+    avatarUrl?: string;
+    techStack?: string[];
+    languages?: string[];
+    frameworks?: string[];
+    preferredTopics?: string[];
+    menteeCount?: number;
+    sessionsCompleted?: number;
+    avgRating?: number;
+    totalRatings?: number;
+    maxMentees?: number;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+}
+
+interface MongoTrophy {
+    _id?: ObjectId;
+    id?: string;
+    userId: string;
+    username: string;
+    trophyType: string;
+    name: string;
+    description: string;
+    icon: string;
+    color: string;
+    rarity: string;
+    svgData?: string;
+    isPublic?: boolean;
+    shareUrl?: string;
+    earnedFor?: string;
+    milestoneValue?: number;
+    awardedAt?: Date | string;
+}
+
+interface MongoIssueChat {
+    _id?: ObjectId;
+    id?: string;
+    issueId: string;
+    userId: string;
+    sessionId: string;
+    messages?: MongoChatMessage[];
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+}
+
+interface MongoResource {
+    _id?: ObjectId;
+    id?: string;
+    repoName: string;
+    sourceType?: string;
+    sourceId?: string;
+    resourceType: string;
+    title: string;
+    content: string;
+    description?: string;
+    language?: string;
+    sharedBy: string;
+    sharedById: string;
+    tags?: string[];
+    saveCount?: number;
+    helpfulCount?: number;
+    createdAt?: Date | string;
+    updatedAt?: Date | string;
+}
+
 // =============================================================================
 // Utilities
 // =============================================================================
@@ -551,6 +625,264 @@ async function migrateChatHistory(
     log(`Chat Messages: ${messageSuccess} migrated, ${messageSkipped} skipped`, "success");
 }
 
+async function migrateMentors(
+    mongoDb: ReturnType<MongoClient["db"]>,
+    tursoDb: ReturnType<typeof drizzle>,
+    userIdMap: Map<string, string>,
+    isDryRun: boolean
+): Promise<Map<string, string>> {
+    log("Migrating Mentors...");
+    const mentorIdMap = new Map<string, string>();
+    const mentors = await mongoDb.collection<MongoMentor>("mentors").find().toArray();
+    log(`Found ${mentors.length} mentors`);
+
+    let success = 0, skipped = 0;
+    for (const mentor of mentors) {
+        const mentorId = extractId(mentor);
+        const originalId = mentor._id?.toString() || mentor.id || "";
+        mentorIdMap.set(originalId, mentorId);
+
+        const mappedUserId = userIdMap.get(mentor.userId) || mentor.userId;
+
+        if (!isDryRun) {
+            try {
+                await tursoDb.insert(schema.mentors).values({
+                    id: mentorId,
+                    userId: mappedUserId,
+                    username: mentor.username,
+                    expertiseLevel: mentor.expertiseLevel || "intermediate",
+                    availabilityHoursPerWeek: mentor.availabilityHoursPerWeek || 5,
+                    timezone: mentor.timezone || null,
+                    isActive: mentor.isActive ?? true,
+                    bio: mentor.bio || null,
+                    avatarUrl: mentor.avatarUrl || null,
+                    menteeCount: mentor.menteeCount || 0,
+                    sessionsCompleted: mentor.sessionsCompleted || 0,
+                    avgRating: mentor.avgRating || 0,
+                    totalRatings: mentor.totalRatings || 0,
+                    maxMentees: mentor.maxMentees || 3,
+                    createdAt: toIsoString(mentor.createdAt),
+                    updatedAt: toIsoString(mentor.updatedAt),
+                }).onConflictDoNothing();
+
+                // Migrate tech stack
+                if (mentor.techStack?.length) {
+                    for (const tech of mentor.techStack) {
+                        await tursoDb.insert(schema.mentorTechStack).values({
+                            mentorId: mentorId,
+                            tech: tech,
+                        }).onConflictDoNothing();
+                    }
+                }
+
+                // Migrate languages
+                if (mentor.languages?.length) {
+                    for (const lang of mentor.languages) {
+                        await tursoDb.insert(schema.mentorLanguages).values({
+                            mentorId: mentorId,
+                            language: lang,
+                        }).onConflictDoNothing();
+                    }
+                }
+
+                // Migrate frameworks
+                if (mentor.frameworks?.length) {
+                    for (const fw of mentor.frameworks) {
+                        await tursoDb.insert(schema.mentorFrameworks).values({
+                            mentorId: mentorId,
+                            framework: fw,
+                        }).onConflictDoNothing();
+                    }
+                }
+
+                // Migrate preferred topics
+                if (mentor.preferredTopics?.length) {
+                    for (const topic of mentor.preferredTopics) {
+                        await tursoDb.insert(schema.mentorPreferredTopics).values({
+                            mentorId: mentorId,
+                            topic: topic,
+                        }).onConflictDoNothing();
+                    }
+                }
+                success++;
+            } catch (e) {
+                skipped++;
+            }
+        } else {
+            log(`[DRY] Mentor: ${mentor.username}`);
+            success++;
+        }
+    }
+    log(`Mentors: ${success} migrated, ${skipped} skipped`, "success");
+    return mentorIdMap;
+}
+
+async function migrateTrophies(
+    mongoDb: ReturnType<MongoClient["db"]>,
+    tursoDb: ReturnType<typeof drizzle>,
+    userIdMap: Map<string, string>,
+    isDryRun: boolean
+): Promise<void> {
+    log("Migrating Trophies...");
+    const trophies = await mongoDb.collection<MongoTrophy>("trophies").find().toArray();
+    log(`Found ${trophies.length} trophies`);
+
+    let success = 0, skipped = 0;
+    for (const trophy of trophies) {
+        const trophyId = extractId(trophy);
+        const mappedUserId = userIdMap.get(trophy.userId) || trophy.userId;
+
+        if (!isDryRun) {
+            try {
+                await tursoDb.insert(schema.trophies).values({
+                    id: trophyId,
+                    userId: mappedUserId,
+                    username: trophy.username,
+                    trophyType: trophy.trophyType,
+                    name: trophy.name,
+                    description: trophy.description,
+                    icon: trophy.icon,
+                    color: trophy.color,
+                    rarity: trophy.rarity,
+                    svgData: trophy.svgData || null,
+                    isPublic: trophy.isPublic ?? true,
+                    shareUrl: trophy.shareUrl || null,
+                    earnedFor: trophy.earnedFor || null,
+                    milestoneValue: trophy.milestoneValue || null,
+                    awardedAt: toIsoString(trophy.awardedAt),
+                }).onConflictDoNothing();
+                success++;
+            } catch (e) {
+                skipped++;
+            }
+        } else {
+            log(`[DRY] Trophy: ${trophy.name} for ${trophy.username}`);
+            success++;
+        }
+    }
+    log(`Trophies: ${success} migrated, ${skipped} skipped`, "success");
+}
+
+async function migrateIssueChats(
+    mongoDb: ReturnType<MongoClient["db"]>,
+    tursoDb: ReturnType<typeof drizzle>,
+    userIdMap: Map<string, string>,
+    issueIdMap: Map<string, string>,
+    isDryRun: boolean
+): Promise<void> {
+    log("Migrating Issue Chats...");
+    const issueChats = await mongoDb.collection<MongoIssueChat>("issue_chats").find().toArray();
+    log(`Found ${issueChats.length} issue chats`);
+
+    let chatSuccess = 0, chatSkipped = 0;
+    let msgSuccess = 0, msgSkipped = 0;
+
+    for (const chat of issueChats) {
+        const chatId = extractId(chat);
+        const mappedUserId = userIdMap.get(chat.userId) || chat.userId;
+        const mappedIssueId = issueIdMap.get(chat.issueId) || chat.issueId;
+
+        if (!isDryRun) {
+            try {
+                await tursoDb.insert(schema.issueChats).values({
+                    id: chatId,
+                    issueId: mappedIssueId,
+                    userId: mappedUserId,
+                    sessionId: chat.sessionId,
+                    createdAt: toIsoString(chat.createdAt),
+                    updatedAt: toIsoString(chat.updatedAt),
+                }).onConflictDoNothing();
+                chatSuccess++;
+
+                // Migrate messages
+                if (chat.messages?.length) {
+                    for (const msg of chat.messages) {
+                        const msgId = uuidv4();
+                        try {
+                            await tursoDb.insert(schema.issueChatMessages).values({
+                                id: msgId,
+                                issueChatId: chatId,
+                                role: msg.role,
+                                content: msg.content,
+                                timestamp: toIsoString(msg.timestamp),
+                                githubCommentId: msg.githubCommentId || null,
+                                githubCommentUrl: msg.githubCommentUrl || null,
+                            }).onConflictDoNothing();
+                            msgSuccess++;
+                        } catch (e) {
+                            msgSkipped++;
+                        }
+                    }
+                }
+            } catch (e) {
+                chatSkipped++;
+            }
+        } else {
+            log(`[DRY] Issue Chat: ${chatId} with ${chat.messages?.length || 0} messages`);
+            chatSuccess++;
+            msgSuccess += chat.messages?.length || 0;
+        }
+    }
+    log(`Issue Chats: ${chatSuccess} migrated, ${chatSkipped} skipped`, "success");
+    log(`Issue Chat Messages: ${msgSuccess} migrated, ${msgSkipped} skipped`, "success");
+}
+
+async function migrateResources(
+    mongoDb: ReturnType<MongoClient["db"]>,
+    tursoDb: ReturnType<typeof drizzle>,
+    userIdMap: Map<string, string>,
+    isDryRun: boolean
+): Promise<void> {
+    log("Migrating Resources...");
+    const resources = await mongoDb.collection<MongoResource>("resources").find().toArray();
+    log(`Found ${resources.length} resources`);
+
+    let success = 0, skipped = 0;
+    for (const resource of resources) {
+        const resourceId = extractId(resource);
+        const mappedUserId = userIdMap.get(resource.sharedById) || resource.sharedById;
+
+        if (!isDryRun) {
+            try {
+                await tursoDb.insert(schema.resources).values({
+                    id: resourceId,
+                    repoName: resource.repoName,
+                    sourceType: resource.sourceType || "chat",
+                    sourceId: resource.sourceId || null,
+                    resourceType: resource.resourceType,
+                    title: resource.title,
+                    content: resource.content,
+                    description: resource.description || null,
+                    language: resource.language || null,
+                    sharedBy: resource.sharedBy,
+                    sharedById: mappedUserId,
+                    saveCount: resource.saveCount || 0,
+                    helpfulCount: resource.helpfulCount || 0,
+                    createdAt: toIsoString(resource.createdAt),
+                    updatedAt: toIsoString(resource.updatedAt),
+                }).onConflictDoNothing();
+
+                // Migrate tags
+                if (resource.tags?.length) {
+                    for (const tag of resource.tags) {
+                        await tursoDb.insert(schema.resourceTags).values({
+                            resourceId: resourceId,
+                            tag: tag,
+                        }).onConflictDoNothing();
+                    }
+                }
+                success++;
+            } catch (e) {
+                skipped++;
+            }
+        } else {
+            log(`[DRY] Resource: ${resource.title}`);
+            success++;
+        }
+    }
+    log(`Resources: ${success} migrated, ${skipped} skipped`, "success");
+}
+
 // =============================================================================
 // Main
 // =============================================================================
@@ -598,6 +930,12 @@ async function main() {
         await migrateTriageData(mongoDb, tursoDb, issueIdMap, isDryRun);
         await migrateTemplates(mongoDb, tursoDb, userIdMap, isDryRun);
         await migrateChatHistory(mongoDb, tursoDb, userIdMap, isDryRun);
+
+        // New migrations for complete feature support
+        const mentorIdMap = await migrateMentors(mongoDb, tursoDb, userIdMap, isDryRun);
+        await migrateTrophies(mongoDb, tursoDb, userIdMap, isDryRun);
+        await migrateIssueChats(mongoDb, tursoDb, userIdMap, issueIdMap, isDryRun);
+        await migrateResources(mongoDb, tursoDb, userIdMap, isDryRun);
 
         log("=== Migration Complete ===", "success");
         if (isDryRun) {
