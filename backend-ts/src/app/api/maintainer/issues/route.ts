@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
             ? await getIssuesWithTriage(filters, page, limit)
             : await getIssues(filters, page, limit);
 
-        return NextResponse.json(result);
+        // Frontend expects an array for filtering
+        return NextResponse.json(result.issues);
     } catch (error) {
         console.error("GET /api/maintainer/issues error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
