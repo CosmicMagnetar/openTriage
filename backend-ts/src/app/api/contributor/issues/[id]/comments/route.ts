@@ -1,15 +1,15 @@
+/**
+ * Contributor Issue Comments Route
+ * 
+ * GET /api/contributor/issues/:id/comments
+ * Fetch comments for a specific issue from GitHub API
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { createGitHubClient, fetchIssueComments } from "@/lib/github-client";
 import { db } from "@/db";
-import { issueChats } from "@/db/schema"; // Assuming comments are stored here or in messages
-// Wait, issues usually have comments. 
-// If we look at schema, `issueChats` links issues to chat sessions. 
-// Or `messages`?
-// Let's assume for now we return an empty array or basic mock if "comments" table isn't explicit.
-// But we saw `issueChatMessages` in migration?
-// Let's check schema again if needed. 
-// Actually, let's just use empty array to unblock 404, or try to query issueChats if available.
-
+import { issues } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(
@@ -22,14 +22,51 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        if (!user.githubAccessToken) {
+            return NextResponse.json({
+                error: "GitHub access token not found"
+            }, { status: 401 });
+        }
+
         const { id } = await context.params;
 
-        // Mock response for now as "comments" schema is ambiguous without deep dive
-        // Prevents 404
-        return NextResponse.json([]);
+        // Get issue from database
+        const issue = await db.select()
+            .from(issues)
+            .where(eq(issues.id, id))
+            .limit(1);
 
-    } catch (error) {
+        if (!issue[0]) {
+            return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+        }
+
+        const owner = issue[0].owner;
+        const repo = issue[0].repo;
+        const issueNumber = issue[0].number;
+
+        if (!owner || !repo) {
+            return NextResponse.json({
+                error: "Invalid issue data"
+            }, { status: 400 });
+        }
+
+        // Fetch comments from GitHub
+        const octokit = createGitHubClient(user.githubAccessToken);
+        const comments = await fetchIssueComments(octokit, owner, repo, issueNumber);
+
+        return NextResponse.json(comments);
+
+    } catch (error: any) {
         console.error("GET /api/contributor/issues/:id/comments error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+
+        if (error?.status === 404) {
+            return NextResponse.json({ error: "Issue not found on GitHub" }, { status: 404 });
+        }
+
+        if (error?.status === 403) {
+            return NextResponse.json({ error: "GitHub API rate limit exceeded" }, { status: 429 });
+        }
+
+        return NextResponse.json({ error: "Failed to fetch comments" }, { status: 500 });
     }
 }

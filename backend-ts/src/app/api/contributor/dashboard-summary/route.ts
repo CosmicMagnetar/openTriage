@@ -2,13 +2,12 @@
  * Contributor Dashboard Summary Route
  * 
  * GET /api/contributor/dashboard-summary
- * Get dashboard statistics for the contributor
+ * Get dashboard statistics fetched from GitHub API in real-time
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getIssuesWithTriage } from "@/lib/db/queries/issues";
-import { getContributorRepositories } from "@/lib/db/queries/repositories";
+import { createGitHubClient, fetchUserContributions } from "@/lib/github-client";
 
 export async function GET(request: NextRequest) {
     try {
@@ -17,28 +16,65 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get all contributor's issues (no pagination for stats)
-        const [repos, issuesData] = await Promise.all([
-            getContributorRepositories(user.id, user.username),
-            getIssuesWithTriage({ authorName: user.username }, 1, 1000), // Get all for accurate stats
+        // Check if user has GitHub access token
+        if (!user.githubAccessToken) {
+            return NextResponse.json({
+                error: "GitHub access token not found. Please re-authenticate."
+            }, { status: 401 });
+        }
+
+        // Create GitHub client with user's access token
+        const octokit = createGitHubClient(user.githubAccessToken);
+
+        // Fetch real-time data from GitHub API
+        const { issues, prs } = await fetchUserContributions(octokit, user.username);
+
+        // Calculate PR metrics
+        const openPRs = prs.filter(pr => pr.state === "open").length;
+        const closedPRs = prs.filter(pr => pr.state === "closed").length;
+
+        // Note: GitHub API doesn't directly tell us if a PR was merged
+        // We approximate "merged" as closed PRs (some might be closed without merging)
+        const mergedPRs = closedPRs;
+
+        // Calculate issue metrics
+        const openIssues = issues.filter(i => i.state === "open").length;
+        const closedIssues = issues.filter(i => i.state === "closed").length;
+
+        // Get unique repositories from both issues and PRs
+        const repoUrls = new Set([
+            ...issues.map(item => item.repository_url),
+            ...prs.map(item => item.repository_url)
         ]);
 
-        const allIssues = issuesData.issues;
-        const myIssues = allIssues.filter(i => !i.isPR);
-        const myPRs = allIssues.filter(i => i.isPR);
+        return NextResponse.json({
+            totalContributions: issues.length + prs.length,
+            totalPRs: prs.length,
+            openPRs,
+            mergedPRs,
+            totalIssues: issues.length,
+            openIssues,
+            closedIssues,
+            repositoriesContributed: repoUrls.size,
+        });
+    } catch (error: any) {
+        console.error("Contributor dashboard-summary error:", error);
+
+        // Provide helpful error messages
+        if (error?.status === 401) {
+            return NextResponse.json({
+                error: "GitHub authentication failed. Please re-authenticate."
+            }, { status: 401 });
+        }
+
+        if (error?.status === 403) {
+            return NextResponse.json({
+                error: "GitHub API rate limit exceeded. Please try again later."
+            }, { status: 429 });
+        }
 
         return NextResponse.json({
-            totalContributions: allIssues.length,
-            totalPRs: myPRs.length,
-            openPRs: myPRs.filter(i => i.state === "open").length,
-            mergedPRs: myPRs.filter(i => i.state === "closed").length,
-            totalIssues: myIssues.length,
-            openIssues: myIssues.filter(i => i.state === "open").length,
-            closedIssues: myIssues.filter(i => i.state === "closed").length,
-            repositoriesContributed: repos.length,
-        });
-    } catch (error) {
-        console.error("Contributor dashboard-summary error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+            error: "Failed to fetch GitHub data. Please try again."
+        }, { status: 500 });
     }
 }
