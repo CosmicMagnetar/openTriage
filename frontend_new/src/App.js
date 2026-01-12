@@ -14,17 +14,16 @@ function App() {
   const { user, role, isLoading, loadUser } = useAuthStore();
 
   useEffect(() => {
-    loadUser();
-
-    // Check for token in URL (from OAuth callback)
+    // Check for token in URL (from OAuth callback) FIRST before loading user
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     if (token) {
       localStorage.setItem('token', token);
-      loadUser();
-      // Clean URL
+      // Clean URL immediately
       window.history.replaceState({}, document.title, '/');
     }
+    // Now load user (will use token from localStorage if present)
+    loadUser();
   }, [loadUser]);
 
   if (isLoading) {
