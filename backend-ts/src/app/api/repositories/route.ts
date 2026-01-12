@@ -11,16 +11,26 @@ import { eq, and, desc, count, sql } from "drizzle-orm";
 // Python equivalent (from routes/repository.py):
 //   repos = await db.repositories.find({"userId": user['id']}, {"_id": 0}).to_list(1000)
 //
+import { getCurrentUser } from "@/lib/auth";
+
+// ...
+
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const userId = searchParams.get("userId");
+        let userId = searchParams.get("userId");
 
+        // If no userId provided, try to get the current authenticated user
         if (!userId) {
-            return NextResponse.json(
-                { error: "userId is required" },
-                { status: 400 }
-            );
+            const currentUser = await getCurrentUser(request);
+            if (currentUser) {
+                userId = currentUser.id;
+            } else {
+                return NextResponse.json(
+                    { error: "userId is required or you must be logged in" },
+                    { status: 401 }
+                );
+            }
         }
 
         const repos = await db
