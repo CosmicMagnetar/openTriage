@@ -5,10 +5,10 @@ import { eq } from "drizzle-orm";
 
 export async function GET(
     request: NextRequest,
-    context: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
-        const { id } = await context.params;
+        const { username: id } = await context.params;
         // 'id' here corresponds to the profile's userId (since userId is PK for profiles)
         const repos = await db
             .select()
