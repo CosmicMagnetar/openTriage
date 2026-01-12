@@ -42,3 +42,4 @@ asyncio-throttle>=1.0.2
 
 # JWT Authentication
 PyJWT>=2.8.0
+pyspark
