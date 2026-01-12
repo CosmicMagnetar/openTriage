@@ -24,7 +24,7 @@ const useAuthStore = create((set) => ({
 
     try {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      const response = await axios.get(`${API}/user/me`);
+      const response = await axios.get(`${API}/auth/me`);
       set({ token, user: response.data, role: response.data.role, isLoading: false });
     } catch (error) {
       localStorage.removeItem('token');
@@ -40,7 +40,7 @@ const useAuthStore = create((set) => ({
 
   updateRole: async (newRole) => {
     try {
-      const response = await axios.post(`${API}/user/select-role`, { role: newRole });
+      const response = await axios.post(`${API}/auth/select-role`, { role: newRole });
       const { token, role } = response.data;
       
       localStorage.setItem('token', token);
