@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Send, Loader2, ExternalLink } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -126,12 +127,15 @@ const IssueReplyModal = ({ issue, onClose, onReplySent }) => {
 
                 {/* Reply Input - Simple and clean */}
                 <div className="px-5 py-4 border-t border-[hsl(220,13%,15%)] space-y-3">
-                    <textarea
+                    <AISuggestTextarea
                         value={message}
-                        onChange={(e) => setMessage(e.target.value)}
+                        onChange={setMessage}
                         placeholder="Write your reply..."
                         disabled={sending}
                         rows={3}
+                        contextType="issue_reply"
+                        conversationHistory={comments.map(c => ({ sender: 'other', content: c.body }))}
+                        issueContext={{ title: issue.title, body: issue.body, repoName: issue.repoName }}
                         className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-4 py-3 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(220,13%,30%)] resize-none"
                     />
 

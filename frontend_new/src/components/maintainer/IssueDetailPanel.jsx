@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import useIssueStore from '../../stores/issueStore';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -299,11 +300,14 @@ const IssueDetailPanel = () => {
             )}
 
             <div className="relative">
-              <textarea
+              <AISuggestTextarea
                 data-testid="reply-textarea"
                 value={reply}
-                onChange={(e) => setReply(e.target.value)}
+                onChange={setReply}
                 placeholder="Type your reply..."
+                contextType="issue_reply"
+                conversationHistory={comments.map(c => ({ sender: 'other', content: c.body }))}
+                issueContext={{ title: selectedIssue.title, body: selectedIssue.body, repoName: selectedIssue.repoName }}
                 className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg p-3 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(217,91%,60%)] transition-colors resize-none"
                 rows={4}
               />
