@@ -67,6 +67,7 @@ export const issues = sqliteTable("issues", {
     htmlUrl: text("html_url"),
     state: text("state").notNull().default("open"),
     isPR: integer("is_pr", { mode: "boolean" }).notNull().default(false),
+    authorAssociation: text("author_association"),  // OWNER, MEMBER, COLLABORATOR, etc.
     createdAt: text("created_at").notNull(),
 });
 
@@ -236,6 +237,16 @@ export const messages = sqliteTable("messages", {
     receiverId: text("receiver_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
     read: integer("read", { mode: "boolean" }).default(false),
+    timestamp: text("timestamp").notNull(),
+});
+
+// ---- Global Chat Messages (Ably persistence) ----
+export const globalChatMessages = sqliteTable("global_chat_messages", {
+    id: text("id").primaryKey(),
+    senderId: text("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    senderUsername: text("sender_username").notNull(),
+    senderAvatarUrl: text("sender_avatar_url"),
+    content: text("content").notNull(),
     timestamp: text("timestamp").notNull(),
 });
 

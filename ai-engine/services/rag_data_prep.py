@@ -93,6 +93,53 @@ class RAGDataPrep:
         
         return text.strip()
     
+    def _detect_priority_sections(self, content: str, doc_type: str) -> str:
+        """
+        Detect if content contains high-priority sections for contributor context.
+        
+        Args:
+            content: Document content
+            doc_type: Type of document (readme, contributing)
+            
+        Returns:
+            Priority level: 'high', 'medium', or 'normal'
+        """
+        if doc_type == "contributing":
+            return "high"  # CONTRIBUTING.md is always high priority
+        
+        content_lower = content.lower()
+        high_priority_patterns = [
+            "getting started",
+            "project setup",
+            "installation",
+            "how to contribute",
+            "contributor guidelines",
+            "development setup",
+            "quick start",
+            "for contributors",
+            "contributing",
+        ]
+        
+        medium_priority_patterns = [
+            "requirements",
+            "dependencies",
+            "building",
+            "testing",
+            "documentation",
+        ]
+        
+        # Check for high-priority sections
+        high_count = sum(1 for pattern in high_priority_patterns if pattern in content_lower)
+        if high_count >= 2:
+            return "high"
+        
+        # Check for medium-priority sections
+        medium_count = sum(1 for pattern in medium_priority_patterns if pattern in content_lower)
+        if high_count >= 1 or medium_count >= 2:
+            return "medium"
+        
+        return "normal"
+    
     def _simple_tokenize(self, text: str) -> List[str]:
         """
         Simple word-based tokenization.
@@ -225,7 +272,7 @@ class RAGDataPrep:
         Fetch documents from MongoDB for RAG preparation.
         
         Args:
-            doc_types: Types to fetch (issue, pr, comment)
+            doc_types: Types to fetch (issue, pr, comment, readme, contributing)
             repo_names: Optional filter by repository
             
         Returns:
@@ -233,29 +280,55 @@ class RAGDataPrep:
         """
         from config.database import db
         
-        doc_types = doc_types or ["issue", "pr", "comment", "readme"]
+        doc_types = doc_types or ["issue", "pr", "comment", "readme", "contributing"]
         documents = []
         
-        if "readme" in doc_types and repo_names:
+        # Fetch README and CONTRIBUTING files with high priority
+        if repo_names:
             from services.github_service import github_service
             
             for repo in repo_names:
-                try:
-                    content = await github_service.fetch_repository_readme(repo, github_access_token)
-                    if content:
-                        documents.append({
-                            "document_id": f"{repo}_readme",
-                            "document_type": "readme",
-                            "source_repo": repo,
-                            "title": "Project README",
-                            "body": content,
-                            "author": "System",
-                            "number": 0,
-                            "state": "active",
-                            "created_at": datetime.now(timezone.utc).isoformat()
-                        })
-                except Exception as e:
-                    logger.error(f"Failed to fetch README for {repo}: {e}")
+                # Fetch README
+                if "readme" in doc_types:
+                    try:
+                        content = await github_service.fetch_repository_readme(repo, github_access_token)
+                        if content:
+                            # Extract key sections for high priority tagging
+                            priority = self._detect_priority_sections(content, "readme")
+                            documents.append({
+                                "document_id": f"{repo}_readme",
+                                "document_type": "readme",
+                                "source_repo": repo,
+                                "title": "Project README",
+                                "body": content,
+                                "author": "System",
+                                "number": 0,
+                                "state": "active",
+                                "priority": priority,
+                                "created_at": datetime.now(timezone.utc).isoformat()
+                            })
+                    except Exception as e:
+                        logger.error(f"Failed to fetch README for {repo}: {e}")
+                
+                # Fetch CONTRIBUTING.md (high priority for contributor context)
+                if "contributing" in doc_types:
+                    try:
+                        content = await github_service.fetch_contributing_file(repo, github_access_token)
+                        if content:
+                            documents.append({
+                                "document_id": f"{repo}_contributing",
+                                "document_type": "contributing",
+                                "source_repo": repo,
+                                "title": "Contributor Guidelines",
+                                "body": content,
+                                "author": "System",
+                                "number": 0,
+                                "state": "active",
+                                "priority": "high",  # Always high priority
+                                "created_at": datetime.now(timezone.utc).isoformat()
+                            })
+                    except Exception as e:
+                        logger.error(f"Failed to fetch CONTRIBUTING for {repo}: {e}")
         
         if "issue" in doc_types or "pr" in doc_types:
             query = {}

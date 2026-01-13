@@ -438,6 +438,54 @@ class GitHubService:
         except Exception as e:
             logger.error(f"README fetch error for {repo_full_name}: {e}")
             return ""
+    
+    async def fetch_contributing_file(self, repo_full_name: str, github_access_token: Optional[str] = None) -> str:
+        """
+        Fetch the CONTRIBUTING.md content for a repository.
+        Tries multiple common paths: CONTRIBUTING.md, .github/CONTRIBUTING.md, docs/CONTRIBUTING.md
+        """
+        paths_to_try = [
+            "CONTRIBUTING.md",
+            ".github/CONTRIBUTING.md",
+            "docs/CONTRIBUTING.md",
+            "contributing.md",
+        ]
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                headers = {"Accept": "application/vnd.github.raw+json"}
+                if github_access_token:
+                    headers["Authorization"] = f"Bearer {github_access_token}"
+                
+                for path in paths_to_try:
+                    url = f"{self.base_url}/repos/{repo_full_name}/contents/{path}"
+                    response = await client.get(url, headers=headers, timeout=30.0)
+                    
+                    if response.status_code == 200:
+                        return response.text
+                
+                return ""
+                
+        except Exception as e:
+            logger.error(f"CONTRIBUTING fetch error for {repo_full_name}: {e}")
+            return ""
+    
+    async def fetch_repository_docs(
+        self, 
+        repo_full_name: str, 
+        github_access_token: Optional[str] = None
+    ) -> Dict[str, str]:
+        """
+        Fetch README and CONTRIBUTING files for RAG indexing.
+        Returns dict with 'readme' and 'contributing' keys.
+        """
+        readme = await self.fetch_repository_readme(repo_full_name, github_access_token)
+        contributing = await self.fetch_contributing_file(repo_full_name, github_access_token)
+        
+        return {
+            "readme": readme,
+            "contributing": contributing
+        }
 
 
 # Singleton instance
