@@ -6,7 +6,7 @@
 
 import { db } from "@/db";
 import { repositories, issues, users } from "@/db/schema";
-import { eq, and, desc, count, sql } from "drizzle-orm";
+import { eq, and, desc, asc, count, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 // =============================================================================
@@ -56,8 +56,15 @@ export async function deleteRepository(id: string) {
 // Maintainer Repositories
 // =============================================================================
 
+// =============================================================================
+// Maintainer Repositories
+// =============================================================================
+
 export async function getMaintainerRepositories(userId: string) {
-    const repos = await db.select().from(repositories).where(eq(repositories.userId, userId));
+    const repos = await db.select()
+        .from(repositories)
+        .where(eq(repositories.userId, userId))
+        .orderBy(asc(repositories.name));
 
     // Add issue counts
     const reposWithCounts = await Promise.all(repos.map(async (repo) => {
@@ -117,7 +124,8 @@ export async function getContributorRepositories(userId: string, username: strin
         };
     }));
 
-    return reposWithCounts;
+    // Sort alphabetically by name
+    return reposWithCounts.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // =============================================================================

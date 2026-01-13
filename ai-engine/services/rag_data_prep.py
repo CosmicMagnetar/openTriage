@@ -67,128 +67,97 @@ class RAGDataPrep:
     
     def _clean_text(self, text: str) -> str:
         """
-        Clean text by removing markdown artifacts and code blocks.
+        Clean text but PRESERVE code blocks and structure.
         """
         if not text:
             return ""
         
-        # Remove code blocks
-        text = re.sub(r'```[\s\S]*?```', ' [CODE_BLOCK] ', text)
-        text = re.sub(r'`[^`]+`', ' [CODE] ', text)
+        # Remove markdown images but keep alt text if useful?
+        # For now, just remove images to reduce noise
+        text = re.sub(r'!\[([^\]]*)\]\([^\)]+\)', r'[IMAGE: \1]', text)
         
-        # Remove markdown links but keep text
-        text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
-        
-        # Remove markdown images
-        text = re.sub(r'!\[[^\]]*\]\([^\)]+\)', ' [IMAGE] ', text)
-        
-        # Remove HTML tags
+        # Remove HTML tags (basic)
         text = re.sub(r'<[^>]+>', ' ', text)
         
-        # Remove excessive whitespace
-        text = re.sub(r'\s+', ' ', text)
-        
-        # Remove special markdown characters
-        text = re.sub(r'[#*_~>|]', '', text)
+        # We KEEP code blocks now because they are crucial for setup instructions
+        # Just ensure newlines around them are clean
         
         return text.strip()
     
-    def _detect_priority_sections(self, content: str, doc_type: str) -> str:
+    def _recursive_split(self, text: str, separators: List[str], chunk_size: int, chunk_overlap: int) -> List[str]:
         """
-        Detect if content contains high-priority sections for contributor context.
+        Recursively split text by separators.
+        """
+        final_chunks = []
+        if len(text) <= chunk_size:
+            return [text]
         
-        Args:
-            content: Document content
-            doc_type: Type of document (readme, contributing)
+        if not separators:
+            # If no separators left, hard split by size
+            return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size-chunk_overlap)]
             
-        Returns:
-            Priority level: 'high', 'medium', or 'normal'
-        """
-        if doc_type == "contributing":
-            return "high"  # CONTRIBUTING.md is always high priority
+        separator = separators[0]
+        next_separators = separators[1:]
         
-        content_lower = content.lower()
-        high_priority_patterns = [
-            "getting started",
-            "project setup",
-            "installation",
-            "how to contribute",
-            "contributor guidelines",
-            "development setup",
-            "quick start",
-            "for contributors",
-            "contributing",
-        ]
+        # Split by current separator
+        splits = text.split(separator)
+        current_chunk = []
+        current_length = 0
         
-        medium_priority_patterns = [
-            "requirements",
-            "dependencies",
-            "building",
-            "testing",
-            "documentation",
-        ]
+        for split_part in splits:
+            part_len = len(split_part)
+            
+            if current_length + part_len + len(separator) > chunk_size:
+                # Flush current chunk
+                if current_chunk:
+                    joined_chunk = separator.join(current_chunk)
+                    if len(joined_chunk) > chunk_size:
+                        # Recursively split this too-large chunk
+                        final_chunks.extend(self._recursive_split(joined_chunk, next_separators, chunk_size, chunk_overlap))
+                    else:
+                        final_chunks.append(joined_chunk)
+                    
+                    # Start new chunk with overlaps if needed (simplified here for Python)
+                    # For strict LangChain parity we'd need more complex overlap logic.
+                    # We will just start a new chunk.
+                    current_chunk = []
+                    current_length = 0
+            
+            current_chunk.append(split_part)
+            current_length += part_len + (len(separator) if current_length > 0 else 0)
         
-        # Check for high-priority sections
-        high_count = sum(1 for pattern in high_priority_patterns if pattern in content_lower)
-        if high_count >= 2:
-            return "high"
-        
-        # Check for medium-priority sections
-        medium_count = sum(1 for pattern in medium_priority_patterns if pattern in content_lower)
-        if high_count >= 1 or medium_count >= 2:
-            return "medium"
-        
-        return "normal"
-    
-    def _simple_tokenize(self, text: str) -> List[str]:
-        """
-        Simple word-based tokenization.
-        For production, use tiktoken or similar.
-        """
-        if not text:
-            return []
-        
-        # Split on whitespace and punctuation
-        tokens = re.findall(r'\b\w+\b', text.lower())
-        return tokens
-    
+        if current_chunk:
+            final_chunks.append(separator.join(current_chunk))
+            
+        return final_chunks
+
     def _chunk_text(self, text: str) -> List[Dict[str, Any]]:
         """
-        Chunk text into overlapping segments.
-        
-        Returns:
-            List of chunk dicts with content and metadata
+        Chunk text using proper recursive character splitting to preserve context.
         """
         if not text:
             return []
+            
+        # 1 char approx 1 token? No, usually 4 chars ~ 1 token.
+        # But here we work with characters as proxy.
+        # Adjusted char_limit based on chunk_size (tokens)
+        char_limit = self.chunk_size * 4 
+        char_overlap = self.chunk_overlap * 4
         
-        tokens = self._simple_tokenize(text)
-        
-        if len(tokens) < self.min_chunk_size:
-            return [{
-                "content": text,
-                "token_count": len(tokens),
-                "chunk_index": 0
-            }]
+        separators = ["\n\n", "\n", ". ", " ", ""]
+        chunks_text = self._recursive_split(text, separators, char_limit, char_overlap)
         
         chunks = []
-        step = self.chunk_size - self.chunk_overlap
-        
-        for i in range(0, len(tokens), step):
-            chunk_tokens = tokens[i:i + self.chunk_size]
-            
-            if len(chunk_tokens) < self.min_chunk_size:
-                # Skip tiny trailing chunks
-                if chunks:
-                    continue
-            
-            chunk_text = " ".join(chunk_tokens)
+        for i, chunk_content in enumerate(chunks_text):
+            if len(chunk_content.strip()) < self.min_chunk_size:
+                continue
+                
             chunks.append({
-                "content": chunk_text,
-                "token_count": len(chunk_tokens),
-                "chunk_index": len(chunks)
+                "content": chunk_content.strip(),
+                "token_count": len(chunk_content) // 4, # Approx
+                "chunk_index": i
             })
-        
+            
         return chunks
     
     def create_chunking_udf(self):

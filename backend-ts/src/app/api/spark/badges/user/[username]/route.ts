@@ -12,19 +12,19 @@ import { eq, desc } from "drizzle-orm";
 
 // Badge definitions using images from public/badges folder
 const BADGE_DEFINITIONS = [
-    { id: 'first_pr', name: 'First Pull Request', description: 'Opened your first pull request', image_url: '/badges/badge_first_pr.png', category: 'contribution', rarity: 'common' },
-    { id: 'first_review', name: 'First Review', description: 'Received your first code review', image_url: '/badges/badge_first_review.png', category: 'contribution', rarity: 'common' },
-    { id: 'bug_hunter', name: 'Bug Hunter', description: 'Found and reported a bug', image_url: '/badges/badge_bug_hunter.png', category: 'contribution', rarity: 'uncommon' },
-    { id: 'code_reviewer', name: 'Code Reviewer', description: 'Reviewed pull requests', image_url: '/badges/badge_code_reviewer.png', category: 'contribution', rarity: 'uncommon' },
-    { id: 'helpful_contributor', name: 'Helpful Contributor', description: 'Helped other contributors', image_url: '/badges/badge_helpful_contributor.png', category: 'community', rarity: 'uncommon' },
-    { id: 'mentor', name: 'Mentor', description: 'Helped another contributor learn', image_url: '/badges/badge_mentor.png', category: 'community', rarity: 'rare' },
-    { id: 'pr_champion', name: 'PR Champion', description: 'Merged 10 pull requests', image_url: '/badges/badge_pr_champion.png', category: 'milestone', rarity: 'uncommon' },
-    { id: 'pr_veteran', name: 'PR Veteran', description: 'Merged 50 pull requests', image_url: '/badges/badge_pr_veteran.png', category: 'milestone', rarity: 'rare' },
-    { id: 'pr_legend', name: 'PR Legend', description: 'Merged 100 pull requests', image_url: '/badges/badge_pr_legend.png', category: 'milestone', rarity: 'legendary' },
-    { id: 'review_champion', name: 'Review Champion', description: 'Reviewed 25 pull requests', image_url: '/badges/badge_review_champion.png', category: 'contribution', rarity: 'rare' },
-    { id: 'streak_starter', name: 'Streak Starter', description: 'Contributed for 7 days in a row', image_url: '/badges/badge_streak_starter.png', category: 'streak', rarity: 'common' },
-    { id: 'streak_warrior', name: 'Streak Warrior', description: 'Contributed for 30 days in a row', image_url: '/badges/badge_streak_warrior.png', category: 'streak', rarity: 'rare' },
-    { id: 'streak_master', name: 'Streak Master', description: 'Contributed for 100 days in a row', image_url: '/badges/badge_streak_master.png', category: 'streak', rarity: 'legendary' },
+    { id: 'first_pr', name: 'First Pull Request', description: 'Opened your first pull request', image_url: 'https://img.shields.io/badge/First_PR-Contribution-blue', category: 'contribution', rarity: 'common' },
+    { id: 'first_review', name: 'First Review', description: 'Received your first code review', image_url: 'https://img.shields.io/badge/First_Review-Contribution-blue', category: 'contribution', rarity: 'common' },
+    { id: 'bug_hunter', name: 'Bug Hunter', description: 'Found and reported a bug', image_url: 'https://img.shields.io/badge/Bug_Hunter-Quality-orange', category: 'contribution', rarity: 'uncommon' },
+    { id: 'code_reviewer', name: 'Code Reviewer', description: 'Reviewed pull requests', image_url: 'https://img.shields.io/badge/Code_Reviewer-Quality-orange', category: 'contribution', rarity: 'uncommon' },
+    { id: 'helpful_contributor', name: 'Helpful Contributor', description: 'Helped other contributors', image_url: 'https://img.shields.io/badge/Helpful_Contributor-Community-green', category: 'community', rarity: 'uncommon' },
+    { id: 'mentor', name: 'Mentor', description: 'Helped another contributor learn', image_url: 'https://img.shields.io/badge/Mentor-Community-purple', category: 'community', rarity: 'rare' },
+    { id: 'pr_champion', name: 'PR Champion', description: 'Merged 10 pull requests', image_url: 'https://img.shields.io/badge/PR_Champion-Milestone-yellow', category: 'milestone', rarity: 'uncommon' },
+    { id: 'pr_veteran', name: 'PR Veteran', description: 'Merged 50 pull requests', image_url: 'https://img.shields.io/badge/PR_Veteran-Milestone-red', category: 'milestone', rarity: 'rare' },
+    { id: 'pr_legend', name: 'PR Legend', description: 'Merged 100 pull requests', image_url: 'https://img.shields.io/badge/PR_Legend-Milestone-gold', category: 'milestone', rarity: 'legendary' },
+    { id: 'review_champion', name: 'Review Champion', description: 'Reviewed 25 pull requests', image_url: 'https://img.shields.io/badge/Review_Champion-Contribution-red', category: 'contribution', rarity: 'rare' },
+    { id: 'streak_starter', name: 'Streak Starter', description: 'Contributed for 7 days in a row', image_url: 'https://img.shields.io/badge/Streak_Starter-Streak-blue', category: 'streak', rarity: 'common' },
+    { id: 'streak_warrior', name: 'Streak Warrior', description: 'Contributed for 30 days in a row', image_url: 'https://img.shields.io/badge/Streak_Warrior-Streak-red', category: 'streak', rarity: 'rare' },
+    { id: 'streak_master', name: 'Streak Master', description: 'Contributed for 100 days in a row', image_url: 'https://img.shields.io/badge/Streak_Master-Streak-gold', category: 'streak', rarity: 'legendary' },
 ];
 
 export async function GET(

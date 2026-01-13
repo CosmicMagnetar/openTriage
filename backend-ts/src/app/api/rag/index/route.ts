@@ -23,13 +23,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "repo_name is required" }, { status: 400 });
         }
 
-        const result = await ragIndex(repo_name);
+        // Start indexing in background (fire and forget)
+        ragIndex(repo_name).catch(err => console.error(`Background indexing failed for ${repo_name}:`, err));
 
-        if (!result.success) {
-            return NextResponse.json({ error: result.error }, { status: 502 });
-        }
-
-        return NextResponse.json(result.data);
+        return NextResponse.json({
+            message: "Indexing started in background",
+            status: "accepted"
+        }, { status: 202 });
     } catch (error) {
         console.error("RAG index error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

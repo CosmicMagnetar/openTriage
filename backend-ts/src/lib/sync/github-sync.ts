@@ -7,7 +7,7 @@
 
 import { Octokit } from "@octokit/rest";
 import { db } from "@/db";
-import { issues, repositories, triageData } from "@/db/schema";
+import { issues, repositories, triageData, users } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { GitHubIssue, AuthorAssociation } from "@/lib/types/github";
@@ -79,46 +79,57 @@ async function syncRepository(
     const repoName = `${owner}/${repo}`;
 
     try {
-        // Fetch all open and recently closed issues from GitHub
-        const [openResponse, closedResponse] = await Promise.allSettled([
-            octokit.issues.listForRepo({
-                owner,
-                repo,
-                state: "open",
-                per_page: 100,
-            }),
-            octokit.issues.listForRepo({
-                owner,
-                repo,
-                state: "closed",
-                per_page: 30, // Recent closed items
-                sort: "updated",
-                direction: "desc",
-            }),
-        ]);
+        // Fetch all open issues from GitHub (paginated)
+        const openItems = await octokit.paginate(octokit.issues.listForRepo, {
+            owner,
+            repo,
+            state: "open",
+            per_page: 100,
+        });
 
-        const openItems = openResponse.status === "fulfilled" ? openResponse.value.data : [];
-        const closedItems = closedResponse.status === "fulfilled" ? closedResponse.value.data : [];
+        // Fetch recent closed issues
+        const closedResponse = await octokit.issues.listForRepo({
+            owner,
+            repo,
+            state: "closed",
+            per_page: 50,
+            sort: "updated",
+            direction: "desc",
+        });
+        const closedItems = closedResponse.data;
 
         // Get current issues in DB for this repo
         const dbIssues = await getIssuesByRepoId(repoId);
         const dbIssuesByGithubId = new Map(dbIssues.map(i => [i.githubIssueId, i]));
 
-        // Track GitHub IDs we've seen
+        // Track GitHub IDs we've seen in this sync
         const seenGithubIds = new Set<number>();
+        // Track potential mentors to update roles
+        const potentialMentors = new Set<string>();
 
         let created = 0;
         let updated = 0;
         let deleted = 0;
 
+        // Helper to check for mentor status
+        const checkMentorStatus = (item: any) => {
+            const assoc = item.author_association;
+            if (assoc === "OWNER" || assoc === "MEMBER" || assoc === "COLLABORATOR") {
+                if (item.user?.login) {
+                    potentialMentors.add(item.user.login);
+                }
+            }
+        };
+
         // Process open items
         for (const ghItem of openItems as GitHubIssue[]) {
             seenGithubIds.add(ghItem.id);
+            checkMentorStatus(ghItem);
             const isPR = !!ghItem.pull_request;
             const existingIssue = dbIssuesByGithubId.get(ghItem.id);
 
             if (existingIssue) {
-                // Update if state changed
+                // Update if state changed or other fields
                 if (existingIssue.state !== ghItem.state ||
                     existingIssue.title !== ghItem.title ||
                     existingIssue.authorAssociation !== ghItem.author_association) {
@@ -165,7 +176,7 @@ async function syncRepository(
                     isPR,
                     authorAssociation: ghItem.author_association,
                     createdAt: new Date().toISOString(),
-                });
+                }).onConflictDoNothing();
                 created++;
 
                 if (isAblyConfigured()) {
@@ -184,43 +195,75 @@ async function syncRepository(
             }
         }
 
-        // Process closed items - delete from DB if closed/merged
+        // Process closed items - explicitly delete them
         for (const ghItem of closedItems as GitHubIssue[]) {
             seenGithubIds.add(ghItem.id);
+            checkMentorStatus(ghItem); // Also check closed items for mentor activity
             const existingIssue = dbIssuesByGithubId.get(ghItem.id);
 
             if (existingIssue) {
                 const isPR = !!ghItem.pull_request;
                 const isMerged = ghItem.pull_request?.merged_at !== null;
 
-                // Delete closed or merged items from active triage
-                if (ghItem.state === "closed") {
-                    await deleteIssue(existingIssue.id);
-                    deleted++;
+                await deleteIssue(existingIssue.id);
+                deleted++;
 
-                    if (isAblyConfigured()) {
-                        await publishIssueDeleted({
-                            id: existingIssue.id,
-                            githubIssueId: ghItem.id,
-                            number: ghItem.number,
-                            title: ghItem.title,
-                            repoName,
-                            owner,
-                            repo,
-                            isPR,
-                            state: isMerged ? "merged" : "closed",
-                        });
-                    }
+                if (isAblyConfigured()) {
+                    await publishIssueDeleted({
+                        id: existingIssue.id,
+                        githubIssueId: ghItem.id,
+                        number: ghItem.number,
+                        title: ghItem.title,
+                        repoName,
+                        owner,
+                        repo,
+                        isPR,
+                        state: isMerged ? "merged" : "closed",
+                    });
                 }
             }
         }
 
-        // Delete items that are in DB but not in GitHub (might have been deleted)
+        // Cleanup: Delete any DB issue that is marked 'open' but was NOT found in the full GitHub open list
+        // This ensures strict synchronization - if it's not in GitHub's open list, it shouldn't be open in our DB
         for (const dbIssue of dbIssues) {
-            if (!seenGithubIds.has(dbIssue.githubIssueId)) {
-                // Verify it's actually closed/deleted on GitHub before removing
-                // For now, we'll keep items that weren't in our recent fetch
-                // This prevents accidental deletion of older issues
+            // Only strictly clean up things we think are open
+            if (dbIssue.state === 'open' && !seenGithubIds.has(dbIssue.githubIssueId)) {
+                // We double check: if it's open in DB, but missing from Open pagination -> it must be closed/deleted
+                // verification is implied by the comprehensive open fetch
+                await deleteIssue(dbIssue.id);
+                deleted++;
+
+                if (isAblyConfigured()) {
+                    await publishIssueDeleted({
+                        id: dbIssue.id,
+                        githubIssueId: dbIssue.githubIssueId,
+                        number: dbIssue.number,
+                        title: dbIssue.title,
+                        repoName,
+                        owner,
+                        repo,
+                        isPR: dbIssue.isPR,
+                        state: "closed", // Assumed closed since missing from open
+                    });
+                }
+            }
+        }
+
+        // Update Mentor Roles
+        if (potentialMentors.size > 0) {
+            for (const username of potentialMentors) {
+                // Determine if user exists and upgrade role if eligible
+                // We only upgrade if role is null or CONTRIBUTOR. We don't touch MAINTAINER.
+                const user = await db.select().from(users).where(eq(users.username, username)).limit(1);
+                if (user.length > 0) {
+                    const currentRole = user[0].role;
+                    if (!currentRole || currentRole === 'CONTRIBUTOR') {
+                        await db.update(users)
+                            .set({ role: 'MENTOR' })
+                            .where(eq(users.id, user[0].id));
+                    }
+                }
             }
         }
 

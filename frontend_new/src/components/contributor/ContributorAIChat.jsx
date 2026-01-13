@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useChannel } from 'ably/react';
 import { X, Send, Bot, User, ChevronDown, BookOpen, ExternalLink, AlertCircle, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -85,15 +86,43 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
     indexRepo();
   }, [selectedRepo]);
 
+  // Ably Channel Logic
+  const [channelName, setChannelName] = useState('chat:global');
+  const { channel } = useChannel(channelName, (message) => {
+    // Deduplicate or just append? We'll rely on Ably echoed messages.
+    // If we optimistically added, we might check IDs. But here we won't optimistically add for simplicity/correctness first.
+    // However, for AI chat, we want immediate feedback. 
+    // We will append received messages.
+
+    // Check if message already exists (simple dedupe by content/timestamp if needed, but for now just append)
+    setMessages(prev => [...prev, message.data]);
+  });
+
+  // Clean/Switch Channel on Repo Change
+  useEffect(() => {
+    const newChannel = selectedRepo === 'all' ? 'chat:global' : `chat:${selectedRepo.replace('/', '-')}`;
+    setChannelName(newChannel);
+    // Add welcome message for the new context
+    setMessages([{
+      role: 'assistant',
+      content: selectedRepo === 'all'
+        ? `Joined **Global Chat**. Ask general questions or chat with others!`
+        : `Joined **${selectedRepo}** chat. Ask questions about the codebase!`
+    }]);
+  }, [selectedRepo]);
+
   const handleSend = async () => {
     if (!input.trim() || loading || isIndexing) return;
 
     const userMessage = input.trim();
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
 
     try {
+      // Publish User Message to Ably
+      await channel.publish('message', { role: 'user', content: userMessage, timestamp: Date.now() });
+
+      // AI Processing
       let responseContent;
       let sources = [];
       let relatedIssues = [];
@@ -121,18 +150,19 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
         responseContent = response.data.response;
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: responseContent,
-          sources: sources,
-          relatedIssues: relatedIssues
-        }
-      ]);
+      // Publish AI Response to Ably
+      await channel.publish('message', {
+        role: 'assistant',
+        content: responseContent,
+        sources: sources,
+        relatedIssues: relatedIssues,
+        timestamp: Date.now()
+      });
+
     } catch (error) {
       console.error('Chat error:', error);
       toast.error('Failed to get response');
+      // Publish error as local only? Or broadcast error? Better local.
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', isError: true }
