@@ -24,9 +24,9 @@ export async function GET(request: NextRequest) {
 
         const octokit = createGitHubClient(user.githubAccessToken);
 
-        // Fetch user's PRs from GitHub
+        // Fetch user's OPEN PRs from GitHub
         const prsResponse = await octokit.search.issuesAndPullRequests({
-            q: `author:${user.username} is:pr`,
+            q: `author:${user.username} is:pr is:open`,
             per_page: 50,
             sort: "updated",
             order: "desc",
