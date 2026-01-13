@@ -75,37 +75,35 @@ const PRManagementPage = () => {
                 item => item.isPR && item.repoName === repo.name
             );
 
-            if (repoPRs.length > 0) {
+            // Always fetch from GitHub to get ALL open PRs for this repo
+            try {
+                const ghPRsRes = await axios.get(`${API}/maintainer/github/prs?owner=${owner}&repo=${repoName}`);
+                const githubPRs = (ghPRsRes.data || []).map(pr => ({
+                    id: `gh-${pr.number}`,
+                    number: pr.number,
+                    title: pr.title,
+                    body: pr.body,
+                    authorName: pr.user?.login || 'unknown',
+                    htmlUrl: pr.html_url,
+                    createdAt: pr.created_at,
+                    state: pr.state,
+                    isPR: true,
+                    repoName: repo.name,
+                    owner,
+                    repo: repoName
+                }));
+
+                // Merge DB PRs with GitHub PRs (avoid duplicates by number)
+                const dbPRNumbers = new Set(repoPRs.map(p => p.number));
+                const mergedPRs = [
+                    ...repoPRs,
+                    ...githubPRs.filter(pr => !dbPRNumbers.has(pr.number))
+                ];
+                setPullRequests(mergedPRs);
+            } catch (ghError) {
+                console.log('Could not fetch from GitHub directly:', ghError);
+                // Fall back to just DB PRs
                 setPullRequests(repoPRs);
-            } else {
-                // If no PRs in DB, try to fetch directly from GitHub
-                try {
-                    const ghPRsRes = await axios.get(`${API}/maintainer/github/prs`);
-                    // Filter PRs for this repo
-                    const repoPRsFromGH = (ghPRsRes.data || [])
-                        .filter(pr => {
-                            // GitHub search returns repository_url, extract repo name
-                            const repoUrl = pr.repository_url || '';
-                            return repoUrl.endsWith(`/${owner}/${repoName}`);
-                        })
-                        .map(pr => ({
-                            id: `gh-${pr.number}`,
-                            number: pr.number,
-                            title: pr.title,
-                            body: pr.body,
-                            authorName: pr.user?.login || 'unknown',
-                            htmlUrl: pr.html_url,
-                            createdAt: pr.created_at,
-                            state: pr.state,
-                            isPR: true,
-                            repoName: repo.name,
-                            owner,
-                            repo: repoName
-                        }));
-                    setPullRequests(repoPRsFromGH);
-                } catch (ghError) {
-                    console.log('Could not fetch from GitHub directly:', ghError);
-                }
             }
         } catch (error) {
             console.error('Error fetching PRs:', error);

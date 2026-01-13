@@ -162,14 +162,22 @@ const TrophyCabinet = () => {
                             >
                                 {/* Earned checkmark */}
                                 {earned && (
-                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-[hsl(142,70%,45%)] rounded-full flex items-center justify-center">
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-[hsl(142,70%,45%)] rounded-full flex items-center justify-center z-10">
                                         <Check className="w-2.5 h-2.5 text-white" />
                                     </div>
                                 )}
 
-                                {/* Badge Content */}
+                                {/* Badge Content - Image or fallback */}
                                 <div className={`flex items-center justify-center h-full ${!earned && 'grayscale opacity-50'}`}>
-                                    <span className="text-3xl">{badge.icon}</span>
+                                    {badge.image_url ? (
+                                        <img
+                                            src={badge.image_url}
+                                            alt={badge.name}
+                                            className="w-full h-full object-contain rounded"
+                                        />
+                                    ) : (
+                                        <Trophy className="w-8 h-8 text-[hsl(210,11%,40%)]" />
+                                    )}
                                 </div>
 
                                 {/* Progress bar for unearned badges */}
@@ -204,11 +212,19 @@ const TrophyCabinet = () => {
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Badge Icon */}
-                        <div className={`w-20 h-20 mx-auto rounded-lg ${selectedBadge.earned
+                        <div className={`w-24 h-24 mx-auto rounded-lg ${selectedBadge.earned
                             ? getRarityColor(selectedBadge.rarity)
                             : 'bg-[hsl(220,13%,10%)]'
-                            } flex items-center justify-center mb-4 border ${!selectedBadge.earned && 'grayscale opacity-60'}`}>
-                            <span className="text-4xl">{selectedBadge.icon}</span>
+                            } flex items-center justify-center mb-4 border overflow-hidden ${!selectedBadge.earned && 'grayscale opacity-60'}`}>
+                            {selectedBadge.image_url ? (
+                                <img
+                                    src={selectedBadge.image_url}
+                                    alt={selectedBadge.name}
+                                    className="w-full h-full object-contain"
+                                />
+                            ) : (
+                                <Trophy className="w-12 h-12 text-[hsl(210,11%,40%)]" />
+                            )}
                         </div>
 
                         <h3 className="text-lg font-semibold text-[hsl(210,11%,90%)] text-center mb-2">
