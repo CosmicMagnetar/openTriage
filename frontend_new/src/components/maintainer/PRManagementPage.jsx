@@ -68,6 +68,8 @@ const PRManagementPage = () => {
 
         try {
             const [owner, repoName] = repo.name.split('/');
+
+            // First try to get PRs from our database
             const issuesRes = await axios.get(`${API}/maintainer/issues`);
             const repoPRs = issuesRes.data.filter(
                 item => item.isPR && item.repoName === repo.name
@@ -76,30 +78,31 @@ const PRManagementPage = () => {
             if (repoPRs.length > 0) {
                 setPullRequests(repoPRs);
             } else {
+                // If no PRs in DB, try to fetch directly from GitHub
                 try {
-                    const userRes = await axios.get(`${API}/user/me`);
-                    if (userRes.data.githubAccessToken) {
-                        const ghPRsRes = await axios.post(`${API}/maintainer/github/prs`, {
-                            githubAccessToken: userRes.data.githubAccessToken,
-                            owner,
-                            repo: repoName
-                        });
-
-                        const githubPRs = (ghPRsRes.data.pullRequests || []).map(pr => ({
+                    const ghPRsRes = await axios.get(`${API}/maintainer/github/prs`);
+                    // Filter PRs for this repo
+                    const repoPRsFromGH = (ghPRsRes.data || [])
+                        .filter(pr => {
+                            // GitHub search returns repository_url, extract repo name
+                            const repoUrl = pr.repository_url || '';
+                            return repoUrl.endsWith(`/${owner}/${repoName}`);
+                        })
+                        .map(pr => ({
                             id: `gh-${pr.number}`,
                             number: pr.number,
                             title: pr.title,
-                            authorName: pr.user,
-                            htmlUrl: pr.htmlUrl,
-                            createdAt: pr.createdAt,
-                            state: 'open',
+                            body: pr.body,
+                            authorName: pr.user?.login || 'unknown',
+                            htmlUrl: pr.html_url,
+                            createdAt: pr.created_at,
+                            state: pr.state,
                             isPR: true,
                             repoName: repo.name,
                             owner,
                             repo: repoName
                         }));
-                        setPullRequests(githubPRs);
-                    }
+                    setPullRequests(repoPRsFromGH);
                 } catch (ghError) {
                     console.log('Could not fetch from GitHub directly:', ghError);
                 }

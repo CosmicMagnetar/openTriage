@@ -146,15 +146,14 @@ const TrophyCabinet = () => {
             {/* Badges Grid */}
             {badges.length > 0 ? (
                 <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
-                    {badges.map((item) => {
-                        const badge = item.badge;
-                        const earned = item.earned;
-                        const progress = item.progress_percent || 0;
+                    {badges.map((badge) => {
+                        const earned = badge.earned;
+                        const progress = badge.progress_percent || 0;
 
                         return (
                             <button
                                 key={badge.id}
-                                onClick={() => setSelectedBadge(item)}
+                                onClick={() => setSelectedBadge(badge)}
                                 className={`relative aspect-square rounded-md p-2 transition-colors border
                                     ${earned
                                         ? `${getRarityColor(badge.rarity)} hover:border-[hsl(210,11%,35%)]`
@@ -170,20 +169,7 @@ const TrophyCabinet = () => {
 
                                 {/* Badge Content */}
                                 <div className={`flex items-center justify-center h-full ${!earned && 'grayscale opacity-50'}`}>
-                                    {badge.image_url ? (
-                                        <img
-                                            src={badge.image_url}
-                                            alt={badge.name}
-                                            className="w-full h-full object-contain rounded"
-                                            onError={(e) => {
-                                                e.target.style.display = 'none';
-                                                e.target.nextSibling.style.display = 'block';
-                                            }}
-                                        />
-                                    ) : null}
-                                    <span className={`text-3xl ${badge.image_url ? 'hidden' : 'block'}`}>
-                                        {badge.icon}
-                                    </span>
+                                    <span className="text-3xl">{badge.icon}</span>
                                 </div>
 
                                 {/* Progress bar for unearned badges */}
@@ -219,40 +205,27 @@ const TrophyCabinet = () => {
                     >
                         {/* Badge Icon */}
                         <div className={`w-20 h-20 mx-auto rounded-lg ${selectedBadge.earned
-                            ? getRarityColor(selectedBadge.badge.rarity)
+                            ? getRarityColor(selectedBadge.rarity)
                             : 'bg-[hsl(220,13%,10%)]'
                             } flex items-center justify-center mb-4 border ${!selectedBadge.earned && 'grayscale opacity-60'}`}>
-                            {selectedBadge.badge.image_url ? (
-                                <img
-                                    src={selectedBadge.badge.image_url}
-                                    alt={selectedBadge.badge.name}
-                                    className="w-full h-full object-contain"
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.nextSibling.style.display = 'block';
-                                    }}
-                                />
-                            ) : null}
-                            <span className={`text-4xl ${selectedBadge.badge.image_url ? 'hidden' : 'block'}`}>
-                                {selectedBadge.badge.icon}
-                            </span>
+                            <span className="text-4xl">{selectedBadge.icon}</span>
                         </div>
 
                         <h3 className="text-lg font-semibold text-[hsl(210,11%,90%)] text-center mb-2">
-                            {selectedBadge.badge.name}
+                            {selectedBadge.name}
                         </h3>
 
                         <p className="text-[hsl(210,11%,50%)] text-center text-sm mb-4">
-                            {selectedBadge.badge.description}
+                            {selectedBadge.description}
                         </p>
 
                         <div className="flex justify-center gap-2 mb-4">
                             <span className={`px-2.5 py-1 rounded text-xs font-medium uppercase border
-                             ${selectedBadge.badge.rarity === 'legendary' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/25' :
-                                    selectedBadge.badge.rarity === 'rare' ? 'bg-purple-500/10 text-purple-400 border-purple-500/25' :
-                                        selectedBadge.badge.rarity === 'uncommon' ? 'bg-blue-500/10 text-blue-400 border-blue-500/25' :
+                             ${selectedBadge.rarity === 'legendary' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/25' :
+                                    selectedBadge.rarity === 'rare' ? 'bg-purple-500/10 text-purple-400 border-purple-500/25' :
+                                        selectedBadge.rarity === 'uncommon' ? 'bg-blue-500/10 text-blue-400 border-blue-500/25' :
                                             'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,50%)] border-[hsl(220,13%,18%)]'}`}>
-                                {selectedBadge.badge.rarity}
+                                {selectedBadge.rarity || 'common'}
                             </span>
                             {selectedBadge.earned && (
                                 <span className="px-2.5 py-1 rounded text-xs font-medium bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] border border-[hsl(142,70%,45%,0.25)]">
@@ -266,20 +239,20 @@ const TrophyCabinet = () => {
                             <div className="mb-4">
                                 <div className="flex justify-between text-xs text-[hsl(210,11%,50%)] mb-1">
                                     <span>Progress</span>
-                                    <span>{selectedBadge.progress} / {selectedBadge.badge.criteria_value}</span>
+                                    <span>{selectedBadge.progress || 0} / {selectedBadge.criteria_value || '?'}</span>
                                 </div>
                                 <div className="h-1.5 bg-[hsl(220,13%,12%)] rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-[hsl(217,91%,60%)]"
-                                        style={{ width: `${selectedBadge.progress_percent}%` }}
+                                        style={{ width: `${selectedBadge.progress_percent || 0}%` }}
                                     />
                                 </div>
                             </div>
                         )}
 
-                        {selectedBadge.earned && (
+                        {selectedBadge.earned && selectedBadge.awardedAt && (
                             <div className="text-xs text-[hsl(210,11%,40%)] text-center mb-4">
-                                Earned on {new Date(selectedBadge.earned_at || Date.now()).toLocaleDateString()}
+                                Earned on {new Date(selectedBadge.awardedAt).toLocaleDateString()}
                             </div>
                         )}
 
