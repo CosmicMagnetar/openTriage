@@ -1,4 +1,4 @@
-import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, ExternalLink } from 'lucide-react';
+import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, ExternalLink, Bot } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import useIssueStore from '../../stores/issueStore';
 import axios from 'axios';

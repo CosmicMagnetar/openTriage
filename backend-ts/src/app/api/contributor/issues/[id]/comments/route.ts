@@ -54,7 +54,7 @@ export async function GET(
         const octokit = createGitHubClient(user.githubAccessToken);
         const comments = await fetchIssueComments(octokit, owner, repo, issueNumber);
 
-        return NextResponse.json(comments);
+        return NextResponse.json({ comments });
 
     } catch (error: any) {
         console.error("GET /api/contributor/issues/:id/comments error:", error);
