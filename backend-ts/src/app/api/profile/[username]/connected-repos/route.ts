@@ -1,6 +1,13 @@
+/**
+ * Connected Repositories Route
+ * 
+ * GET /api/profile/{userId}/connected-repos
+ * Get user's connected repositories
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { profileConnectedRepos } from "@/db/schema";
+import { repositories } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET(
@@ -8,14 +15,17 @@ export async function GET(
     context: { params: Promise<{ username: string }> }
 ) {
     try {
-        const { username: id } = await context.params;
-        // 'id' here corresponds to the profile's userId (since userId is PK for profiles)
-        const repos = await db
-            .select()
-            .from(profileConnectedRepos)
-            .where(eq(profileConnectedRepos.profileId, id));
+        const { username: userId } = await context.params;
 
-        return NextResponse.json(repos);
+        // Fetch repositories connected by this user
+        const repos = await db.select()
+            .from(repositories)
+            .where(eq(repositories.userId, userId));
+
+        // Return list of repo names for simple display
+        return NextResponse.json({
+            repos: repos.map(r => r.name)
+        });
     } catch (error) {
         console.error("GET /api/profile/:id/connected-repos error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
