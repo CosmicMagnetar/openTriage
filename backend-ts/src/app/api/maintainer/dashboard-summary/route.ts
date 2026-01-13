@@ -2,12 +2,12 @@
  * Maintainer Dashboard Summary Route
  * 
  * GET /api/maintainer/dashboard-summary
- * Get dashboard statistics for maintainers
+ * Get dashboard statistics for maintainers including open PRs
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getDashboardStats } from "@/lib/db/queries/issues";
+import { getDashboardStats, getIssues } from "@/lib/db/queries/issues";
 import { getMaintainerRepositories } from "@/lib/db/queries/repositories";
 
 export async function GET(request: NextRequest) {
@@ -21,16 +21,24 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Maintainer access required" }, { status: 403 });
         }
 
-        // Get dashboard stats
+        // Get dashboard stats, repos, and recent PRs
         const [stats, repos] = await Promise.all([
             getDashboardStats(user.id),
             getMaintainerRepositories(user.id),
         ]);
 
+        // Get recent open PRs
+        const recentPRs = await getIssues({ userId: user.id, isPR: true, state: "open" }, 1, 10);
+
+        // Get recent open issues
+        const recentIssues = await getIssues({ userId: user.id, isPR: false, state: "open" }, 1, 10);
+
         return NextResponse.json({
             ...stats,
             repositoriesCount: repos.length,
             repositories: repos,
+            recentPRs: recentPRs.issues,
+            recentIssues: recentIssues.issues,
         });
     } catch (error) {
         console.error("Maintainer dashboard-summary error:", error);
