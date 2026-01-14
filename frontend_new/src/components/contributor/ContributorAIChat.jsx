@@ -157,7 +157,11 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
 
       if (selectedRepo !== 'all') {
         const response = await ragApi.askQuestion(userMessage, selectedRepo);
-        responseContent = response.answer;
+        // Handle potential undefined/null response safely
+        if (!response || response.error) {
+          throw new Error(response?.error || 'AI service is unavailable');
+        }
+        responseContent = response.answer || response.response || response.message || 'I received your question but couldn\'t generate a proper response. Please try again.';
         sources = response.sources || [];
         relatedIssues = response.related_issues || [];
       } else {
@@ -175,7 +179,7 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
           sessionId: sessionId,
           context: context
         });
-        responseContent = response.data.response;
+        responseContent = response.data?.response || response.data?.answer || 'I received your question but couldn\'t generate a proper response.';
       }
 
       // Publish AI Response (or add locally if Ably unavailable)

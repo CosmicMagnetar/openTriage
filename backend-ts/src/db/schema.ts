@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 
 // =============================================================================
@@ -311,7 +311,10 @@ export const userRepositories = sqliteTable("user_repositories", {
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     repoFullName: text("repo_full_name").notNull(),
     addedAt: text("added_at").notNull(),
-});
+}, (table) => ({
+    // Unique constraint on userId + repoFullName to prevent duplicate tracking
+    userRepoUnique: uniqueIndex("user_repo_unique").on(table.userId, table.repoFullName),
+}));
 
 // ---- Profile Skills ----
 export const profileSkills = sqliteTable("profile_skills", {
