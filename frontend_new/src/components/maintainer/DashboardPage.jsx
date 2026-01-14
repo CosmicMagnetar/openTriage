@@ -1,11 +1,23 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { AlertCircle, CheckCircle2, Clock, TrendingUp, Plus, FolderGit2, RefreshCw, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, TrendingUp, Plus, FolderGit2, RefreshCw, ChevronLeft, ChevronRight, X, GitPullRequest } from 'lucide-react';
 import IssueCard from './IssueCard';
 import { toast } from 'sonner';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 const ITEMS_PER_PAGE = 10;
+
+// Helper function to format relative time
+const formatTimeAgo = (date) => {
+  if (!date) return '';
+  const seconds = Math.floor((new Date() - date) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+};
 
 const DashboardPage = () => {
   const [summary, setSummary] = useState(null);
@@ -17,6 +29,7 @@ const DashboardPage = () => {
   const [showAddRepo, setShowAddRepo] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [lastFetchedAt, setLastFetchedAt] = useState(null);
   const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
@@ -52,21 +65,28 @@ const DashboardPage = () => {
       ]);
       setSummary(summaryRes.data);
 
-      // Handle paginated response: { items, total, page, pages, limit }
+      // Handle paginated response: { items, total, page, pages, limit, lastFetchedAt }
       const issuesData = issuesRes.data;
       if (issuesData && typeof issuesData === 'object' && issuesData.items) {
         setIssues(issuesData.items || []);
         setTotalPages(issuesData.pages || 1);
         setTotalItems(issuesData.total || 0);
+        if (issuesData.lastFetchedAt) {
+          setLastFetchedAt(new Date(issuesData.lastFetchedAt));
+        } else {
+          setLastFetchedAt(new Date());
+        }
       } else if (Array.isArray(issuesData)) {
         // Fallback for old API format
         setIssues(issuesData);
         setTotalPages(Math.ceil(issuesData.length / ITEMS_PER_PAGE));
         setTotalItems(issuesData.length);
+        setLastFetchedAt(new Date());
       } else {
         setIssues([]);
         setTotalPages(1);
         setTotalItems(0);
+        setLastFetchedAt(new Date());
       }
 
       setRepositories(reposRes.data);
@@ -122,8 +142,14 @@ const DashboardPage = () => {
                   Syncing...
                 </span>
               )}
+              {lastFetchedAt && !autoSyncing && (
+                <span className="text-xs text-[hsl(210,11%,40%)] flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Updated {formatTimeAgo(lastFetchedAt)}
+                </span>
+              )}
             </h1>
-            <p className="text-[hsl(210,11%,50%)]">Monitor and triage repository issues • Auto-syncs every 30s</p>
+            <p className="text-[hsl(210,11%,50%)]">Monitor and triage repository issues & PRs • Auto-syncs every 30s</p>
           </div>
           <div className="flex gap-3">
             <button

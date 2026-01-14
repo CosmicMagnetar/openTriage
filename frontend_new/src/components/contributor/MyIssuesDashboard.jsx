@@ -10,6 +10,18 @@ const ITEMS_PER_PAGE = 10;
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
+// Helper function to format relative time
+const formatTimeAgo = (date) => {
+  if (!date) return '';
+  const seconds = Math.floor((new Date() - date) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+};
+
 const MyIssuesDashboard = () => {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +37,7 @@ const MyIssuesDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [lastFetchedAt, setLastFetchedAt] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -65,6 +78,7 @@ const MyIssuesDashboard = () => {
       setTotalItems(total || 0);
       setTotalPages(pages || 1);
       setDashboardStats(statsResponse.data);
+      setLastFetchedAt(new Date());
 
       if ((items || []).length === 0 && !isAutoSync && currentPage === 1) {
         toast.info('Fetching your issues from GitHub...');
@@ -170,8 +184,13 @@ const MyIssuesDashboard = () => {
                 </span>
               )}
             </h1>
-            <p className="text-[hsl(210,11%,50%)]">
+            <p className="text-[hsl(210,11%,50%)] flex items-center gap-2">
               Track your issues and pull requests across all repositories • Auto-syncs every 30s
+              {lastFetchedAt && !autoSyncing && (
+                <span className="text-xs text-[hsl(210,11%,40%)] flex items-center gap-1">
+                  • <Clock className="w-3 h-3" /> Updated {formatTimeAgo(lastFetchedAt)}
+                </span>
+              )}
             </p>
           </div>
           <div className="flex gap-3">

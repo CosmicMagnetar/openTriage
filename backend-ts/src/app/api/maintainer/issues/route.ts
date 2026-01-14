@@ -29,15 +29,22 @@ export async function GET(request: NextRequest) {
             state,
             repoId,
             search,
-            isPR: false, // Only fetch issues, not PRs
+            // Note: isPR filter removed to include both issues and PRs
         };
 
         const result = withTriage
             ? await getIssuesWithTriage(filters, page, limit)
             : await getIssues(filters, page, limit);
 
-        // Frontend expects an array for filtering
-        return NextResponse.json(result.issues);
+        // Return paginated response with fetch timestamp
+        return NextResponse.json({
+            items: result.issues,
+            total: result.total,
+            page: result.page,
+            pages: result.totalPages,
+            limit: result.limit,
+            lastFetchedAt: new Date().toISOString(),
+        });
     } catch (error) {
         console.error("GET /api/maintainer/issues error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
