@@ -58,7 +58,8 @@ const IssueDetailPanel = () => {
 
     setSending(true);
     try {
-      const response = await axios.post(`${API}/maintainer/action/reply`, {
+      // Use simpler endpoint path for better compatibility
+      const response = await axios.post(`${API}/issues/reply`, {
         // Send both: direct identifiers and issueId as fallback
         issueId: selectedIssue.id,
         owner: selectedIssue.owner,

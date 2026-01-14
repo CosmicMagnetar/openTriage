@@ -201,8 +201,11 @@ const PRManagementPage = () => {
 
         setPosting(true);
         try {
-            await axios.post(`${API}/maintainer/action/reply`, {
+            await axios.post(`${API}/issues/reply`, {
                 issueId: selectedPR.id,
+                owner: selectedPR.owner,
+                repo: selectedPR.repo,
+                number: selectedPR.number,
                 message: commentText
             });
             toast.success('Comment posted to GitHub!');
