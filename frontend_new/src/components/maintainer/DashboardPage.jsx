@@ -92,6 +92,53 @@ const DashboardPage = () => {
       }
 
       setRepositories(reposRes.data);
+
+      // Fetch PRs directly from GitHub for each repo and merge with DB data
+      // This ensures we have ALL open PRs even if sync hasn't run yet
+      try {
+        const dbIssues = issuesData?.items || issuesData || [];
+        let allPRs = [...dbIssues];
+        const existingNumbers = new Set(dbIssues.filter(i => i.isPR).map(i => `${i.repoName}-${i.number}`));
+
+        for (const repo of reposRes.data) {
+          try {
+            const [owner, repoName] = (repo.name || `${repo.owner}/${repo.name}`).split('/');
+            const ghRes = await axios.get(`${API}/maintainer/github/prs`, {
+              params: { owner, repo: repoName }
+            });
+
+            if (ghRes.data && Array.isArray(ghRes.data)) {
+              const newPRs = ghRes.data
+                .filter(pr => !existingNumbers.has(`${owner}/${repoName}-${pr.number}`))
+                .map(pr => ({
+                  id: `gh-${pr.number}`,
+                  number: pr.number,
+                  title: pr.title,
+                  body: pr.body,
+                  authorName: pr.user?.login || 'unknown',
+                  htmlUrl: pr.html_url,
+                  createdAt: pr.created_at,
+                  state: pr.state,
+                  isPR: true,
+                  repoId: repo.id,
+                  repoName: `${owner}/${repoName}`,
+                }));
+              allPRs = [...allPRs, ...newPRs];
+            }
+          } catch (ghErr) {
+            // Silently fail for individual repos
+            console.log('Could not fetch GitHub PRs for', repo.name);
+          }
+        }
+
+        // Update issues with merged data
+        setIssues(allPRs);
+        setTotalItems(allPRs.length);
+        setTotalPages(Math.ceil(allPRs.length / ITEMS_PER_PAGE));
+      } catch (ghError) {
+        console.log('GitHub PR fallback failed:', ghError);
+        // Keep DB data as-is
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
       setSummary({
