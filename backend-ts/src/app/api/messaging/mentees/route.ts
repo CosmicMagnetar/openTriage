@@ -29,7 +29,15 @@ export async function GET(request: NextRequest) {
                 )
             );
 
-        return NextResponse.json(mentees);
+        // Transform to match frontend expectations
+        const formattedMentees = mentees.map(m => ({
+            user_id: m.menteeId,
+            username: m.menteeName,
+            avatar_url: m.menteeAvatar,
+            since: m.startedAt,
+        }));
+
+        return NextResponse.json({ mentees: formattedMentees });
     } catch (error) {
         console.error("GET /api/messaging/mentees error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

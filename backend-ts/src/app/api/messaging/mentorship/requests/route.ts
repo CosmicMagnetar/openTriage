@@ -30,9 +30,20 @@ export async function GET(request: NextRequest) {
                 )
             );
 
-        return NextResponse.json(requests);
+        // Transform to match frontend expectations (snake_case)
+        const formattedRequests = requests.map(r => ({
+            id: r.id,
+            mentee_id: r.menteeId,
+            mentee_username: r.menteeName,
+            mentee_avatar: r.menteeAvatar,
+            message: r.message,
+            created_at: r.createdAt,
+        }));
+
+        return NextResponse.json({ requests: formattedRequests });
     } catch (error) {
         console.error("GET /api/messaging/mentorship/requests error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
+

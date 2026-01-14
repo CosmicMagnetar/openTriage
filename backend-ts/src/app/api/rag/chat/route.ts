@@ -26,12 +26,27 @@ export async function POST(request: NextRequest) {
         const result = await ragChat(question, repo_name, top_k || 5);
 
         if (!result.success) {
-            return NextResponse.json({ error: result.error }, { status: 502 });
+            // Provide a graceful fallback response when AI service is unavailable
+            console.error("RAG service unavailable:", result.error);
+            return NextResponse.json({
+                answer: "I'm sorry, but the AI service is temporarily unavailable. Please try again in a few moments. If this persists, the service might be waking up from sleep mode.",
+                sources: [],
+                related_issues: [],
+                error: result.error,
+                service_unavailable: true
+            }, { status: 200 }); // Return 200 with fallback to prevent frontend crash
         }
 
         return NextResponse.json(result.data);
     } catch (error) {
         console.error("RAG chat error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        return NextResponse.json({
+            answer: "I encountered an error processing your request. Please try again.",
+            sources: [],
+            related_issues: [],
+            error: "Internal server error",
+            service_unavailable: true
+        }, { status: 200 }); // Graceful degradation
     }
 }
+
