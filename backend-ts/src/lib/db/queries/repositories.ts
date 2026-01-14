@@ -5,7 +5,7 @@
  */
 
 import { db } from "@/db";
-import { repositories, issues, users } from "@/db/schema";
+import { repositories, issues, users, userRepositories } from "@/db/schema";
 import { eq, and, desc, asc, count, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
@@ -96,6 +96,7 @@ export async function getContributorRepositories(userId: string, username: strin
     const userRepos = await db.select({ id: repositories.id }).from(repositories).where(eq(repositories.userId, userId));
     const userRepoIds = new Set(userRepos.map(r => r.id));
 
+    // Source 1: Repos where user has authored issues/PRs
     const contributedIssues = await db.select({
         repoId: issues.repoId,
         repoName: issues.repoName,
@@ -106,21 +107,57 @@ export async function getContributorRepositories(userId: string, username: strin
         .where(eq(issues.authorName, username))
         .groupBy(issues.repoId, issues.repoName, issues.owner, issues.repo);
 
-    // Filter out owned repos
-    const contributedRepos = contributedIssues.filter(issue => !userRepoIds.has(issue.repoId));
+    // Source 2: Repos explicitly tracked via userRepositories table
+    const trackedRepos = await db.select({
+        repoFullName: userRepositories.repoFullName,
+    })
+        .from(userRepositories)
+        .where(eq(userRepositories.userId, userId));
+
+    // Merge repos from both sources using a Map to avoid duplicates
+    const repoMap = new Map<string, { repoId: string | null; repoName: string; owner: string; repo: string }>();
+
+    // Add repos from issues
+    for (const issue of contributedIssues) {
+        if (!userRepoIds.has(issue.repoId)) {
+            repoMap.set(issue.repoName, {
+                repoId: issue.repoId,
+                repoName: issue.repoName,
+                owner: issue.owner || issue.repoName.split("/")[0],
+                repo: issue.repo || issue.repoName.split("/")[1],
+            });
+        }
+    }
+
+    // Add repos from userRepositories (may not have repoId if not synced yet)
+    for (const tracked of trackedRepos) {
+        const [owner, repo] = tracked.repoFullName.split("/");
+        if (!repoMap.has(tracked.repoFullName)) {
+            repoMap.set(tracked.repoFullName, {
+                repoId: null,
+                repoName: tracked.repoFullName,
+                owner: owner || "",
+                repo: repo || "",
+            });
+        }
+    }
 
     // Get counts for each repo
-    const reposWithCounts = await Promise.all(contributedRepos.map(async (repo) => {
-        const myIssues = await db.select({ count: count() })
-            .from(issues)
-            .where(and(eq(issues.repoId, repo.repoId), eq(issues.authorName, username)));
+    const reposWithCounts = await Promise.all(Array.from(repoMap.values()).map(async (repo) => {
+        let myContributions = 0;
+        if (repo.repoId) {
+            const myIssues = await db.select({ count: count() })
+                .from(issues)
+                .where(and(eq(issues.repoId, repo.repoId), eq(issues.authorName, username)));
+            myContributions = myIssues[0]?.count || 0;
+        }
 
         return {
             id: repo.repoId,
-            name: repo.repo || repo.repoName.split("/")[1],
-            owner: repo.owner || repo.repoName.split("/")[0],
+            name: repo.repo,
+            owner: repo.owner,
             fullName: repo.repoName,
-            myContributions: myIssues[0]?.count || 0,
+            myContributions,
         };
     }));
 

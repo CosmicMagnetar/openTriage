@@ -358,16 +358,38 @@ const SummaryCard = ({ icon: Icon, label, value, color }) => {
 const AddRepoModal = ({ onClose, onSuccess }) => {
   const [repoName, setRepoName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [githubRepos, setGithubRepos] = useState([]);
+  const [loadingRepos, setLoadingRepos] = useState(true);
+  const [selectedRepo, setSelectedRepo] = useState(null);
+  const [useManualInput, setUseManualInput] = useState(false);
+
+  // Fetch user's GitHub repos on mount
+  useEffect(() => {
+    const fetchRepos = async () => {
+      try {
+        const response = await axios.get(`${API}/maintainer/github/repos`);
+        setGithubRepos(response.data.repos || []);
+      } catch (error) {
+        console.error('Failed to fetch GitHub repos:', error);
+        setUseManualInput(true); // Fall back to manual input
+      } finally {
+        setLoadingRepos(false);
+      }
+    };
+    fetchRepos();
+  }, []);
 
   const handleAdd = async () => {
-    if (!repoName.trim() || !repoName.includes('/')) {
-      toast.error('Please enter a valid repo name (e.g., facebook/react)');
+    const repoToAdd = selectedRepo?.fullName || repoName.trim();
+
+    if (!repoToAdd || !repoToAdd.includes('/')) {
+      toast.error('Please select or enter a valid repo name');
       return;
     }
 
     setLoading(true);
     try {
-      await axios.post(`${API}/repositories`, { repoFullName: repoName });
+      await axios.post(`${API}/repositories`, { repoFullName: repoToAdd });
       onSuccess();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to add repository');
@@ -378,7 +400,7 @@ const AddRepoModal = ({ onClose, onSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg p-6 w-full max-w-md">
+      <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg p-6 w-full max-w-lg">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-[hsl(210,11%,90%)]">Add GitHub Repository</h2>
           <button
@@ -390,22 +412,70 @@ const AddRepoModal = ({ onClose, onSuccess }) => {
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-[hsl(210,11%,50%)] mb-2">
-              Repository (owner/repo)
-            </label>
-            <input
-              data-testid="repo-name-input"
-              type="text"
-              value={repoName}
-              onChange={(e) => setRepoName(e.target.value)}
-              placeholder="e.g., facebook/react"
-              className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-4 py-2.5 text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(142,70%,45%)] transition-colors"
-            />
-            <p className="text-xs text-[hsl(210,11%,40%)] mt-2">
-              Note: Public repositories only. Issues will import in background.
-            </p>
-          </div>
+          {loadingRepos ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-[hsl(142,70%,45%)]" />
+              <span className="ml-2 text-[hsl(210,11%,50%)]">Loading your repositories...</span>
+            </div>
+          ) : useManualInput || githubRepos.length === 0 ? (
+            <div>
+              <label className="block text-sm font-medium text-[hsl(210,11%,50%)] mb-2">
+                Repository (owner/repo)
+              </label>
+              <input
+                data-testid="repo-name-input"
+                type="text"
+                value={repoName}
+                onChange={(e) => setRepoName(e.target.value)}
+                placeholder="e.g., facebook/react"
+                className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-4 py-2.5 text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(142,70%,45%)] transition-colors"
+              />
+              {githubRepos.length === 0 && !useManualInput && (
+                <p className="text-xs text-yellow-400 mt-2">
+                  No available repositories found. Enter manually.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-[hsl(210,11%,50%)] mb-2">
+                Select a repository you own
+              </label>
+              <div className="max-h-64 overflow-y-auto space-y-2 border border-[hsl(220,13%,18%)] rounded-lg p-2">
+                {githubRepos.map((repo) => (
+                  <button
+                    key={repo.id}
+                    onClick={() => setSelectedRepo(repo)}
+                    className={`w-full text-left p-3 rounded-lg transition-colors ${selectedRepo?.id === repo.id
+                        ? 'bg-[hsl(142,70%,45%,0.15)] border border-[hsl(142,70%,45%,0.5)]'
+                        : 'bg-[hsl(220,13%,10%)] hover:bg-[hsl(220,13%,12%)] border border-transparent'
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-[hsl(210,11%,85%)]">{repo.fullName}</span>
+                      {repo.language && (
+                        <span className="text-xs text-[hsl(210,11%,50%)] bg-[hsl(220,13%,15%)] px-2 py-0.5 rounded">
+                          {repo.language}
+                        </span>
+                      )}
+                    </div>
+                    {repo.description && (
+                      <p className="text-xs text-[hsl(210,11%,40%)] mt-1 truncate">{repo.description}</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setUseManualInput(true)}
+                className="text-xs text-[hsl(217,91%,65%)] hover:underline mt-2"
+              >
+                Or enter a public repository manually
+              </button>
+            </div>
+          )}
+          <p className="text-xs text-[hsl(210,11%,40%)]">
+            Issues and PRs will be imported in background.
+          </p>
         </div>
 
         <div className="flex gap-3 mt-6">
@@ -418,7 +488,7 @@ const AddRepoModal = ({ onClose, onSuccess }) => {
           <button
             data-testid="confirm-add-repo"
             onClick={handleAdd}
-            disabled={loading}
+            disabled={loading || (!selectedRepo && !repoName.trim())}
             className="flex-1 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-black px-4 py-2.5 rounded-lg font-medium transition-colors"
           >
             {loading ? 'Adding...' : 'Add Repository'}

@@ -3,7 +3,7 @@ import axios from 'axios';
 import ParticipantIssueCard from './ParticipantIssueCard';
 import OpportunitiesPanel from './OpportunitiesPanel';
 import OrganizationsPanel from './OrganizationsPanel';
-import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, ChevronDown, ArrowUpDown, Building2, ChevronLeft, ChevronRight, Clock, Loader2 } from 'lucide-react';
+import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, ChevronDown, ArrowUpDown, Building2, ChevronLeft, ChevronRight, Clock, Loader2, Plus, X, Link, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ITEMS_PER_PAGE = 10;
@@ -29,6 +29,7 @@ const MyIssuesDashboard = () => {
   const [dashboardStats, setDashboardStats] = useState(null);
   const [showOpportunities, setShowOpportunities] = useState(false);
   const [showOrganizations, setShowOrganizations] = useState(false);
+  const [showTrackRepo, setShowTrackRepo] = useState(false);
 
   // Filtering, sorting, and pagination state
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'prs', 'issues'
@@ -233,6 +234,14 @@ const MyIssuesDashboard = () => {
             >
               <Building2 className="w-5 h-5" />
               Organizations
+            </button>
+            <button
+              data-testid="track-repo-button"
+              onClick={() => setShowTrackRepo(true)}
+              className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
+            >
+              <Plus className="w-5 h-5" />
+              Track Repo
             </button>
 
           </div>
@@ -468,6 +477,17 @@ const MyIssuesDashboard = () => {
           contributedRepos={[...new Set(issues.map(i => i.repoName).filter(Boolean))]}
         />
       )}
+
+      {/* Track Repo Modal */}
+      {showTrackRepo && (
+        <TrackRepoModal
+          onClose={() => setShowTrackRepo(false)}
+          onSuccess={() => {
+            setShowTrackRepo(false);
+            loadDashboardData();
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -490,6 +510,111 @@ const StatCard = ({ icon: Icon, label, value, color }) => {
         <span className="text-sm font-medium text-[hsl(210,11%,50%)]">{label}</span>
       </div>
       <div className="text-3xl font-bold">{value}</div>
+    </div>
+  );
+};
+
+const TrackRepoModal = ({ onClose, onSuccess }) => {
+  const [repoUrl, setRepoUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [parsedRepo, setParsedRepo] = useState(null);
+
+  // Parse repo from URL as user types
+  useEffect(() => {
+    const input = repoUrl.trim();
+    if (!input) {
+      setParsedRepo(null);
+      return;
+    }
+
+    // Parse owner/repo from various URL formats
+    const urlMatch = input.match(/github\.com\/([^\/]+)\/([^\/\?\#]+)/);
+    if (urlMatch) {
+      setParsedRepo(`${urlMatch[1]}/${urlMatch[2].replace(/\.git$/, '')}`);
+    } else if (input.includes('/') && !input.includes('http')) {
+      // Direct owner/repo format
+      setParsedRepo(input);
+    } else {
+      setParsedRepo(null);
+    }
+  }, [repoUrl]);
+
+  const handleTrack = async () => {
+    if (!parsedRepo) {
+      toast.error('Please enter a valid GitHub URL or owner/repo');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post(`${API}/contributor/track-repo`, { repoUrl: repoUrl, repoFullName: parsedRepo });
+      toast.success(`Now tracking ${parsedRepo}!`);
+      onSuccess();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to track repository');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-[hsl(210,11%,90%)]">Track Repository</h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,12%)] rounded-md transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-[hsl(210,11%,50%)] mb-2">
+              GitHub Repository URL
+            </label>
+            <div className="relative">
+              <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(210,11%,40%)]" />
+              <input
+                data-testid="track-repo-input"
+                type="text"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                placeholder="https://github.com/owner/repo or owner/repo"
+                className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg pl-10 pr-4 py-2.5 text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(142,70%,45%)] transition-colors"
+              />
+            </div>
+            {parsedRepo && (
+              <p className="text-xs text-[hsl(142,70%,55%)] mt-2 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                Will track: <span className="font-medium">{parsedRepo}</span>
+              </p>
+            )}
+            <p className="text-xs text-[hsl(210,11%,40%)] mt-2">
+              Paste a GitHub URL to track contributions to that repository.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,15%)] text-[hsl(210,11%,75%)] px-4 py-2.5 rounded-lg font-medium transition-colors border border-[hsl(220,13%,18%)]"
+          >
+            Cancel
+          </button>
+          <button
+            data-testid="confirm-track-repo"
+            onClick={handleTrack}
+            disabled={loading || !parsedRepo}
+            className="flex-1 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-black px-4 py-2.5 rounded-lg font-medium transition-colors"
+          >
+            {loading ? 'Tracking...' : 'Track Repository'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
