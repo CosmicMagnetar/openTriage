@@ -121,11 +121,13 @@ const MyIssuesDashboard = () => {
     await loadDashboardData();
   };
 
-  // Get unique repositories for the dropdown
+  // Get unique repositories for the dropdown - includes both issues repos AND tracked repos
   const repositories = useMemo(() => {
-    const repos = [...new Set(issues.map(i => i.repoName).filter(Boolean))];
+    const fromIssues = issues.map(i => i.repoName).filter(Boolean);
+    const fromTracked = dashboardStats?.repositories || [];
+    const repos = [...new Set([...fromIssues, ...fromTracked])];
     return repos.sort();
-  }, [issues]);
+  }, [issues, dashboardStats]);
 
   // Filter and sort issues
   const filteredAndSortedIssues = useMemo(() => {

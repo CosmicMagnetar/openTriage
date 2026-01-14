@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
             openIssues,
             closedIssues,
             repositoriesContributed: uniqueRepos.size,
+            repositories: Array.from(uniqueRepos), // Include list of repos for dropdown population
         });
 
     } catch (error: any) {
