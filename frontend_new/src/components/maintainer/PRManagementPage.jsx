@@ -71,7 +71,9 @@ const PRManagementPage = () => {
 
             // First try to get PRs from our database
             const issuesRes = await axios.get(`${API}/maintainer/issues`);
-            const repoPRs = issuesRes.data.filter(
+            // API returns { items: [...], total, pages, ... } or legacy array
+            const issuesData = issuesRes.data.items || issuesRes.data || [];
+            const repoPRs = issuesData.filter(
                 item => item.isPR && item.repoName === repo.name
             );
 

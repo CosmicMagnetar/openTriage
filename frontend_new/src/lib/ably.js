@@ -22,9 +22,27 @@ let ablyClient = null;
  */
 export function getAblyClient() {
     if (!ablyClient) {
+        // Get auth token from localStorage
+        const jwtToken = localStorage.getItem('token');
+        
+        if (!jwtToken) {
+            // Create a client that won't connect if not authenticated
+            ablyClient = new Ably.Realtime({
+                authCallback: (tokenParams, callback) => {
+                    // Return error if not authenticated
+                    callback(new Error('Not authenticated'), null);
+                },
+                autoConnect: false,
+            });
+            return ablyClient;
+        }
+        
         ablyClient = new Ably.Realtime({
-            authUrl: '/api/auth/ably-token',
+            authUrl: `${import.meta.env.VITE_BACKEND_URL}/api/auth/ably-token`,
             authMethod: 'GET',
+            authHeaders: {
+                'Authorization': `Bearer ${jwtToken}`,
+            },
         });
     }
     return ablyClient;
@@ -97,7 +115,19 @@ export function subscribeToGlobalChat(callback) {
  */
 export function isAblyConnected() {
     if (!ablyClient) return false;
+    if (!localStorage.getItem('token')) return false;
     return ablyClient.connection.state === 'connected';
+}
+
+/**
+ * Reset the Ably client (call after login/logout)
+ */
+export function refreshAblyClient() {
+    if (ablyClient) {
+        ablyClient.close();
+        ablyClient = null;
+    }
+    // Will be recreated on next getAblyClient() call
 }
 
 /**
