@@ -135,6 +135,32 @@ const DashboardPage = () => {
         setIssues(allPRs);
         setTotalItems(allPRs.length);
         setTotalPages(Math.ceil(allPRs.length / ITEMS_PER_PAGE));
+
+        // Save new GitHub PRs to database for persistence
+        const newPRsToSave = allPRs.filter(pr => String(pr.id).startsWith('gh-'));
+        if (newPRsToSave.length > 0) {
+          try {
+            await axios.post(`${API}/issues/save`, {
+              issues: newPRsToSave.map(pr => ({
+                githubIssueId: pr.number,
+                number: pr.number,
+                title: pr.title,
+                body: pr.body,
+                authorName: pr.authorName,
+                repoId: pr.repoId,
+                repoName: pr.repoName,
+                owner: pr.repoName?.split('/')[0],
+                repo: pr.repoName?.split('/')[1],
+                htmlUrl: pr.htmlUrl,
+                state: pr.state,
+                isPR: pr.isPR,
+              }))
+            });
+            console.log(`Saved ${newPRsToSave.length} PRs to database`);
+          } catch (saveErr) {
+            console.log('Could not save PRs to database:', saveErr);
+          }
+        }
       } catch (ghError) {
         console.log('GitHub PR fallback failed:', ghError);
         // Keep DB data as-is
