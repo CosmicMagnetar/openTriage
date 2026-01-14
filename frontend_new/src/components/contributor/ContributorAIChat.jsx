@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { useChannel } from 'ably/react';
-import { X, Send, Bot, User, ChevronDown, BookOpen, ExternalLink, AlertCircle, RefreshCw } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useChannel, useConnectionStateListener } from 'ably/react';
+import { X, Send, Bot, User, ChevronDown, BookOpen, ExternalLink, AlertCircle, RefreshCw, Loader2, WifiOff } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { ragApi } from '../../services/api';
@@ -23,6 +23,8 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
   const [isIndexing, setIsIndexing] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState('all');
   const [sessionId] = useState(() => `contributor-session-${Date.now()}`);
+  const [ablyConnected, setAblyConnected] = useState(false);
+  const [ablyError, setAblyError] = useState(null);
   const messagesEndRef = useRef(null);
 
   // Fetch issues if not provided (for global usage)
@@ -86,17 +88,38 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
     indexRepo();
   }, [selectedRepo]);
 
-  // Ably Channel Logic
-  const [channelName, setChannelName] = useState('chat:global');
-  const { channel } = useChannel(channelName, (message) => {
-    // Deduplicate or just append? We'll rely on Ably echoed messages.
-    // If we optimistically added, we might check IDs. But here we won't optimistically add for simplicity/correctness first.
-    // However, for AI chat, we want immediate feedback. 
-    // We will append received messages.
-
-    // Check if message already exists (simple dedupe by content/timestamp if needed, but for now just append)
-    setMessages(prev => [...prev, message.data]);
+  // Ably Connection State Listener
+  useConnectionStateListener((stateChange) => {
+    if (stateChange.current === 'connected') {
+      setAblyConnected(true);
+      setAblyError(null);
+    } else if (stateChange.current === 'failed' || stateChange.current === 'suspended') {
+      setAblyConnected(false);
+      setAblyError('Real-time connection unavailable. Using direct mode.');
+    }
   });
+
+  // Ably Channel Logic - wrapped with error handling
+  const [channelName, setChannelName] = useState('chat:global');
+
+  // Safe channel message handler
+  const handleChannelMessage = useCallback((message) => {
+    if (message?.data) {
+      setMessages(prev => [...prev, message.data]);
+    }
+  }, []);
+
+  // Use channel with error boundary
+  let channel = null;
+  try {
+    const channelResult = useChannel(channelName, handleChannelMessage);
+    channel = channelResult?.channel;
+  } catch (err) {
+    // Ably not configured - fall back to direct API mode
+    if (!ablyError) {
+      setAblyError('Real-time features unavailable. Using direct mode.');
+    }
+  }
 
   // Clean/Switch Channel on Repo Change
   useEffect(() => {
@@ -118,9 +141,14 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
     setInput('');
     setLoading(true);
 
+    // Optimistically add user message locally
+    setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp: Date.now() }]);
+
     try {
-      // Publish User Message to Ably
-      await channel.publish('message', { role: 'user', content: userMessage, timestamp: Date.now() });
+      // Only publish to Ably if connected
+      if (channel && ablyConnected) {
+        await channel.publish('message', { role: 'user', content: userMessage, timestamp: Date.now() });
+      }
 
       // AI Processing
       let responseContent;
@@ -150,14 +178,21 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
         responseContent = response.data.response;
       }
 
-      // Publish AI Response to Ably
-      await channel.publish('message', {
+      // Publish AI Response (or add locally if Ably unavailable)
+      const aiMessage = {
         role: 'assistant',
         content: responseContent,
         sources: sources,
         relatedIssues: relatedIssues,
         timestamp: Date.now()
-      });
+      };
+
+      if (channel && ablyConnected) {
+        await channel.publish('message', aiMessage);
+      } else {
+        // Direct mode - add message locally
+        setMessages(prev => [...prev, aiMessage]);
+      }
 
     } catch (error) {
       console.error('Chat error:', error);

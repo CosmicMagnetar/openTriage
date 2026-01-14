@@ -3,7 +3,7 @@ import axios from 'axios';
 import ParticipantIssueCard from './ParticipantIssueCard';
 import OpportunitiesPanel from './OpportunitiesPanel';
 import OrganizationsPanel from './OrganizationsPanel';
-import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, ChevronDown, ArrowUpDown, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, ChevronDown, ArrowUpDown, Building2, ChevronLeft, ChevronRight, Clock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ITEMS_PER_PAGE = 10;
@@ -38,6 +38,8 @@ const MyIssuesDashboard = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -79,16 +81,32 @@ const MyIssuesDashboard = () => {
       setTotalPages(pages || 1);
       setDashboardStats(statsResponse.data);
       setLastFetchedAt(new Date());
+      setFetchError(null); // Clear any previous errors
 
       if ((items || []).length === 0 && !isAutoSync && currentPage === 1) {
-        toast.info('Fetching your issues from GitHub...');
+        // Show syncing state instead of error
+        setIsSyncing(true);
+        toast.info('Syncing your contributions from GitHub...');
+      } else {
+        setIsSyncing(false);
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      if (!isAutoSync) {
+      const status = error.response?.status;
+
+      // Handle 502 and other server errors gracefully
+      if (status === 502 || status === 503 || status === 504) {
+        setFetchError('Server is syncing data from GitHub. Please wait...');
+        setIsSyncing(true);
+      } else if (!isAutoSync) {
+        setFetchError('Failed to load dashboard data. Click refresh to retry.');
         toast.error('Failed to load dashboard data');
       }
-      setIssues([]);
+
+      // Don't clear existing data on error - keep stale data visible
+      if (issues.length === 0) {
+        setIssues([]);
+      }
     } finally {
       if (!isAutoSync) {
         setLoading(false);
@@ -251,17 +269,38 @@ const MyIssuesDashboard = () => {
         {/* Issues List */}
         {issues.length === 0 ? (
           <div className="bg-[hsl(220,13%,8%)] rounded-xl p-12 text-center border border-[hsl(220,13%,15%)]">
-            <FileQuestion className="w-16 h-16 text-[hsl(220,13%,20%)] mx-auto mb-4" />
-            <p className="text-[hsl(210,11%,50%)] mb-2">No contributions found yet</p>
-            <p className="text-sm text-[hsl(210,11%,40%)] mb-4">
-              Start contributing to open source projects!
-            </p>
-            <button
-              onClick={() => setShowOpportunities(true)}
-              className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black px-6 py-3 rounded-lg font-medium transition-all duration-300"
-            >
-              Explore Opportunities
-            </button>
+            {isSyncing || fetchError ? (
+              <>
+                <Loader2 className="w-16 h-16 text-[hsl(142,70%,45%)] mx-auto mb-4 animate-spin" />
+                <p className="text-[hsl(210,11%,70%)] mb-2 font-medium">
+                  {fetchError || 'Syncing your contributions from GitHub...'}
+                </p>
+                <p className="text-sm text-[hsl(210,11%,40%)] mb-4">
+                  This may take a moment for the first load
+                </p>
+                <button
+                  onClick={() => loadDashboardData()}
+                  className="bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,18%)] text-[hsl(210,11%,70%)] px-6 py-3 rounded-lg font-medium transition-all duration-300 border border-[hsl(220,13%,18%)] flex items-center gap-2 mx-auto"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Retry
+                </button>
+              </>
+            ) : (
+              <>
+                <FileQuestion className="w-16 h-16 text-[hsl(220,13%,20%)] mx-auto mb-4" />
+                <p className="text-[hsl(210,11%,50%)] mb-2">No contributions found yet</p>
+                <p className="text-sm text-[hsl(210,11%,40%)] mb-4">
+                  Start contributing to open source projects!
+                </p>
+                <button
+                  onClick={() => setShowOpportunities(true)}
+                  className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black px-6 py-3 rounded-lg font-medium transition-all duration-300"
+                >
+                  Explore Opportunities
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div>
