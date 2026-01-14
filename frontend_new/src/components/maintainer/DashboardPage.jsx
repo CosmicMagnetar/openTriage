@@ -31,6 +31,7 @@ const DashboardPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
   const [totalItems, setTotalItems] = useState(0);
+  const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -63,6 +64,7 @@ const DashboardPage = () => {
         }),
         axios.get(`${API}/repositories`)
       ]);
+      setFetchError(null); // Clear error on success
       setSummary(summaryRes.data);
 
       // Handle paginated response: { items, total, page, pages, limit, lastFetchedAt }
@@ -101,6 +103,12 @@ const DashboardPage = () => {
       });
       setIssues([]);
       setRepositories([]);
+      // Set user-friendly error message
+      if (error.code === 'ERR_NETWORK' || error.message?.includes('network') || error.response?.status >= 500) {
+        setFetchError('Server is currently unavailable. The HuggingFace backend may be sleeping - please wait a moment and retry.');
+      } else {
+        setFetchError('Failed to load dashboard data. Please try again.');
+      }
     } finally {
       setLoading(false);
       if (isAutoSync) {
@@ -131,6 +139,22 @@ const DashboardPage = () => {
   return (
     <div data-testid="maintainer-dashboard" className="w-full h-full overflow-auto p-4 md:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
+        {/* Error Banner */}
+        {fetchError && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400" />
+              <span className="text-red-300">{fetchError}</span>
+            </div>
+            <button
+              onClick={() => loadData()}
+              className="bg-red-500/20 hover:bg-red-500/30 text-red-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </button>
+          </div>
+        )}
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -447,8 +471,8 @@ const AddRepoModal = ({ onClose, onSuccess }) => {
                     key={repo.id}
                     onClick={() => setSelectedRepo(repo)}
                     className={`w-full text-left p-3 rounded-lg transition-colors ${selectedRepo?.id === repo.id
-                        ? 'bg-[hsl(142,70%,45%,0.15)] border border-[hsl(142,70%,45%,0.5)]'
-                        : 'bg-[hsl(220,13%,10%)] hover:bg-[hsl(220,13%,12%)] border border-transparent'
+                      ? 'bg-[hsl(142,70%,45%,0.15)] border border-[hsl(142,70%,45%,0.5)]'
+                      : 'bg-[hsl(220,13%,10%)] hover:bg-[hsl(220,13%,12%)] border border-transparent'
                       }`}
                   >
                     <div className="flex items-center justify-between">
