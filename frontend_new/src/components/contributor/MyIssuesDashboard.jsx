@@ -548,10 +548,21 @@ const TrackRepoModal = ({ onClose, onSuccess }) => {
     setLoading(true);
     try {
       await axios.post(`${API}/contributor/track-repo`, { repoUrl: repoUrl, repoFullName: parsedRepo });
-      toast.success(`Now tracking ${parsedRepo}!`);
+      toast.success(`Now tracking ${parsedRepo}! PRs will appear after next sync.`);
       onSuccess();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to track repository');
+      const status = error.response?.status;
+      const message = error.response?.data?.error;
+
+      if (status === 409) {
+        // Already tracking - not an error, just info
+        toast.info(message || 'You\'re already tracking this repository');
+        onSuccess(); // Still refresh to show existing data
+      } else if (status === 404) {
+        toast.error('Repository not found on GitHub. Check the URL.');
+      } else {
+        toast.error(message || 'Failed to track repository');
+      }
     } finally {
       setLoading(false);
     }
