@@ -59,7 +59,11 @@ const IssueDetailPanel = () => {
     setSending(true);
     try {
       const response = await axios.post(`${API}/maintainer/action/reply`, {
+        // Send both: direct identifiers and issueId as fallback
         issueId: selectedIssue.id,
+        owner: selectedIssue.owner,
+        repo: selectedIssue.repo,
+        number: selectedIssue.number,
         message: reply
       });
 

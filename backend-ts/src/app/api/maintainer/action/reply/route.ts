@@ -26,31 +26,43 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { issueId, message } = body;
+        const { issueId, owner: directOwner, repo: directRepo, number: directNumber, message } = body;
 
-        if (!issueId || !message) {
+        if (!message) {
             return NextResponse.json({
-                error: "issueId and message are required"
+                error: "message is required"
             }, { status: 400 });
         }
 
-        // Get issue from database
-        const issue = await db.select()
-            .from(issues)
-            .where(eq(issues.id, issueId))
-            .limit(1);
+        let owner: string | null = directOwner;
+        let repo: string | null = directRepo;
+        let issueNumber: number | null = directNumber;
 
-        if (!issue[0]) {
-            return NextResponse.json({ error: "Issue not found" }, { status: 404 });
+        // If direct identifiers not provided, try to get from database
+        if (!owner || !repo || !issueNumber) {
+            if (!issueId) {
+                return NextResponse.json({
+                    error: "Either issueId or owner/repo/number are required"
+                }, { status: 400 });
+            }
+
+            const issue = await db.select()
+                .from(issues)
+                .where(eq(issues.id, issueId))
+                .limit(1);
+
+            if (!issue[0]) {
+                return NextResponse.json({ error: "Issue not found in database" }, { status: 404 });
+            }
+
+            owner = issue[0].owner;
+            repo = issue[0].repo;
+            issueNumber = issue[0].number;
         }
-
-        const owner = issue[0].owner;
-        const repo = issue[0].repo;
-        const issueNumber = issue[0].number;
 
         if (!owner || !repo) {
             return NextResponse.json({
-                error: "Invalid issue data"
+                error: "Invalid issue data - missing owner or repo"
             }, { status: 400 });
         }
 

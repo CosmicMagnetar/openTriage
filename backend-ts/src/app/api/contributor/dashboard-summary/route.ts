@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
-import { issues } from "@/db/schema";
+import { issues, userRepositories } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -36,8 +36,17 @@ export async function GET(request: NextRequest) {
         const openIssues = issueItems.filter(i => i.state === 'open').length;
         const closedIssues = issueItems.filter(i => i.state === 'closed').length;
 
-        // Get unique repositories contributed to
+        // Get unique repositories contributed to (from issues table)
         const uniqueRepos = new Set(allItems.map(item => item.repoName).filter(Boolean));
+
+        // Also add repos from userRepositories (explicitly tracked)
+        const trackedRepos = await db.select({ repoFullName: userRepositories.repoFullName })
+            .from(userRepositories)
+            .where(eq(userRepositories.userId, user.id));
+
+        for (const tracked of trackedRepos) {
+            uniqueRepos.add(tracked.repoFullName);
+        }
 
         return NextResponse.json({
             totalContributions: allItems.length,  // This is the key difference - count from DB, not GitHub API
