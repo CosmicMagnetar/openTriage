@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getIssuesWithTriage } from "@/lib/db/queries/issues";
+import { createGitHubClient } from "@/lib/github-client";
 
 export async function GET(request: NextRequest) {
     try {
@@ -20,14 +21,116 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "10");
 
+        // Get issues from database
         const issuesData = await getIssuesWithTriage({ authorName: user.username }, page, limit);
 
+        // If database has results, return them
+        if (issuesData.total > 0) {
+            return NextResponse.json({
+                items: issuesData.issues,
+                total: issuesData.total,
+                page: issuesData.page,
+                pages: issuesData.totalPages,
+                limit: issuesData.limit,
+            });
+        }
+
+        // If database is empty and user has GitHub token, fetch from GitHub directly
+        if (user.githubAccessToken) {
+            try {
+                const octokit = createGitHubClient(user.githubAccessToken);
+
+                // Search for user's authored issues and PRs
+                const [prsResponse, issuesResponse] = await Promise.all([
+                    octokit.search.issuesAndPullRequests({
+                        q: `author:${user.username} is:pr is:open`,
+                        per_page: Math.min(limit, 50),
+                        sort: "updated",
+                        order: "desc",
+                    }),
+                    octokit.search.issuesAndPullRequests({
+                        q: `author:${user.username} is:issue is:open`,
+                        per_page: Math.min(limit, 50),
+                        sort: "updated",
+                        order: "desc",
+                    })
+                ]);
+
+                // Transform GitHub items to match expected format
+                const allItems = [
+                    ...prsResponse.data.items.map(item => {
+                        const repoUrl = item.repository_url || "";
+                        const repoMatch = repoUrl.match(/repos\/([^/]+)\/([^/]+)/);
+                        const owner = repoMatch?.[1] || "";
+                        const repo = repoMatch?.[2] || "";
+                        return {
+                            id: `gh-${item.number}-${owner}-${repo}`,
+                            githubIssueId: item.id,
+                            number: item.number,
+                            title: item.title,
+                            body: item.body || "",
+                            authorName: item.user?.login || user.username,
+                            repoName: `${owner}/${repo}`,
+                            owner,
+                            repo,
+                            htmlUrl: item.html_url,
+                            state: item.state || "open",
+                            isPR: true,
+                            createdAt: item.created_at,
+                            triage: null, // No triage data for GitHub-fetched items
+                        };
+                    }),
+                    ...issuesResponse.data.items.map(item => {
+                        const repoUrl = item.repository_url || "";
+                        const repoMatch = repoUrl.match(/repos\/([^/]+)\/([^/]+)/);
+                        const owner = repoMatch?.[1] || "";
+                        const repo = repoMatch?.[2] || "";
+                        return {
+                            id: `gh-${item.number}-${owner}-${repo}`,
+                            githubIssueId: item.id,
+                            number: item.number,
+                            title: item.title,
+                            body: item.body || "",
+                            authorName: item.user?.login || user.username,
+                            repoName: `${owner}/${repo}`,
+                            owner,
+                            repo,
+                            htmlUrl: item.html_url,
+                            state: item.state || "open",
+                            isPR: false,
+                            createdAt: item.created_at,
+                            triage: null,
+                        };
+                    })
+                ];
+
+                // Sort by created date (newest first)
+                allItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+                const total = allItems.length;
+                const startIndex = (page - 1) * limit;
+                const paginatedItems = allItems.slice(startIndex, startIndex + limit);
+
+                return NextResponse.json({
+                    items: paginatedItems,
+                    total,
+                    page,
+                    pages: Math.ceil(total / limit),
+                    limit,
+                });
+            } catch (ghError) {
+                console.log("GitHub fetch failed:", ghError);
+                // Continue with empty database results
+            }
+        }
+
+        // Return empty results if no data available
         return NextResponse.json({
-            items: issuesData.issues,
-            total: issuesData.total,
-            page: issuesData.page,
-            pages: issuesData.totalPages,
-            limit: issuesData.limit,
+            items: [],
+            total: 0,
+            page: 1,
+            pages: 0,
+            limit,
         });
     } catch (error) {
         console.error("Contributor my-issues error:", error);

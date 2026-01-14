@@ -102,6 +102,32 @@ const PRManagementPage = () => {
                     ...githubPRs.filter(pr => !dbPRNumbers.has(pr.number))
                 ];
                 setPullRequests(mergedPRs);
+
+                // Save new PRs to database for persistence
+                const newPRs = githubPRs.filter(pr => !dbPRNumbers.has(pr.number));
+                if (newPRs.length > 0) {
+                    try {
+                        await axios.post(`${API}/issues/save`, {
+                            issues: newPRs.map(pr => ({
+                                githubIssueId: pr.number,
+                                number: pr.number,
+                                title: pr.title,
+                                body: pr.body,
+                                authorName: pr.authorName,
+                                repoId: repo.id,
+                                repoName: repo.name,
+                                owner: owner,
+                                repo: repoName,
+                                htmlUrl: pr.htmlUrl,
+                                state: pr.state || 'open',
+                                isPR: true,
+                            }))
+                        });
+                        console.log(`Saved ${newPRs.length} PRs to database`);
+                    } catch (saveErr) {
+                        console.log('Could not save PRs to database:', saveErr);
+                    }
+                }
             } catch (ghError) {
                 console.log('Could not fetch from GitHub directly:', ghError);
                 // Fall back to just DB PRs

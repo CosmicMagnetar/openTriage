@@ -27,6 +27,13 @@ export async function getRepositoriesByUserId(userId: string) {
     return db.select().from(repositories).where(eq(repositories.userId, userId)).orderBy(desc(repositories.createdAt));
 }
 
+export async function getRepositoryByFullName(owner: string, name: string) {
+    const result = await db.select().from(repositories)
+        .where(and(eq(repositories.owner, owner), eq(repositories.name, name)))
+        .limit(1);
+    return result[0] || null;
+}
+
 export async function createRepository(data: {
     githubRepoId: number;
     name: string;
