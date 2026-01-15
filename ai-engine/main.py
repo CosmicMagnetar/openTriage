@@ -229,7 +229,7 @@ async def rag_chat(request: RAGChatRequest):
     Passes directly to rag_chatbot_service.answer_question()
     """
     try:
-        result = rag_chatbot_service.answer_question(
+        result = await rag_chatbot_service.answer_question(
             question=request.question,
             repo_name=request.repo_name,
             top_k=request.top_k
@@ -248,7 +248,7 @@ async def rag_index(request: RAGIndexRequest):
     Passes directly to rag_chatbot_service.index_repository()
     """
     try:
-        result = rag_chatbot_service.index_repository(
+        result = await rag_chatbot_service.index_repository(
             repo_name=request.repo_name,
             github_access_token=request.github_access_token
         )
@@ -262,7 +262,7 @@ async def rag_index(request: RAGIndexRequest):
 async def rag_suggestions(repo_name: Optional[str] = None):
     """Get suggested questions for RAG chatbot."""
     try:
-        suggestions = rag_chatbot_service.get_suggested_questions(repo_name)
+        suggestions = await rag_chatbot_service.get_suggested_questions(repo_name)
         return {"suggestions": suggestions}
     except Exception as e:
         logger.error(f"RAG suggestions error: {e}")
