@@ -32,7 +32,7 @@ class Settings:
     # URLs
     FRONTEND_URL: str = os.environ.get('FRONTEND_URL', "http://localhost:3000")
     API_URL: str = os.environ.get('API_URL', "http://localhost:8000")
-    BACKEND_TS_URL: str = os.environ.get('BACKEND_TS_URL', "http://localhost:3001")
+    BACKEND_TS_URL: str = os.environ.get('BACKEND_TS_URL', "http://localhost:3000")
     
     # CORS
     ALLOWED_ORIGINS: list = os.environ.get('CORS_ORIGINS', 
