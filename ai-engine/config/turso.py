@@ -1,13 +1,18 @@
 """
 Turso (libsql) Database Connection Utility.
 
-Provides async database operations for messages and mentorship data.
+Provides sync database operations for messages and mentorship data.
+Uses libsql-experimental for reliable Turso connectivity.
 """
 
 import os
 import logging
 from typing import List, Dict, Any, Optional
-import libsql_client
+
+try:
+    import libsql_experimental as libsql
+except ImportError:
+    libsql = None
 
 logger = logging.getLogger(__name__)
 
@@ -17,58 +22,58 @@ TURSO_AUTH_TOKEN = os.environ.get('TURSO_AUTH_TOKEN', '')
 
 
 class TursoDatabase:
-    """Turso database wrapper with async operations."""
+    """Turso database wrapper with sync operations."""
     
     def __init__(self):
-        self._client = None
+        self._conn = None
         self._initialized = False
     
-    def _get_client(self):
-        """Get or create the libsql client."""
-        if self._client is None:
+    def _get_connection(self):
+        """Get or create the libsql connection."""
+        if self._conn is None:
+            if libsql is None:
+                raise ImportError("libsql_experimental is not installed. Run: pip install libsql-experimental")
+            
             if not TURSO_DATABASE_URL:
                 raise ValueError("TURSO_DATABASE_URL environment variable is not set")
             
-            # Convert libsql:// to https:// for HTTP transport
-            url = TURSO_DATABASE_URL
-            if url.startswith("libsql://"):
-                url = url.replace("libsql://", "https://")
-            
-            self._client = libsql_client.create_client_sync(
-                url=url,
+            # libsql-experimental uses a local file with sync to remote
+            self._conn = libsql.connect(
+                "local_opentriage.db",
+                sync_url=TURSO_DATABASE_URL,
                 auth_token=TURSO_AUTH_TOKEN if TURSO_AUTH_TOKEN else None
             )
-        return self._client
+            # Sync with remote database
+            self._conn.sync()
+            logger.info("Connected to Turso database")
+        return self._conn
+    
+    def sync(self):
+        """Sync local database with remote Turso."""
+        conn = self._get_connection()
+        conn.sync()
     
     def execute(self, sql: str, params: Optional[tuple] = None) -> List[Dict[str, Any]]:
         """Execute a SQL query and return results."""
-        client = self._get_client()
+        conn = self._get_connection()
         try:
             if params:
-                result = client.execute(sql, params)
+                cursor = conn.execute(sql, params)
             else:
-                result = client.execute(sql)
+                cursor = conn.execute(sql)
             
-            # Convert result rows to list of dicts
-            if result.rows:
-                columns = result.columns
-                return [dict(zip(columns, row)) for row in result.rows]
+            # For SELECT queries, return results as list of dicts
+            if cursor.description:
+                columns = [col[0] for col in cursor.description]
+                rows = cursor.fetchall()
+                return [dict(zip(columns, row)) for row in rows]
+            
+            # For INSERT/UPDATE/DELETE, commit and return empty
+            conn.commit()
+            self.sync()  # Sync changes to remote
             return []
         except Exception as e:
             logger.error(f"Turso execute error: {e}")
-            raise
-    
-    def executemany(self, sql: str, params_list: List[tuple]) -> int:
-        """Execute a SQL query with multiple parameter sets."""
-        client = self._get_client()
-        count = 0
-        try:
-            for params in params_list:
-                client.execute(sql, params)
-                count += 1
-            return count
-        except Exception as e:
-            logger.error(f"Turso executemany error: {e}")
             raise
     
     def init_tables(self):
@@ -76,9 +81,10 @@ class TursoDatabase:
         if self._initialized:
             return
         
+        conn = self._get_connection()
         try:
             # Messages table
-            self.execute("""
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS messages (
                     id TEXT PRIMARY KEY,
                     sender_id TEXT NOT NULL,
@@ -90,7 +96,7 @@ class TursoDatabase:
             """)
             
             # Mentorships table
-            self.execute("""
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS mentorships (
                     id TEXT PRIMARY KEY,
                     mentor_id TEXT NOT NULL,
@@ -104,7 +110,7 @@ class TursoDatabase:
             """)
             
             # Mentorship requests table
-            self.execute("""
+            conn.execute("""
                 CREATE TABLE IF NOT EXISTS mentorship_requests (
                     id TEXT PRIMARY KEY,
                     mentee_id TEXT NOT NULL,
@@ -118,6 +124,9 @@ class TursoDatabase:
                 )
             """)
             
+            conn.commit()
+            self.sync()  # Sync table creation to remote
+            
             self._initialized = True
             logger.info("Turso tables initialized successfully")
         except Exception as e:
@@ -127,8 +136,13 @@ class TursoDatabase:
     # Message operations
     def insert_message(self, message: Dict[str, Any]) -> bool:
         """Insert a message into the messages table."""
+        conn = self._get_connection()
         try:
-            self.execute(
+            timestamp = message.get('timestamp')
+            if timestamp and not isinstance(timestamp, str):
+                timestamp = timestamp.isoformat()
+            
+            conn.execute(
                 """
                 INSERT OR IGNORE INTO messages (id, sender_id, receiver_id, content, read, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -139,10 +153,11 @@ class TursoDatabase:
                     message.get('receiver_id'),
                     message.get('content'),
                     1 if message.get('read') else 0,
-                    message.get('timestamp') if isinstance(message.get('timestamp'), str) 
-                        else message.get('timestamp').isoformat() if message.get('timestamp') else None
+                    timestamp
                 )
             )
+            conn.commit()
+            self.sync()
             return True
         except Exception as e:
             logger.error(f"Failed to insert message: {e}")
@@ -163,8 +178,13 @@ class TursoDatabase:
     # Mentorship operations
     def insert_mentorship(self, mentorship: Dict[str, Any]) -> bool:
         """Insert a mentorship record."""
+        conn = self._get_connection()
         try:
-            self.execute(
+            created_at = mentorship.get('created_at')
+            if created_at and not isinstance(created_at, str):
+                created_at = created_at.isoformat()
+            
+            conn.execute(
                 """
                 INSERT OR IGNORE INTO mentorships 
                 (id, mentor_id, mentor_username, mentee_id, mentee_username, status, created_at, disconnected_at)
@@ -177,11 +197,12 @@ class TursoDatabase:
                     mentorship.get('mentee_id'),
                     mentorship.get('mentee_username'),
                     mentorship.get('status', 'active'),
-                    mentorship.get('created_at') if isinstance(mentorship.get('created_at'), str)
-                        else mentorship.get('created_at').isoformat() if mentorship.get('created_at') else None,
+                    created_at,
                     mentorship.get('disconnected_at')
                 )
             )
+            conn.commit()
+            self.sync()
             return True
         except Exception as e:
             logger.error(f"Failed to insert mentorship: {e}")
@@ -189,8 +210,13 @@ class TursoDatabase:
     
     def insert_mentorship_request(self, request: Dict[str, Any]) -> bool:
         """Insert a mentorship request."""
+        conn = self._get_connection()
         try:
-            self.execute(
+            created_at = request.get('created_at')
+            if created_at and not isinstance(created_at, str):
+                created_at = created_at.isoformat()
+            
+            conn.execute(
                 """
                 INSERT OR IGNORE INTO mentorship_requests 
                 (id, mentee_id, mentee_username, mentor_id, mentor_username, issue_id, message, status, created_at)
@@ -205,10 +231,11 @@ class TursoDatabase:
                     request.get('issue_id'),
                     request.get('message'),
                     request.get('status', 'pending'),
-                    request.get('created_at') if isinstance(request.get('created_at'), str)
-                        else request.get('created_at').isoformat() if request.get('created_at') else None
+                    created_at
                 )
             )
+            conn.commit()
+            self.sync()
             return True
         except Exception as e:
             logger.error(f"Failed to insert mentorship request: {e}")
