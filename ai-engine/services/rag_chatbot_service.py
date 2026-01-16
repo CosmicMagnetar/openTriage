@@ -42,7 +42,8 @@ class RAGChatbotService:
         self,
         question: str,
         repo_name: Optional[str] = None,
-        top_k: int = 5
+        top_k: int = 5,
+        github_access_token: Optional[str] = None
     ) -> RAGAnswer:
         """
         Answer a question using RAG.
@@ -51,15 +52,54 @@ class RAGChatbotService:
             question: The question to answer
             repo_name: Optional repo context
             top_k: Number of documents to retrieve
+            github_access_token: Optional GitHub token for README fetching
             
         Returns:
             RAGAnswer with the response and sources
         """
-        # Search for relevant documents
+        from config.database import db
+        
+        # Check if we have any indexed content for this repo
+        has_indexed_content = False
+        readme_content = None
+        
+        if repo_name:
+            # Check for existing RAG chunks
+            existing_chunks = await db.rag_chunks.count_documents({"sourceRepo": repo_name})
+            has_indexed_content = existing_chunks > 0
+            
+            # If no indexed content, try to fetch README directly from GitHub
+            if not has_indexed_content:
+                logger.info(f"No indexed content for {repo_name}, fetching README directly...")
+                try:
+                    from services.github_service import github_service
+                    readme_content = await github_service.fetch_repository_readme(
+                        repo_name, 
+                        github_access_token
+                    )
+                    if readme_content:
+                        logger.info(f"Fetched README for {repo_name} ({len(readme_content)} chars)")
+                except Exception as e:
+                    logger.warning(f"Could not fetch README for {repo_name}: {e}")
+        
+        # Search for relevant documents (from indexed chunks)
         relevant_docs = await self.search_documents(question, repo_name, top_k)
         
         # Build context from documents
         context = self._build_context(relevant_docs)
+        
+        # If we have a fresh README but no indexed content, prepend it to context
+        if readme_content and not has_indexed_content:
+            # Truncate README if too long (keep first 4000 chars)
+            truncated_readme = readme_content[:4000] if len(readme_content) > 4000 else readme_content
+            context = f"[PROJECT README]\n{truncated_readme}\n\n---\n\n{context}"
+            # Add README to sources
+            relevant_docs.insert(0, {
+                "id": f"{repo_name}_readme_live",
+                "title": "Project README (Live)",
+                "type": "readme",
+                "relevance": 1.0
+            })
         
         # Generate answer using AI
         answer, confidence = await self._generate_answer(question, context, repo_name)

@@ -108,10 +108,15 @@ export const trophyApi = {
 // ============ RAG Chatbot API ============
 
 export const ragApi = {
-  askQuestion: (question, repoName = null, topK = 5) =>
+  askQuestion: (question, repoName = null, topK = 5, githubAccessToken = null) =>
     apiRequest('/api/rag/chat', {
       method: 'POST',
-      body: JSON.stringify({ question, repo_name: repoName, top_k: topK }),
+      body: JSON.stringify({ 
+        question, 
+        repo_name: repoName, 
+        top_k: topK,
+        github_access_token: githubAccessToken 
+      }),
     }),
   
   searchDocuments: (query, repoName = null, limit = 10) =>

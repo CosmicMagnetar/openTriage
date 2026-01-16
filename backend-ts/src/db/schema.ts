@@ -212,13 +212,15 @@ export const chatMessages = sqliteTable("chat_messages", {
     editedAt: text("edited_at"),
 });
 
-// ---- Chat History (Legacy AI Chat) ----
-export const chatHistory = sqliteTable("chat_history", {
-    id: text("id").primaryKey(),
-    userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-    sessionId: text("session_id").notNull(),
-    createdAt: text("created_at").notNull(),
-});
+// ---- Chat History (DEPRECATED - AI chat uses ephemeral history from frontend) ----
+// This table stored AI chat history but was never read. Kept for reference.
+// To be removed in a future migration after verifying no data loss impact.
+// export const chatHistory = sqliteTable("chat_history", {
+//     id: text("id").primaryKey(),
+//     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+//     sessionId: text("session_id").notNull(),
+//     createdAt: text("created_at").notNull(),
+// });
 
 // ---- Issue Chats ----
 export const issueChats = sqliteTable("issue_chats", {
@@ -385,16 +387,16 @@ export const chatSessionResources = sqliteTable("chat_session_resources", {
     resourceId: text("resource_id").notNull().references(() => resources.id, { onDelete: "cascade" }),
 });
 
-// ---- Chat History Messages ----
-export const chatHistoryMessages = sqliteTable("chat_history_messages", {
-    id: text("id").primaryKey(),
-    chatHistoryId: text("chat_history_id").notNull().references(() => chatHistory.id, { onDelete: "cascade" }),
-    role: text("role").notNull(),  // 'user' | 'assistant'
-    content: text("content").notNull(),
-    timestamp: text("timestamp").notNull(),
-    githubCommentId: text("github_comment_id"),
-    githubCommentUrl: text("github_comment_url"),
-});
+// ---- Chat History Messages (DEPRECATED - see chatHistory above) ----
+// export const chatHistoryMessages = sqliteTable("chat_history_messages", {
+//     id: text("id").primaryKey(),
+//     chatHistoryId: text("chat_history_id").notNull().references(() => chatHistory.id, { onDelete: "cascade" }),
+//     role: text("role").notNull(),  // 'user' | 'assistant'
+//     content: text("content").notNull(),
+//     timestamp: text("timestamp").notNull(),
+//     githubCommentId: text("github_comment_id"),
+//     githubCommentUrl: text("github_comment_url"),
+// });
 
 // ---- Issue Chat Messages ----
 export const issueChatMessages = sqliteTable("issue_chat_messages", {

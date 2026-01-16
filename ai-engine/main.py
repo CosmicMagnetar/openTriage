@@ -232,7 +232,8 @@ async def rag_chat(request: RAGChatRequest):
         result = await rag_chatbot_service.answer_question(
             question=request.question,
             repo_name=request.repo_name,
-            top_k=request.top_k
+            top_k=request.top_k,
+            github_access_token=request.github_access_token
         )
         return result
     except Exception as e:
