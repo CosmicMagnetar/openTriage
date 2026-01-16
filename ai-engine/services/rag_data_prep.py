@@ -1,6 +1,7 @@
 """
 RAG Data Preparation Service for OpenTriage.
 Uses Spark for high-speed chunking and cleaning of documents for Vector DB.
+Falls back to pure Python when Spark is not available (e.g., HuggingFace Spaces).
 """
 import logging
 import re
@@ -8,18 +9,23 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
 
-from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.functions import (
-    col, udf, explode, posexplode, lit, concat, concat_ws,
-    length, size, array, struct, row_number, monotonically_increasing_id,
-    regexp_replace, trim, lower, split
-)
-from pyspark.sql.types import (
-    StructType, StructField, StringType, IntegerType, 
-    ArrayType, MapType
-)
-
-from spark_manager import get_or_create_spark_session
+# Try to import PySpark - may not be available on HuggingFace Spaces
+SPARK_AVAILABLE = False
+try:
+    from pyspark.sql import SparkSession, DataFrame
+    from pyspark.sql.functions import (
+        col, udf, explode, posexplode, lit, concat, concat_ws,
+        length, size, array, struct, row_number, monotonically_increasing_id,
+        regexp_replace, trim, lower, split
+    )
+    from pyspark.sql.types import (
+        StructType, StructField, StringType, IntegerType, 
+        ArrayType, MapType
+    )
+    from spark_manager import get_or_create_spark_session
+    SPARK_AVAILABLE = True
+except ImportError:
+    pass  # PySpark not installed - use pure Python fallback
 
 logger = logging.getLogger(__name__)
 
@@ -347,19 +353,25 @@ class RAGDataPrep:
         
         return documents
     
-    def prepare_documents(self, documents: List[Dict[str, Any]]) -> DataFrame:
+    def prepare_documents(self, documents: List[Dict[str, Any]]) -> Any:
         """
-        Prepare documents for Vector DB using Spark.
+        Prepare documents for Vector DB.
+        Uses Spark if available, otherwise falls back to pure Python.
         
         Args:
             documents: List of document records
             
         Returns:
-            DataFrame with chunked and cleaned documents
+            DataFrame (Spark) or List[Dict] (Python fallback) with chunked documents
         """
         if not documents:
             return None
         
+        # Use pure Python if Spark is not available
+        if not SPARK_AVAILABLE:
+            return self._prepare_documents_python(documents)
+        
+        # Spark path
         spark = get_or_create_spark_session()
         
         # Create DataFrame
@@ -416,6 +428,42 @@ class RAGDataPrep:
         
         return result_df
     
+    def _prepare_documents_python(self, documents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Pure Python fallback for document preparation.
+        Used when Spark is not available (e.g., HuggingFace Spaces).
+        """
+        all_chunks = []
+        
+        for doc in documents:
+            # Combine title and body
+            full_text = f"{doc.get('title', '')} {doc.get('body', '')}".strip()
+            
+            # Clean text
+            cleaned_text = self._clean_text(full_text)
+            
+            # Chunk text
+            chunks = self._chunk_text(cleaned_text)
+            total_chunks = len(chunks)
+            
+            for chunk in chunks:
+                all_chunks.append({
+                    "chunk_id": f"{doc.get('document_id', '')}_chunk_{chunk['chunk_index']}",
+                    "document_id": doc.get("document_id", ""),
+                    "document_type": doc.get("document_type", ""),
+                    "source_repo": doc.get("source_repo", ""),
+                    "chunk_index": chunk["chunk_index"],
+                    "total_chunks": total_chunks,
+                    "chunk_content": chunk["content"],
+                    "token_count": chunk["token_count"],
+                    "author": doc.get("author", ""),
+                    "number": doc.get("number", 0),
+                    "state": doc.get("state", ""),
+                    "created_at": doc.get("created_at", "")
+                })
+        
+        return all_chunks
+    
     async def prepare_and_store(
         self,
         doc_types: List[str] = None,
@@ -450,22 +498,69 @@ class RAGDataPrep:
         
         logger.info(f"Preparing {len(documents)} documents for RAG")
         
-        # Prepare with Spark
-        df = self.prepare_documents(documents)
+        # Prepare documents (returns DataFrame if Spark, List if Python fallback)
+        result = self.prepare_documents(documents)
         
-        if df is None:
+        if result is None:
             return {
                 "status": "preparation_failed",
                 "documents_processed": len(documents),
                 "chunks_created": 0
             }
         
-        # Cache for counting
-        df.cache()
-        chunk_count = df.count()
-        
-        # Convert to list and store
-        chunks = df.collect()
+        # Handle both Spark DataFrame and Python list
+        if SPARK_AVAILABLE and hasattr(result, 'cache'):
+            # Spark path
+            result.cache()
+            chunk_count = result.count()
+            chunks = result.collect()
+            
+            # Store chunks (Spark Row objects)
+            chunk_docs = []
+            for row in chunks:
+                chunk_docs.append({
+                    "chunkId": row.chunk_id,
+                    "documentId": row.document_id,
+                    "documentType": row.document_type,
+                    "sourceRepo": row.source_repo,
+                    "chunkIndex": row.chunk_index,
+                    "totalChunks": row.total_chunks,
+                    "content": row.chunk_content,
+                    "tokenCount": row.token_count,
+                    "metadata": {
+                        "author": row.author,
+                        "number": row.number,
+                        "state": row.state,
+                        "createdAt": row.created_at
+                    },
+                    "preparedAt": datetime.now(timezone.utc).isoformat()
+                })
+            
+            result.unpersist()
+        else:
+            # Python fallback path
+            chunk_count = len(result)
+            
+            # Store chunks (Python dicts)
+            chunk_docs = []
+            for chunk in result:
+                chunk_docs.append({
+                    "chunkId": chunk["chunk_id"],
+                    "documentId": chunk["document_id"],
+                    "documentType": chunk["document_type"],
+                    "sourceRepo": chunk["source_repo"],
+                    "chunkIndex": chunk["chunk_index"],
+                    "totalChunks": chunk["total_chunks"],
+                    "content": chunk["chunk_content"],
+                    "tokenCount": chunk["token_count"],
+                    "metadata": {
+                        "author": chunk["author"],
+                        "number": chunk["number"],
+                        "state": chunk["state"],
+                        "createdAt": chunk["created_at"]
+                    },
+                    "preparedAt": datetime.now(timezone.utc).isoformat()
+                })
         
         # Clear existing chunks for these repos
         if repo_names:
@@ -474,32 +569,8 @@ class RAGDataPrep:
             # Fallback if no repo names provided (shouldn't happen in single-repo index)
             await db[collection_name].delete_many({})
         
-        # Store chunks
-        chunk_docs = []
-        for row in chunks:
-            chunk_docs.append({
-                "chunkId": row.chunk_id,
-                "documentId": row.document_id,
-                "documentType": row.document_type,
-                "sourceRepo": row.source_repo,
-                "chunkIndex": row.chunk_index,
-                "totalChunks": row.total_chunks,
-                "content": row.chunk_content,
-                "tokenCount": row.token_count,
-                "metadata": {
-                    "author": row.author,
-                    "number": row.number,
-                    "state": row.state,
-                    "createdAt": row.created_at
-                },
-                "preparedAt": datetime.now(timezone.utc).isoformat()
-            })
-        
         if chunk_docs:
             await db[collection_name].insert_many(chunk_docs)
-        
-        # Cleanup
-        df.unpersist()
         
         end_time = datetime.now(timezone.utc)
         duration = (end_time - start_time).total_seconds()

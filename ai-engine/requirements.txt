@@ -27,7 +27,8 @@ pymongo>=4.10.0
 pandas>=2.2.0
 numpy>=1.26.0
 
-# Spark (optional - may not be used in HF deployment)
+# Spark - DISABLED for HuggingFace Spaces (memory constraints)
+# Uncomment for local development with Spark:
 # pyspark>=3.5.0
 # py4j>=0.10.9
 
@@ -45,4 +46,3 @@ PyJWT>=2.8.0
 
 # Turso (libsql) Database
 libsql-experimental>=0.0.55
-pyspark
