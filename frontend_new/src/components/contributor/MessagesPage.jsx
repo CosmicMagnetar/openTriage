@@ -27,9 +27,14 @@ const MessagesPage = () => {
         }
     }, [selectedChat]);
 
+    // Scroll to bottom when messages change or chat finishes loading
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        // Small delay to ensure DOM is fully rendered
+        const timeoutId = setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+        return () => clearTimeout(timeoutId);
+    }, [messages, chatLoading]);
 
     const loadConversations = async () => {
         try {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Users, MessageSquare, Check, X, UserMinus, Send, Loader2, Sparkles, Bell } from 'lucide-react';
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
@@ -16,6 +16,7 @@ const MentorDashboardPanel = () => {
     const [chatLoading, setChatLoading] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
+    const messagesEndRef = useRef(null);
 
     useEffect(() => {
         loadData();
@@ -26,6 +27,14 @@ const MentorDashboardPanel = () => {
             loadChatHistory(selectedChat.user_id);
         }
     }, [selectedChat]);
+
+    // Scroll to bottom when messages change or chat finishes loading
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+        return () => clearTimeout(timeoutId);
+    }, [chatMessages, chatLoading]);
 
     const loadData = async () => {
         try {
@@ -336,6 +345,7 @@ const MentorDashboardPanel = () => {
                                         <p>No messages yet. Start the conversation!</p>
                                     </div>
                                 )}
+                                <div ref={messagesEndRef} />
                             </div>
 
                             {/* Input */}
