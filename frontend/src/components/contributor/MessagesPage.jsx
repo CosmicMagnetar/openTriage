@@ -12,6 +12,7 @@ const MessagesPage = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
+    const [chatLoading, setChatLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const messagesEndRef = useRef(null);
@@ -34,7 +35,17 @@ const MessagesPage = () => {
         try {
             setLoading(true);
             const data = await messagingApi.getConversations();
-            setConversations(data.conversations || []);
+            // Sort conversations by last message timestamp (most recent first)
+            const sortedConversations = (data.conversations || []).sort((a, b) => {
+                const aTime = a.last_message_timestamp || '';
+                const bTime = b.last_message_timestamp || '';
+                return bTime.localeCompare(aTime);
+            });
+            setConversations(sortedConversations);
+            // Auto-select the most recent conversation if none selected
+            if (!selectedChat && sortedConversations.length > 0) {
+                setSelectedChat(sortedConversations[0]);
+            }
         } catch (error) {
             console.error('Failed to load conversations:', error);
         } finally {
@@ -44,6 +55,9 @@ const MessagesPage = () => {
 
     const loadChatHistory = async (userId) => {
         try {
+            // Clear existing messages and show loading state immediately
+            setMessages([]);
+            setChatLoading(true);
             const history = await messagingApi.getHistory(userId);
             setMessages(history || []);
             await messagingApi.markRead(userId);
@@ -53,6 +67,8 @@ const MessagesPage = () => {
             );
         } catch (error) {
             console.error('Failed to load chat history:', error);
+        } finally {
+            setChatLoading(false);
         }
     };
 
@@ -60,14 +76,22 @@ const MessagesPage = () => {
         e.preventDefault();
         if (!newMessage.trim() || !selectedChat || sending) return;
 
+        const messageContent = newMessage.trim();
+        setNewMessage(''); // Clear input immediately for better UX
+
         try {
             setSending(true);
-            const sent = await messagingApi.sendMessage(selectedChat.user_id, newMessage);
-            setMessages(prev => [...prev, sent]);
-            setNewMessage('');
+            const sent = await messagingApi.sendMessage(selectedChat.user_id, messageContent);
+            // Ensure sender_id is correctly set using current user's ID
+            const messageWithCorrectSender = {
+                ...sent,
+                sender_id: user?.id, // Always use current user's ID for sent messages
+            };
+            setMessages(prev => [...prev, messageWithCorrectSender]);
         } catch (error) {
             console.error('Failed to send message:', error);
             toast.error('Failed to send message');
+            setNewMessage(messageContent); // Restore message on error
         } finally {
             setSending(false);
         }
@@ -167,7 +191,11 @@ const MessagesPage = () => {
 
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {messages.length > 0 ? (
+                            {chatLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="w-6 h-6 animate-spin text-[hsl(142,70%,55%)]" />
+                                </div>
+                            ) : messages.length > 0 ? (
                                 messages.map(msg => {
                                     const isMe = msg.sender_id === user?.id || msg.sender_id === user?.username;
                                     return (
