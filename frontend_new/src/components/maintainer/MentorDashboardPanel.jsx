@@ -13,6 +13,7 @@ const MentorDashboardPanel = () => {
     const [loading, setLoading] = useState(true);
     const [selectedChat, setSelectedChat] = useState(null);
     const [chatMessages, setChatMessages] = useState([]);
+    const [chatLoading, setChatLoading] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
 
@@ -46,12 +47,17 @@ const MentorDashboardPanel = () => {
 
     const loadChatHistory = async (userId) => {
         try {
+            // Clear existing messages and show loading state immediately
+            setChatMessages([]);
+            setChatLoading(true);
             const history = await messagingApi.getHistory(userId);
             setChatMessages(history || []);
             // Mark as read
             await messagingApi.markRead(userId);
         } catch (error) {
             console.error('Failed to load chat history:', error);
+        } finally {
+            setChatLoading(false);
         }
     };
 
@@ -299,7 +305,11 @@ const MentorDashboardPanel = () => {
 
                             {/* Messages */}
                             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                                {chatMessages.length > 0 ? (
+                                {chatLoading ? (
+                                    <div className="flex justify-center py-8">
+                                        <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                                    </div>
+                                ) : chatMessages.length > 0 ? (
                                     chatMessages.map(msg => {
                                         const isMe = msg.sender_id === user?.id || msg.sender_id === user?.username;
                                         return (

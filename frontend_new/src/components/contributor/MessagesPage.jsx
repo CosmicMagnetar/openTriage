@@ -12,6 +12,7 @@ const MessagesPage = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
+    const [chatLoading, setChatLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const messagesEndRef = useRef(null);
@@ -44,6 +45,9 @@ const MessagesPage = () => {
 
     const loadChatHistory = async (userId) => {
         try {
+            // Clear existing messages and show loading state immediately
+            setMessages([]);
+            setChatLoading(true);
             const history = await messagingApi.getHistory(userId);
             setMessages(history || []);
             await messagingApi.markRead(userId);
@@ -53,6 +57,8 @@ const MessagesPage = () => {
             );
         } catch (error) {
             console.error('Failed to load chat history:', error);
+        } finally {
+            setChatLoading(false);
         }
     };
 
@@ -167,7 +173,11 @@ const MessagesPage = () => {
 
                         {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {messages.length > 0 ? (
+                            {chatLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="w-6 h-6 animate-spin text-[hsl(142,70%,55%)]" />
+                                </div>
+                            ) : messages.length > 0 ? (
                                 messages.map(msg => {
                                     const isMe = msg.sender_id === user?.id || msg.sender_id === user?.username;
                                     return (
