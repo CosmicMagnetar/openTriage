@@ -641,11 +641,12 @@ class RAGDataPrep:
         
         return result.modified_count > 0
     
-    def get_stats(self, df: DataFrame) -> Dict[str, Any]:
+    def get_stats(self, df: Any) -> Dict[str, Any]:
         """
         Get statistics about prepared chunks.
+        Only works when SPARK_AVAILABLE is True.
         """
-        if df is None:
+        if df is None or not SPARK_AVAILABLE:
             return {}
         
         return {
