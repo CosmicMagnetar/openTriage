@@ -35,7 +35,17 @@ const MessagesPage = () => {
         try {
             setLoading(true);
             const data = await messagingApi.getConversations();
-            setConversations(data.conversations || []);
+            // Sort conversations by last message timestamp (most recent first)
+            const sortedConversations = (data.conversations || []).sort((a, b) => {
+                const aTime = a.last_message_timestamp || '';
+                const bTime = b.last_message_timestamp || '';
+                return bTime.localeCompare(aTime);
+            });
+            setConversations(sortedConversations);
+            // Auto-select the most recent conversation if none selected
+            if (!selectedChat && sortedConversations.length > 0) {
+                setSelectedChat(sortedConversations[0]);
+            }
         } catch (error) {
             console.error('Failed to load conversations:', error);
         } finally {
@@ -66,14 +76,23 @@ const MessagesPage = () => {
         e.preventDefault();
         if (!newMessage.trim() || !selectedChat || sending) return;
 
+        const messageContent = newMessage.trim();
+        setNewMessage(''); // Clear input immediately for better UX
+
         try {
             setSending(true);
-            const sent = await messagingApi.sendMessage(selectedChat.user_id, newMessage);
-            setMessages(prev => [...prev, sent]);
-            setNewMessage('');
+            const sent = await messagingApi.sendMessage(selectedChat.user_id, messageContent);
+            // Ensure sender_id is correctly set using current user's ID
+            // This handles any potential format mismatch from backend
+            const messageWithCorrectSender = {
+                ...sent,
+                sender_id: user?.id, // Always use current user's ID for sent messages
+            };
+            setMessages(prev => [...prev, messageWithCorrectSender]);
         } catch (error) {
             console.error('Failed to send message:', error);
             toast.error('Failed to send message');
+            setNewMessage(messageContent); // Restore message on error
         } finally {
             setSending(false);
         }

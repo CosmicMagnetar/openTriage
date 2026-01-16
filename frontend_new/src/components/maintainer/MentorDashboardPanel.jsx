@@ -99,14 +99,22 @@ const MentorDashboardPanel = () => {
         e.preventDefault();
         if (!newMessage.trim() || !selectedChat || sending) return;
 
+        const messageContent = newMessage.trim();
+        setNewMessage(''); // Clear input immediately for better UX
+
         try {
             setSending(true);
-            const sent = await messagingApi.sendMessage(selectedChat.user_id, newMessage);
-            setChatMessages(prev => [...prev, sent]);
-            setNewMessage('');
+            const sent = await messagingApi.sendMessage(selectedChat.user_id, messageContent);
+            // Ensure sender_id is correctly set using current user's ID
+            const messageWithCorrectSender = {
+                ...sent,
+                sender_id: user?.id, // Always use current user's ID for sent messages
+            };
+            setChatMessages(prev => [...prev, messageWithCorrectSender]);
         } catch (error) {
             console.error('Failed to send message:', error);
             toast.error('Failed to send message');
+            setNewMessage(messageContent); // Restore message on error
         } finally {
             setSending(false);
         }
