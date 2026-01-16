@@ -61,7 +61,15 @@ export async function getChatHistory(currentUserId: string, otherUserId: string,
         .orderBy(asc(messages.timestamp))
         .limit(limit);
 
-    return history;
+    // Transform to snake_case for frontend compatibility
+    return history.map(msg => ({
+        id: msg.id,
+        sender_id: msg.senderId,
+        receiver_id: msg.receiverId,
+        content: msg.content,
+        read: msg.read,
+        timestamp: msg.timestamp,
+    }));
 }
 
 export async function pollNewMessages(currentUserId: string, otherUserId: string, lastMessageId?: string) {

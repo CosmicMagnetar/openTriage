@@ -29,3 +29,9 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# SQLite temp databases
+*.db
+*.db-info
+*.db-shm
+*.db-wal
