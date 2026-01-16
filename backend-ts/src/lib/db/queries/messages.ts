@@ -30,7 +30,15 @@ export async function sendMessage(data: {
         timestamp: now,
     });
 
-    return { id, ...data, read: false, timestamp: now };
+    // Return snake_case for frontend compatibility (matches getChatHistory format)
+    return {
+        id,
+        sender_id: data.senderId,
+        receiver_id: data.receiverId,
+        content: data.content,
+        read: false,
+        timestamp: now,
+    };
 }
 
 export async function markMessagesAsRead(currentUserId: string, otherUserId: string) {
