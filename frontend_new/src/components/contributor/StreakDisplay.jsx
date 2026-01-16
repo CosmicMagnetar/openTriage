@@ -65,19 +65,36 @@ const StreakDisplay = () => {
         return '';
     };
 
-    const getContributionColor = (count) => {
-        if (count === 0) return 'bg-[hsl(220,13%,12%)]';
-        if (count === 1) return 'bg-[hsl(142,70%,20%)]';
-        if (count === 2) return 'bg-[hsl(142,70%,35%)]';
-        if (count === 3) return 'bg-[hsl(142,70%,45%)]';
-        return 'bg-[hsl(142,70%,55%)]';
+    const getContributionColor = (count, level) => {
+        // Use GitHub's exact dark mode colors
+        // level: 0=none, 1=first_quartile, 2=second_quartile, 3=third_quartile, 4=fourth_quartile
+        if (level !== undefined) {
+            switch (level) {
+                case 0: return 'bg-[#161b22]'; // GitHub dark: no contributions
+                case 1: return 'bg-[#0e4429]'; // GitHub dark: low
+                case 2: return 'bg-[#006d32]'; // GitHub dark: medium-low
+                case 3: return 'bg-[#26a641]'; // GitHub dark: medium-high
+                case 4: return 'bg-[#39d353]'; // GitHub dark: high
+                default: return 'bg-[#161b22]';
+            }
+        }
+        // Fallback based on count
+        if (count === 0) return 'bg-[#161b22]';
+        if (count <= 2) return 'bg-[#0e4429]';
+        if (count <= 4) return 'bg-[#006d32]';
+        if (count <= 6) return 'bg-[#26a641]';
+        return 'bg-[#39d353]';
     };
 
     // Generate last 52 weeks of calendar data
     const generateCalendarGrid = () => {
         const weeks = [];
         const today = new Date();
-        const calendarMap = new Map(calendar.map(d => [d.date, d.contributions]));
+        // Map includes both contributions count and level if available
+        const calendarMap = new Map(calendar.map(d => [d.date, {
+            contributions: d.contributions,
+            level: d.level
+        }]));
 
         // Start from 52 weeks ago, Sunday
         const startDate = new Date(today);
@@ -89,10 +106,15 @@ const StreakDisplay = () => {
                 const date = new Date(startDate);
                 date.setDate(date.getDate() + week * 7 + day);
                 const dateStr = date.toISOString().split('T')[0];
-                const contributions = calendarMap.get(dateStr) || 0;
+                const dayData = calendarMap.get(dateStr) || { contributions: 0, level: 0 };
 
                 if (date <= today) {
-                    days.push({ date: dateStr, contributions, display: date });
+                    days.push({
+                        date: dateStr,
+                        contributions: dayData.contributions,
+                        level: dayData.level,
+                        display: date
+                    });
                 } else {
                     days.push(null);
                 }
@@ -184,7 +206,7 @@ const StreakDisplay = () => {
                                 {week.map((day, dayIdx) => (
                                     <div
                                         key={dayIdx}
-                                        className={`w-2.5 h-2.5 rounded-sm ${day ? getContributionColor(day.contributions) : 'bg-transparent'
+                                        className={`w-2.5 h-2.5 rounded-sm ${day ? getContributionColor(day.contributions, day.level) : 'bg-transparent'
                                             }`}
                                         title={day ? `${day.date}: ${day.contributions} contributions` : ''}
                                     />
@@ -194,15 +216,15 @@ const StreakDisplay = () => {
                     </div>
                 </div>
 
-                {/* Legend */}
+                {/* Legend - GitHub's exact dark mode colors */}
                 <div className="flex items-center justify-end gap-2 mt-2">
                     <span className="text-xs text-[hsl(210,11%,40%)]">Less</span>
                     <div className="flex gap-[2px]">
-                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(220,13%,12%)]" />
-                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(142,70%,20%)]" />
-                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(142,70%,35%)]" />
-                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(142,70%,45%)]" />
-                        <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(142,70%,55%)]" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[#161b22]" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[#0e4429]" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[#006d32]" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[#26a641]" />
+                        <div className="w-2.5 h-2.5 rounded-sm bg-[#39d353]" />
                     </div>
                     <span className="text-xs text-[hsl(210,11%,40%)]">More</span>
                 </div>
