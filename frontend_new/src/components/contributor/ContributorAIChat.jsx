@@ -109,10 +109,14 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
     }
   }, []);
 
-  // Use channel with error boundary
+  // Use channel with error boundary and rewind for history
+  // Rewind fetches the last 50 messages when subscribing
   let channel = null;
   try {
-    const channelResult = useChannel(channelName, handleChannelMessage);
+    const channelResult = useChannel(
+      { channelName, options: { params: { rewind: '50' } } },
+      handleChannelMessage
+    );
     channel = channelResult?.channel;
   } catch (err) {
     // Ably not configured - fall back to direct API mode

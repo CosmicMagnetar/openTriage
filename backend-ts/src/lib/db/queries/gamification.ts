@@ -5,6 +5,7 @@
 import { db } from "@/db";
 import { trophies, users, issues } from "@/db/schema";
 import { eq, desc, and, count, not, sql } from "drizzle-orm";
+import { streakCache, calendarCache } from "@/lib/cache";
 
 // =============================================================================
 // Badges / Trophies
@@ -25,8 +26,20 @@ export async function getUserBadges(username: string) {
 // =============================================================================
 
 export async function getUserStreak(username: string) {
+    const cacheKey = `streak:${username}`;
+
+    // Check cache first
+    const cached = streakCache.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
     const user = await db.select().from(users).where(eq(users.username, username)).limit(1);
-    if (!user[0]) return { current_streak: 0, longest_streak: 0, is_active: false, total_contribution_days: 0 };
+    if (!user[0]) {
+        const emptyResult = { current_streak: 0, longest_streak: 0, is_active: false, total_contribution_days: 0 };
+        streakCache.set(cacheKey, emptyResult);
+        return emptyResult;
+    }
 
     // Get all activity dates (from issues created by this user)
     const activity = await db.select({
@@ -37,7 +50,9 @@ export async function getUserStreak(username: string) {
         .orderBy(desc(issues.createdAt));
 
     if (activity.length === 0) {
-        return { current_streak: 0, longest_streak: 0, is_active: false, total_contribution_days: 0 };
+        const emptyResult = { current_streak: 0, longest_streak: 0, is_active: false, total_contribution_days: 0 };
+        streakCache.set(cacheKey, emptyResult);
+        return emptyResult;
     }
 
     // Get unique dates (YYYY-MM-DD format)
@@ -48,7 +63,9 @@ export async function getUserStreak(username: string) {
     )].sort().reverse(); // Most recent first
 
     if (activityDates.length === 0) {
-        return { current_streak: 0, longest_streak: 0, is_active: false, total_contribution_days: 0 };
+        const emptyResult = { current_streak: 0, longest_streak: 0, is_active: false, total_contribution_days: 0 };
+        streakCache.set(cacheKey, emptyResult);
+        return emptyResult;
     }
 
     const today = new Date().toISOString().substring(0, 10);
@@ -67,12 +84,14 @@ export async function getUserStreak(username: string) {
         currentStreak = 1;
     } else {
         // Streak is broken
-        return {
+        const brokenResult = {
             current_streak: 0,
             longest_streak: calculateLongestStreak(activityDates),
             is_active: false,
             total_contribution_days: activityDates.length
         };
+        streakCache.set(cacheKey, brokenResult);
+        return brokenResult;
     }
 
     // Count consecutive days
@@ -90,12 +109,16 @@ export async function getUserStreak(username: string) {
 
     const longestStreak = calculateLongestStreak(activityDates);
 
-    return {
+    const result = {
         current_streak: currentStreak,
         longest_streak: Math.max(currentStreak, longestStreak),
         is_active: isActive,
         total_contribution_days: activityDates.length
     };
+
+    // Cache the result
+    streakCache.set(cacheKey, result);
+    return result;
 }
 
 // Helper function to calculate longest streak

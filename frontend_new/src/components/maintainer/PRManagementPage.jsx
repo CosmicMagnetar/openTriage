@@ -10,6 +10,7 @@ import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 import Logo from '../Logo';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
+const ITEMS_PER_PAGE = 15; // Pagination limit
 
 const PRManagementPage = () => {
     const [repositories, setRepositories] = useState([]);
@@ -32,6 +33,9 @@ const PRManagementPage = () => {
     const [commentText, setCommentText] = useState('');
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [commentType, setCommentType] = useState('review');
+
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         loadData();
@@ -67,72 +71,15 @@ const PRManagementPage = () => {
         setLoadingPRs(true);
 
         try {
-            const [owner, repoName] = repo.name.split('/');
-
-            // First try to get PRs from our database
+            // Fetch PRs from database only - fast!
+            // GitHub sync happens in background, not on every page load
             const issuesRes = await axios.get(`${API}/maintainer/issues`);
-            // API returns { items: [...], total, pages, ... } or legacy array
             const issuesData = issuesRes.data.items || issuesRes.data || [];
             const repoPRs = issuesData.filter(
                 item => item.isPR && item.repoName === repo.name
             );
 
-            // Always fetch from GitHub to get ALL open PRs for this repo
-            try {
-                const ghPRsRes = await axios.get(`${API}/maintainer/github/prs?owner=${owner}&repo=${repoName}`);
-                const githubPRs = (ghPRsRes.data || []).map(pr => ({
-                    id: `gh-${pr.number}`,
-                    number: pr.number,
-                    title: pr.title,
-                    body: pr.body,
-                    authorName: pr.user?.login || 'unknown',
-                    htmlUrl: pr.html_url,
-                    createdAt: pr.created_at,
-                    state: pr.state,
-                    isPR: true,
-                    repoName: repo.name,
-                    owner,
-                    repo: repoName
-                }));
-
-                // Merge DB PRs with GitHub PRs (avoid duplicates by number)
-                const dbPRNumbers = new Set(repoPRs.map(p => p.number));
-                const mergedPRs = [
-                    ...repoPRs,
-                    ...githubPRs.filter(pr => !dbPRNumbers.has(pr.number))
-                ];
-                setPullRequests(mergedPRs);
-
-                // Save new PRs to database for persistence
-                const newPRs = githubPRs.filter(pr => !dbPRNumbers.has(pr.number));
-                if (newPRs.length > 0) {
-                    try {
-                        await axios.post(`${API}/issues/save`, {
-                            issues: newPRs.map(pr => ({
-                                githubIssueId: pr.number,
-                                number: pr.number,
-                                title: pr.title,
-                                body: pr.body,
-                                authorName: pr.authorName,
-                                repoId: repo.id,
-                                repoName: repo.name,
-                                owner: owner,
-                                repo: repoName,
-                                htmlUrl: pr.htmlUrl,
-                                state: pr.state || 'open',
-                                isPR: true,
-                            }))
-                        });
-                        console.log(`Saved ${newPRs.length} PRs to database`);
-                    } catch (saveErr) {
-                        console.log('Could not save PRs to database:', saveErr);
-                    }
-                }
-            } catch (ghError) {
-                console.log('Could not fetch from GitHub directly:', ghError);
-                // Fall back to just DB PRs
-                setPullRequests(repoPRs);
-            }
+            setPullRequests(repoPRs);
         } catch (error) {
             console.error('Error fetching PRs:', error);
             setPullRequests([]);
@@ -342,27 +289,54 @@ const PRManagementPage = () => {
                                 </p>
                             </div>
                         ) : (
-                            <div className="space-y-1.5">
-                                {pullRequests.map(pr => (
-                                    <button
-                                        key={pr.id}
-                                        onClick={() => handleSelectPR(pr)}
-                                        className={`w-full text-left p-3 rounded-lg transition-colors ${selectedPR?.id === pr.id
-                                            ? 'bg-[hsl(142,70%,45%,0.12)] border border-[hsl(142,70%,45%,0.25)]'
-                                            : 'hover:bg-[hsl(220,13%,10%)] border border-transparent'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className={`text-xs font-mono font-medium ${selectedPR?.id === pr.id ? 'text-[hsl(142,70%,55%)]' : 'text-[hsl(210,11%,55%)]'
-                                                }`}>
-                                                #{pr.number}
-                                            </span>
-                                            <span className="text-[10px] text-[hsl(210,11%,40%)]">by {pr.authorName}</span>
-                                        </div>
-                                        <p className="text-sm text-[hsl(210,11%,70%)] line-clamp-2">{pr.title}</p>
-                                    </button>
-                                ))}
-                            </div>
+                            <>
+                                <div className="space-y-1.5">
+                                    {pullRequests
+                                        .slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+                                        .map(pr => (
+                                            <button
+                                                key={pr.id}
+                                                onClick={() => handleSelectPR(pr)}
+                                                className={`w-full text-left p-3 rounded-lg transition-colors ${selectedPR?.id === pr.id
+                                                    ? 'bg-[hsl(142,70%,45%,0.12)] border border-[hsl(142,70%,45%,0.25)]'
+                                                    : 'hover:bg-[hsl(220,13%,10%)] border border-transparent'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`text-xs font-mono font-medium ${selectedPR?.id === pr.id ? 'text-[hsl(142,70%,55%)]' : 'text-[hsl(210,11%,55%)]'
+                                                        }`}>
+                                                        #{pr.number}
+                                                    </span>
+                                                    <span className="text-[10px] text-[hsl(210,11%,40%)]">by {pr.authorName}</span>
+                                                </div>
+                                                <p className="text-sm text-[hsl(210,11%,70%)] line-clamp-2">{pr.title}</p>
+                                            </button>
+                                        ))}
+                                </div>
+
+                                {/* Pagination Controls */}
+                                {pullRequests.length > ITEMS_PER_PAGE && (
+                                    <div className="flex items-center justify-between px-2 py-3 border-t border-[hsl(220,13%,12%)] mt-3">
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                            className="text-xs text-[hsl(210,11%,60%)] hover:text-[hsl(210,11%,80%)] disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                            ← Prev
+                                        </button>
+                                        <span className="text-xs text-[hsl(210,11%,50%)]">
+                                            {currentPage}/{Math.ceil(pullRequests.length / ITEMS_PER_PAGE)}
+                                        </span>
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.min(Math.ceil(pullRequests.length / ITEMS_PER_PAGE), p + 1))}
+                                            disabled={currentPage >= Math.ceil(pullRequests.length / ITEMS_PER_PAGE)}
+                                            className="text-xs text-[hsl(210,11%,60%)] hover:text-[hsl(210,11%,80%)] disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                            Next →
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

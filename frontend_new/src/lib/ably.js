@@ -56,10 +56,18 @@ export function getEventsChannel() {
 }
 
 /**
- * Get the Global Chat channel
+ * Get the Global Chat channel with optional rewind
+ * @param {number} rewindCount - Number of messages to rewind (default: 50)
  */
-export function getGlobalChatChannel() {
-    return getAblyClient().channels.get(ABLY_CHANNELS.GLOBAL_CHAT);
+export function getGlobalChatChannel(rewindCount = 50) {
+    const client = getAblyClient();
+    // Get channel with rewind params to fetch history on attach
+    // This eliminates the need for a separate history API call
+    return client.channels.get(ABLY_CHANNELS.GLOBAL_CHAT, {
+        params: { 
+            rewind: String(rewindCount)  // Fetch last N messages on subscribe
+        }
+    });
 }
 
 /**
