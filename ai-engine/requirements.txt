@@ -44,5 +44,6 @@ asyncio-throttle>=1.0.2
 # JWT Authentication
 PyJWT>=2.8.0
 
-# Turso (libsql) Database
+# Turso (libsql) Database - try both package names
 libsql-experimental>=0.0.55
+libsql_client

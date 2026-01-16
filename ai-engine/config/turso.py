@@ -9,10 +9,18 @@ import os
 import logging
 from typing import List, Dict, Any, Optional
 
+# Try multiple libsql package names (different versions use different names)
+libsql = None
+LIBSQL_AVAILABLE = False
 try:
     import libsql_experimental as libsql
+    LIBSQL_AVAILABLE = True
 except ImportError:
-    libsql = None
+    try:
+        import libsql_client as libsql
+        LIBSQL_AVAILABLE = True
+    except ImportError:
+        pass  # Neither package available
 
 logger = logging.getLogger(__name__)
 
