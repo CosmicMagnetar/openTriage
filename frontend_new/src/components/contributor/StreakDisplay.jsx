@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Flame, Calendar, TrendingUp, Zap, Trophy } from 'lucide-react';
+import { Flame, Calendar, TrendingUp, Zap, Trophy, ChevronDown } from 'lucide-react';
 import { gamificationApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 
@@ -18,20 +18,28 @@ const MOCK_CALENDAR = {
     }))
 };
 
+// Generate years for selector (from 2020 to current year)
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: currentYear - 2019 }, (_, i) => currentYear - i);
+
 const StreakDisplay = () => {
     const { user } = useAuthStore();
     const [streak, setStreak] = useState(null);
     const [calendar, setCalendar] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [totalContributions, setTotalContributions] = useState(0);
+    const [showYearDropdown, setShowYearDropdown] = useState(false);
 
     useEffect(() => {
         loadData();
-    }, [user]);
+    }, [user, selectedYear]);
 
     const loadData = async () => {
         if (!user) {
             setStreak(MOCK_STREAK);
             setCalendar(MOCK_CALENDAR.calendar);
+            setTotalContributions(MOCK_CALENDAR.calendar.reduce((sum, d) => sum + d.contributions, 0));
             setLoading(false);
             return;
         }
@@ -43,11 +51,22 @@ const StreakDisplay = () => {
                 gamificationApi.getUserCalendar(user.username, 365)
             ]);
             setStreak(streakData);
-            setCalendar(calendarData.calendar || []);
+
+            // Filter calendar data for selected year
+            const yearData = (calendarData.calendar || []).filter(d =>
+                d.date && d.date.startsWith(String(selectedYear))
+            );
+            setCalendar(yearData);
+
+            // Calculate total contributions for the year
+            const total = calendarData.totalContributions ||
+                yearData.reduce((sum, d) => sum + (d.contributions || 0), 0);
+            setTotalContributions(total);
         } catch (error) {
             console.error('Failed to load streak data:', error);
             setStreak(MOCK_STREAK);
             setCalendar(MOCK_CALENDAR.calendar);
+            setTotalContributions(0);
         } finally {
             setLoading(false);
         }
@@ -194,9 +213,48 @@ const StreakDisplay = () => {
 
             {/* Contribution Calendar */}
             <div className="mt-4 pt-4 border-t border-[hsl(220,13%,15%)]">
-                <div className="flex items-center gap-2 mb-3">
-                    <Calendar className="w-4 h-4 text-[hsl(210,11%,50%)]" />
-                    <span className="text-sm text-[hsl(210,11%,50%)]">Contribution Activity</span>
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-[hsl(210,11%,90%)] font-medium">
+                            {totalContributions} contributions in {selectedYear}
+                        </span>
+                    </div>
+
+                    {/* Year Selector - GitHub style */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowYearDropdown(!showYearDropdown)}
+                            className="flex items-center gap-1 px-3 py-1 text-sm text-[hsl(210,11%,70%)] 
+                                bg-[hsl(220,13%,12%)] border border-[hsl(220,13%,20%)] rounded-md
+                                hover:bg-[hsl(220,13%,15%)] hover:border-[hsl(220,13%,25%)] transition-colors"
+                        >
+                            {selectedYear}
+                            <ChevronDown className="w-4 h-4" />
+                        </button>
+
+                        {showYearDropdown && (
+                            <div className="absolute right-0 top-full mt-1 z-20 
+                                bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,20%)] rounded-md shadow-lg
+                                py-1 min-w-[100px]">
+                                {YEARS.map(year => (
+                                    <button
+                                        key={year}
+                                        onClick={() => {
+                                            setSelectedYear(year);
+                                            setShowYearDropdown(false);
+                                        }}
+                                        className={`block w-full text-left px-3 py-1.5 text-sm transition-colors
+                                            ${year === selectedYear
+                                                ? 'bg-[hsl(215,80%,50%)] text-white'
+                                                : 'text-[hsl(210,11%,70%)] hover:bg-[hsl(220,13%,15%)]'
+                                            }`}
+                                    >
+                                        {year}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">

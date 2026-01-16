@@ -35,13 +35,28 @@ export async function POST(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        // In a real app, we would update the 'isFeatured' flag on the trophies
-        // For now, we'll just acknowledge the request to prevent 405 error
-        // const body = await request.json();
+        const body = await request.json();
+        const badgeIds = body.badge_ids || [];
 
-        return NextResponse.json({ message: "Featured badges updated" });
+        // TODO: Store featured badges in database
+        // For now, just acknowledge the request
+        console.log(`Updated featured badges for ${username}:`, badgeIds);
+
+        return NextResponse.json({
+            message: "Featured badges updated",
+            featured: badgeIds
+        });
     } catch (error) {
         console.error("POST /api/profile/:username/featured-badges error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
+
+// PUT method - same as POST for compatibility
+export async function PUT(
+    request: NextRequest,
+    context: { params: Promise<{ username: string }> }
+) {
+    return POST(request, context);
+}
+
