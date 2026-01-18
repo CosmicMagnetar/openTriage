@@ -112,6 +112,10 @@ export async function fetchGitHubContributions(
             return null;
         }
 
+        // Log the token scopes for debugging
+        const scopesHeader = response.headers.get('x-oauth-scopes');
+        console.log(`[GitHub] Token scopes: ${scopesHeader}`);
+
         const result = await response.json();
 
         if (result.errors) {
