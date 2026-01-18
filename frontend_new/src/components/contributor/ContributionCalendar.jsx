@@ -1,26 +1,25 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import { GitCommit, GitPullRequest, MessageSquare, Bug, ChevronDown } from 'lucide-react';
 import { gamificationApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 
+// Contribution Activity Component - Shows activity breakdown like GitHub
 const ContributionCalendar = () => {
     const { user } = useAuthStore();
     const [calendarData, setCalendarData] = useState([]);
     const [totalContributions, setTotalContributions] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [hoveredDay, setHoveredDay] = useState(null);
-    const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
-    // Available years (current and 2 previous)
-    const currentYear = new Date().getFullYear();
-    const years = [currentYear, currentYear - 1, currentYear - 2];
+    const [expandedMonths, setExpandedMonths] = useState(new Set());
 
     useEffect(() => {
-        loadCalendar();
-    }, [user, selectedYear]);
+        loadData();
+    }, [user]);
 
-    const loadCalendar = async () => {
-        if (!user) return;
+    const loadData = async () => {
+        if (!user) {
+            setLoading(false);
+            return;
+        }
 
         try {
             setLoading(true);
@@ -28,112 +27,68 @@ const ContributionCalendar = () => {
             setCalendarData(data.calendar || []);
             setTotalContributions(data.totalContributions || 0);
         } catch (error) {
-            console.error('Failed to load calendar:', error);
+            console.error('Failed to load calendar data:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    // Create a map for quick lookup
-    const dataMap = useMemo(() => {
-        const map = new Map();
-        calendarData.forEach(day => {
-            map.set(day.date, day);
-        });
-        return map;
-    }, [calendarData]);
-
-    // Generate weeks for the selected year view
-    const weeks = useMemo(() => {
-        const result = [];
+    // Group contributions by month
+    const getMonthlyActivity = () => {
+        const months = {};
         const today = new Date();
-        const startDate = new Date(today);
-        startDate.setDate(startDate.getDate() - 364);
 
-        // Adjust to start on Sunday
-        const dayOfWeek = startDate.getDay();
-        startDate.setDate(startDate.getDate() - dayOfWeek);
+        calendarData.forEach(day => {
+            if (!day.date) return;
+            const date = new Date(day.date);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-        let currentWeek = [];
-        const endDate = new Date(today);
-        endDate.setDate(endDate.getDate() + (6 - today.getDay()));
-
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-            const dateStr = d.toISOString().split('T')[0];
-            const dayData = dataMap.get(dateStr);
-
-            currentWeek.push({
-                date: dateStr,
-                contributions: dayData?.contributions || dayData?.total || 0,
-                level: dayData?.level || 0,
-                isFuture: d > today
-            });
-
-            if (currentWeek.length === 7) {
-                result.push(currentWeek);
-                currentWeek = [];
+            if (!months[monthKey]) {
+                months[monthKey] = {
+                    key: monthKey,
+                    name: monthName,
+                    totalContributions: 0,
+                    activeDays: 0,
+                    commits: 0,
+                    prs: 0,
+                    issues: 0,
+                    reviews: 0
+                };
             }
-        }
 
-        if (currentWeek.length > 0) {
-            result.push(currentWeek);
-        }
-
-        return result;
-    }, [dataMap]);
-
-    // Get months for labels
-    const months = useMemo(() => {
-        const result = [];
-        let lastMonth = -1;
-
-        weeks.forEach((week, weekIndex) => {
-            const firstDay = new Date(week[0].date);
-            const month = firstDay.getMonth();
-
-            if (month !== lastMonth) {
-                result.push({
-                    name: firstDay.toLocaleString('default', { month: 'short' }),
-                    weekIndex
-                });
-                lastMonth = month;
+            const contributions = day.contributions || day.total || 0;
+            months[monthKey].totalContributions += contributions;
+            if (contributions > 0) {
+                months[monthKey].activeDays += 1;
             }
+            // Add detailed breakdown if available
+            months[monthKey].commits += day.commits || contributions; // Fallback to total if no detail
+            months[monthKey].prs += day.prs || 0;
+            months[monthKey].issues += day.issues || 0;
+            months[monthKey].reviews += day.reviews || 0;
         });
 
-        return result;
-    }, [weeks]);
-
-    // Calculate total from data
-    const calculatedTotal = useMemo(() => {
-        return calendarData.reduce((sum, d) => sum + (d.contributions || d.total || 0), 0);
-    }, [calendarData]);
-
-    const displayTotal = totalContributions || calculatedTotal;
-
-    const getLevelColor = (level, isFuture) => {
-        if (isFuture) return 'bg-[#161b22]';
-
-        switch (level) {
-            case 4: return 'bg-[#39d353]';
-            case 3: return 'bg-[#26a641]';
-            case 2: return 'bg-[#006d32]';
-            case 1: return 'bg-[#0e4429]';
-            default: return 'bg-[#161b22]';
-        }
+        // Sort by month (newest first)
+        return Object.values(months).sort((a, b) => b.key.localeCompare(a.key));
     };
 
-    const handleMouseEnter = (day, e) => {
-        const rect = e.target.getBoundingClientRect();
-        setTooltipPos({
-            x: rect.left + rect.width / 2,
-            y: rect.top - 10
+    const toggleMonth = (monthKey) => {
+        setExpandedMonths(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(monthKey)) {
+                newSet.delete(monthKey);
+            } else {
+                newSet.add(monthKey);
+            }
+            return newSet;
         });
-        setHoveredDay(day);
     };
 
     if (loading) {
         return (
-            <div className="bg-[#0d1117] rounded-lg p-4 border border-[#30363d]">
+            <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">
+                <h3 className="text-lg font-semibold text-slate-200 mb-4">Contribution Activity</h3>
                 <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#238636]"></div>
                 </div>
@@ -141,111 +96,81 @@ const ContributionCalendar = () => {
         );
     }
 
+    const monthlyActivity = getMonthlyActivity();
+
     return (
-        <div className="bg-[#0d1117] rounded-lg p-4 border border-[#30363d]">
-            {/* Header - GitHub style */}
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-normal text-[#c9d1d9]">
-                    <span className="font-semibold">{displayTotal.toLocaleString()}</span> contributions in the last year
-                </h2>
-
-                {/* Year Selector Tabs */}
-                <div className="flex gap-1">
-                    {years.map(year => (
-                        <button
-                            key={year}
-                            onClick={() => setSelectedYear(year)}
-                            className={`px-3 py-1 text-xs rounded-md transition-colors ${selectedYear === year
-                                ? 'bg-[#238636] text-white'
-                                : 'bg-[#21262d] text-[#8b949e] hover:bg-[#30363d]'
-                                }`}
-                        >
-                            {year}
-                        </button>
-                    ))}
-                </div>
+        <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-slate-200">Contribution Activity</h3>
+                <span className="text-sm text-[#238636] font-medium">
+                    {totalContributions.toLocaleString()} total contributions
+                </span>
             </div>
 
-            {/* Calendar Grid */}
-            <div className="overflow-x-auto">
-                <div className="min-w-[750px]">
-                    {/* Month labels */}
-                    <div className="flex mb-1 ml-8">
-                        {months.map((month, i) => (
-                            <div
-                                key={i}
-                                className="text-xs text-[#8b949e]"
-                                style={{ marginLeft: i === 0 ? 0 : `${(month.weekIndex - (months[i - 1]?.weekIndex || 0)) * 13 - 20}px` }}
+            {monthlyActivity.length === 0 ? (
+                <div className="text-center py-8 text-slate-400">
+                    <GitCommit className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No contribution activity yet.</p>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {monthlyActivity.slice(0, 6).map((month) => (
+                        <div key={month.key} className="border border-[hsl(220,13%,15%)] rounded-lg overflow-hidden">
+                            <button
+                                onClick={() => toggleMonth(month.key)}
+                                className="w-full flex items-center justify-between p-4 hover:bg-[hsl(220,13%,10%)] transition-colors"
                             >
-                                {month.name}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Grid */}
-                    <div className="flex">
-                        {/* Day labels */}
-                        <div className="flex flex-col gap-[3px] mr-2 text-xs text-[#8b949e]">
-                            <div className="h-[11px]"></div>
-                            <div className="h-[11px] flex items-center">Mon</div>
-                            <div className="h-[11px]"></div>
-                            <div className="h-[11px] flex items-center">Wed</div>
-                            <div className="h-[11px]"></div>
-                            <div className="h-[11px] flex items-center">Fri</div>
-                            <div className="h-[11px]"></div>
-                        </div>
-
-                        {/* Weeks */}
-                        <div className="flex gap-[3px]">
-                            {weeks.map((week, weekIndex) => (
-                                <div key={weekIndex} className="flex flex-col gap-[3px]">
-                                    {week.map((day, dayIndex) => (
-                                        <div
-                                            key={`${weekIndex}-${dayIndex}`}
-                                            className={`w-[11px] h-[11px] rounded-sm ${getLevelColor(day.level, day.isFuture)} 
-                                                cursor-pointer transition-all hover:ring-1 hover:ring-[#8b949e]`}
-                                            onMouseEnter={(e) => handleMouseEnter(day, e)}
-                                            onMouseLeave={() => setHoveredDay(null)}
-                                        />
-                                    ))}
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-[#238636]/20 flex items-center justify-center">
+                                        <GitCommit className="w-4 h-4 text-[#238636]" />
+                                    </div>
+                                    <div className="text-left">
+                                        <h4 className="font-medium text-slate-200">{month.name}</h4>
+                                        <p className="text-sm text-slate-400">
+                                            {month.totalContributions} contributions in {month.activeDays} days
+                                        </p>
+                                    </div>
                                 </div>
-                            ))}
+                                <ChevronDown
+                                    className={`w-5 h-5 text-slate-400 transition-transform ${expandedMonths.has(month.key) ? 'rotate-180' : ''
+                                        }`}
+                                />
+                            </button>
+
+                            {expandedMonths.has(month.key) && (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-[hsl(220,13%,6%)] border-t border-[hsl(220,13%,15%)]">
+                                    <div className="flex items-center gap-2">
+                                        <GitCommit className="w-4 h-4 text-[#238636]" />
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-200">{month.commits}</p>
+                                            <p className="text-xs text-slate-400">Commits</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <GitPullRequest className="w-4 h-4 text-purple-400" />
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-200">{month.prs}</p>
+                                            <p className="text-xs text-slate-400">Pull Requests</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Bug className="w-4 h-4 text-blue-400" />
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-200">{month.issues}</p>
+                                            <p className="text-xs text-slate-400">Issues</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <MessageSquare className="w-4 h-4 text-yellow-400" />
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-200">{month.reviews}</p>
+                                            <p className="text-xs text-slate-400">Reviews</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    </div>
-
-                    {/* Legend */}
-                    <div className="flex items-center justify-end gap-1 mt-2 text-xs text-[#8b949e]">
-                        <span>Less</span>
-                        {[0, 1, 2, 3, 4].map(level => (
-                            <div
-                                key={level}
-                                className={`w-[11px] h-[11px] rounded-sm ${getLevelColor(level, false)}`}
-                            />
-                        ))}
-                        <span>More</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Floating Tooltip - GitHub style */}
-            {hoveredDay && (
-                <div
-                    className="fixed z-50 px-2 py-1 text-xs font-medium text-white bg-[#24292f] rounded-md shadow-lg pointer-events-none"
-                    style={{
-                        left: tooltipPos.x,
-                        top: tooltipPos.y,
-                        transform: 'translate(-50%, -100%)'
-                    }}
-                >
-                    <div className="whitespace-nowrap">
-                        {hoveredDay.contributions > 0 ? (
-                            <>
-                                <span className="font-bold">{hoveredDay.contributions}</span> contribution{hoveredDay.contributions !== 1 ? 's' : ''} on {new Date(hoveredDay.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </>
-                        ) : (
-                            <>No contributions on {new Date(hoveredDay.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</>
-                        )}
-                    </div>
+                    ))}
                 </div>
             )}
         </div>

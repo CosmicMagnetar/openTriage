@@ -58,10 +58,18 @@ const StreakDisplay = () => {
             );
             setCalendar(yearData);
 
-            // Calculate total contributions for the year
-            const total = calendarData.totalContributions ||
-                yearData.reduce((sum, d) => sum + (d.contributions || 0), 0);
-            setTotalContributions(total);
+            // Calculate total contributions for the SELECTED YEAR from filtered data
+            // Use contributions field (from GitHub) or total field (from local DB)
+            const yearTotal = yearData.reduce((sum, d) => sum + (d.contributions || d.total || 0), 0);
+
+            // If selected year is current year and API returned totalContributions, use it
+            // Otherwise calculate from the filtered year data
+            const currentYear = new Date().getFullYear();
+            if (selectedYear === currentYear && calendarData.totalContributions) {
+                setTotalContributions(calendarData.totalContributions);
+            } else {
+                setTotalContributions(yearTotal);
+            }
         } catch (error) {
             console.error('Failed to load streak data:', error);
             setStreak(MOCK_STREAK);
