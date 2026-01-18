@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { gamificationApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 
-// Generate years for selector (from 2020 to current year)
+// Generate years for selector (current and 2 previous)
 const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: currentYear - 2019 }, (_, i) => currentYear - i);
+const YEARS = [currentYear, currentYear - 1, currentYear - 2];
 
 const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
     const { user } = useAuthStore();
@@ -40,6 +40,8 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
 
             const yearData = calendarData.calendar || [];
             setCalendar(yearData);
+
+            // Use totalContributions from API (this is year-specific from GitHub)
             setTotalContributions(calendarData.totalContributions ||
                 yearData.reduce((sum, d) => sum + (d.contributions || d.total || 0), 0));
         } catch (error) {
@@ -62,25 +64,37 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
         }
     };
 
-    // Generate calendar grid for selected year (Jan 1 - Dec 31)
-    const calendarGrid = useMemo(() => {
-        const weeks = [];
+    // Generate calendar grid for selected year
+    const { weeks, monthPositions } = useMemo(() => {
         const calendarMap = new Map(calendar.map(d => [d.date, d]));
+        const today = new Date();
 
         // Start from Jan 1 of selected year
         const startDate = new Date(selectedYear, 0, 1);
         const endDate = new Date(selectedYear, 11, 31);
-        const today = new Date();
 
-        // Adjust start to get to Sunday
+        // Adjust to start from Sunday
         const firstDayOfWeek = startDate.getDay();
         const adjustedStart = new Date(startDate);
         adjustedStart.setDate(adjustedStart.getDate() - firstDayOfWeek);
 
+        const weeksArr = [];
+        const monthPos = [];
         let currentDate = new Date(adjustedStart);
+        let lastMonth = -1;
 
-        while (currentDate <= endDate || currentDate.getDay() !== 0) {
+        while (currentDate <= endDate || weeksArr.length < 53) {
             const week = [];
+
+            // Track month changes for labels
+            if (currentDate.getMonth() !== lastMonth && currentDate.getFullYear() === selectedYear) {
+                monthPos.push({
+                    name: currentDate.toLocaleDateString('en-US', { month: 'short' }),
+                    weekIdx: weeksArr.length
+                });
+                lastMonth = currentDate.getMonth();
+            }
+
             for (let day = 0; day < 7; day++) {
                 const dateStr = currentDate.toISOString().split('T')[0];
                 const dayData = calendarMap.get(dateStr);
@@ -92,36 +106,18 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
                     contributions: dayData?.contributions || dayData?.total || 0,
                     level: dayData?.level || 0,
                     isInYear,
-                    isFuture,
-                    month: currentDate.getMonth()
+                    isFuture
                 });
 
                 currentDate.setDate(currentDate.getDate() + 1);
             }
-            weeks.push(week);
+            weeksArr.push(week);
 
             if (currentDate > endDate && currentDate.getDay() === 0) break;
         }
 
-        return weeks;
+        return { weeks: weeksArr, monthPositions: monthPos };
     }, [calendar, selectedYear]);
-
-    // Get month labels with positions
-    const monthLabels = useMemo(() => {
-        const labels = [];
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        let lastMonth = -1;
-
-        calendarGrid.forEach((week, weekIdx) => {
-            const firstDayOfWeek = week.find(d => d.isInYear);
-            if (firstDayOfWeek && firstDayOfWeek.month !== lastMonth) {
-                labels.push({ name: months[firstDayOfWeek.month], weekIdx });
-                lastMonth = firstDayOfWeek.month;
-            }
-        });
-
-        return labels;
-    }, [calendarGrid]);
 
     if (loading) {
         return (
@@ -144,34 +140,26 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
             <div className="flex gap-4">
                 {/* Calendar section */}
                 <div className="flex-1 overflow-x-auto border border-[#30363d] rounded-md p-3">
-                    {/* Month labels */}
-                    <div className="flex mb-1 ml-8">
-                        {monthLabels.map((month, i) => (
-                            <div
-                                key={i}
-                                className="text-xs text-[#8b949e]"
-                                style={{
-                                    position: 'absolute',
-                                    left: `${month.weekIdx * 13 + 40}px`
-                                }}
-                            >
-                                {month.name}
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="relative pt-4">
-                        {/* Month labels row */}
-                        <div className="flex ml-8 mb-1 text-xs text-[#8b949e]">
-                            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, i) => (
-                                <div key={month} className="flex-1 min-w-[52px]">{month}</div>
+                    <div className="min-w-[700px]">
+                        {/* Month labels */}
+                        <div className="flex text-xs text-[#8b949e] mb-1 ml-[30px]">
+                            {monthPositions.map((month, i) => (
+                                <div
+                                    key={i}
+                                    style={{
+                                        marginLeft: i === 0 ? `${month.weekIdx * 14}px` :
+                                            `${(month.weekIdx - monthPositions[i - 1].weekIdx) * 14 - 20}px`
+                                    }}
+                                >
+                                    {month.name}
+                                </div>
                             ))}
                         </div>
 
-                        {/* Grid */}
+                        {/* Grid with day labels */}
                         <div className="flex">
                             {/* Day labels */}
-                            <div className="flex flex-col gap-[3px] mr-2 text-xs text-[#8b949e] pr-1">
+                            <div className="flex flex-col gap-[3px] mr-1 text-[10px] text-[#8b949e] w-[26px]">
                                 <div className="h-[11px]"></div>
                                 <div className="h-[11px] flex items-center">Mon</div>
                                 <div className="h-[11px]"></div>
@@ -181,18 +169,18 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
                                 <div className="h-[11px]"></div>
                             </div>
 
-                            {/* Weeks */}
+                            {/* Weeks grid */}
                             <div className="flex gap-[3px]">
-                                {calendarGrid.map((week, weekIdx) => (
+                                {weeks.map((week, weekIdx) => (
                                     <div key={weekIdx} className="flex flex-col gap-[3px]">
                                         {week.map((day, dayIdx) => (
                                             <div
                                                 key={`${weekIdx}-${dayIdx}`}
-                                                className={`w-[11px] h-[11px] rounded-sm transition-all cursor-pointer
+                                                className={`w-[11px] h-[11px] rounded-sm cursor-pointer transition-all
                                                     ${!day.isInYear ? 'bg-transparent' :
                                                         day.isFuture ? 'bg-[#161b22]' :
                                                             getContributionColor(day.level)}
-                                                    ${hoveredDay?.date === day.date ? 'ring-1 ring-[#8b949e]' : ''}`}
+                                                    ${hoveredDay?.date === day.date ? 'ring-1 ring-white' : ''}`}
                                                 onMouseEnter={() => day.isInYear && !day.isFuture && setHoveredDay(day)}
                                                 onMouseLeave={() => setHoveredDay(null)}
                                             />
@@ -214,12 +202,12 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
                 </div>
 
                 {/* Year buttons - vertical stack on right */}
-                <div className="flex flex-col gap-1 min-w-[80px]">
-                    {YEARS.slice(0, 3).map(year => (
+                <div className="flex flex-col gap-1">
+                    {YEARS.map(year => (
                         <button
                             key={year}
                             onClick={() => setSelectedYear(year)}
-                            className={`px-4 py-2 text-sm rounded-md transition-colors text-left
+                            className={`px-4 py-2 text-sm rounded-md transition-colors
                                 ${selectedYear === year
                                     ? 'bg-[#238636] text-white font-medium'
                                     : 'text-[#8b949e] hover:bg-[#21262d]'
@@ -233,10 +221,10 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
 
             {/* Hover tooltip */}
             {hoveredDay && (
-                <div className="mt-3 px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-md text-sm">
+                <div className="mt-3 px-3 py-2 bg-[#161b22] border border-[#30363d] rounded-md text-sm inline-block">
                     <span className="font-medium text-[#c9d1d9]">{hoveredDay.contributions}</span>
                     <span className="text-[#8b949e]"> contribution{hoveredDay.contributions !== 1 ? 's' : ''} on </span>
-                    <span className="text-[#c9d1d9]">{new Date(hoveredDay.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span className="text-[#c9d1d9]">{new Date(hoveredDay.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
             )}
         </div>

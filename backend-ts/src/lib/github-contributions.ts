@@ -7,9 +7,9 @@
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 
-// Cache for contribution data (1 hour TTL)
+// Cache for contribution data (5 minute TTL for fresher data)
 const contributionCache = new Map<string, { data: ContributionData; expires: number }>();
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export interface ContributionDay {
     date: string;
