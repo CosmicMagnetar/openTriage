@@ -80,7 +80,8 @@ const ContributionCalendar = ({ selectedYear }) => {
         <div className="bg-[#0d1117] rounded-lg border border-[#30363d] p-4">
             <h3 className="text-base font-semibold text-[#c9d1d9] mb-6">Contribution activity</h3>
 
-            <div className="space-y-6">
+            {/* Scrollable activity list */}
+            <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
                 {Object.entries(groupedByMonth).map(([month, monthActivities]) => (
                     <div key={month}>
                         {/* Month header */}
