@@ -78,11 +78,14 @@ export async function fetchGitHubContributions(
 
     // Use provided token or fall back to app token for public data
     const token = githubToken || process.env.GITHUB_TOKEN;
+    const tokenSource = githubToken ? 'user token (includes private contributions)' : 'app token (public only)';
 
     if (!token) {
         console.warn('[GitHub] No token available for contributions fetch');
         return null;
     }
+
+    console.log(`[GitHub] Using ${tokenSource} for ${username}, year=${year || 'default'}`);
 
     try {
         // Build variables object, including from/to dates if year is specified
