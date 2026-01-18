@@ -44,8 +44,36 @@ const ProfilePage = () => {
                 profileApi.getFeaturedBadges(user.username).catch(() => ({ badges: [] }))
             ]);
 
-            setAllBadges(badgesData.all_badges || []);
-            setFeaturedBadges(featuredData.badges || []);
+            // Transform badges data to expected format: { badge: {...}, earned: bool }
+            const transformedBadges = (badgesData.all_badges || []).map(b => ({
+                badge: {
+                    id: b.id,
+                    name: b.name,
+                    description: b.description,
+                    image_url: b.image_url,
+                    icon: b.icon,
+                    category: b.category,
+                    rarity: b.rarity
+                },
+                earned: b.earned,
+                awardedAt: b.awardedAt
+            }));
+            setAllBadges(transformedBadges);
+
+            // Transform featured badges similarly
+            const transformedFeatured = (featuredData.badges || []).map(b => ({
+                badge: b.badge || {
+                    id: b.id,
+                    name: b.name,
+                    description: b.description,
+                    image_url: b.image_url,
+                    icon: b.icon,
+                    category: b.category,
+                    rarity: b.rarity
+                },
+                earned: b.earned !== false
+            }));
+            setFeaturedBadges(transformedFeatured);
 
             if (profileData) {
                 setProfile(profileData);

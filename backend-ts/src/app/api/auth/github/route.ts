@@ -9,7 +9,7 @@ const API_URL = process.env.API_URL || "http://localhost:3000";
  */
 export async function GET(request: NextRequest) {
     const callbackUrl = `${API_URL}/api/auth/github/callback`;
-    const githubUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${callbackUrl}&scope=user:email,repo`;
+    const githubUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${callbackUrl}&scope=user:email,read:user,repo`;
 
     return NextResponse.redirect(githubUrl);
 }
