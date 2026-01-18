@@ -253,6 +253,15 @@ export const gamificationApi = {
   getLeaderboard: (days = 30, limit = 10) =>
     apiRequest(`/api/spark/gamification/leaderboard?days=${days}&limit=${limit}`),
   
+  // GitHub Events/Activity
+  getUserEvents: (username, year = null) => {
+    let url = `/api/github/events/${username}`;
+    if (year) {
+      url += `?year=${year}`;
+    }
+    return apiRequest(url);
+  },
+  
   // Badges
   getAllBadges: () =>
     apiRequest('/api/spark/badges/all'),
