@@ -123,8 +123,8 @@ export async function GET(
         const activities: ActivityItem[] = [];
 
         Object.entries(monthlyActivity).forEach(([month, data]) => {
-            // Commits summary
-            const repoCommits = Object.entries(data.commits);
+            // Commits summary - only include repos with actual commits
+            const repoCommits = Object.entries(data.commits).filter(([_, count]) => count > 0);
             if (repoCommits.length > 0) {
                 const totalCommits = repoCommits.reduce((sum, [_, count]) => sum + count, 0);
                 const maxCount = Math.max(...repoCommits.map(([_, c]) => c));

@@ -122,7 +122,7 @@ const ContributionCalendar = ({ selectedYear }) => {
                                                                 <div className="flex-1 h-2 bg-[#21262d] rounded-full overflow-hidden max-w-[200px]">
                                                                     <div
                                                                         className="h-full bg-[#238636] rounded-full"
-                                                                        style={{ width: `${(repo.count / repo.maxCount) * 100}%` }}
+                                                                        style={{ width: `${repo.maxCount > 0 ? (repo.count / repo.maxCount) * 100 : 0}%` }}
                                                                     />
                                                                 </div>
                                                             </div>
