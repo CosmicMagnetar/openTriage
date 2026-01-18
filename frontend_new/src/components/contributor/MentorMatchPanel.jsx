@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Star, Search, X, AlertCircle, MessageSquare, Clock, ChevronRight, UserMinus, Plus, Code } from 'lucide-react';
+import { Users, Star, Search, X, AlertCircle, MessageSquare, Clock, ChevronRight, UserMinus, Plus, Code, Send } from 'lucide-react';
 import { mentorApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import MentorshipChatWidget from '../ui/MentorshipChatWidget';
@@ -22,11 +22,12 @@ const MentorMatchPanel = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchMessage, setSearchMessage] = useState(null);
     const [activeChat, setActiveChat] = useState(null);
+    const [pendingRequests, setPendingRequests] = useState([]);
 
     useEffect(() => {
         const init = async () => {
             if (user) {
-                await Promise.all([loadMatches(), loadMyMentors()]);
+                await Promise.all([loadMatches(), loadMyMentors(), loadPendingRequests()]);
                 const mentors = await mentorApi.getMyMentors();
                 if (mentors.length > 0) {
                     setMyMentors(mentors);
@@ -49,6 +50,16 @@ const MentorMatchPanel = () => {
         }
     };
 
+    const loadPendingRequests = async () => {
+        if (!user) return;
+        try {
+            const data = await mentorApi.getMyPendingRequests();
+            setPendingRequests(data.requests || []);
+        } catch (error) {
+            console.error('Failed to load pending requests:', error);
+        }
+    };
+
     const loadMatches = async (skillFilter = null) => {
         if (!user) {
             setMatches(MOCK_MATCHES);
@@ -60,7 +71,15 @@ const MentorMatchPanel = () => {
             setLoading(true);
             setSearchMessage(null);
             const data = await mentorApi.findMentorsForUser(user.id, user.username, 10, skillFilter);
-            setMatches(data.matches || []);
+
+            // Cross-reference with pending requests to mark matches that have been requested
+            const pendingMentorIds = new Set(pendingRequests.filter(r => r.status === 'pending').map(r => r.mentor_id));
+            const matchesWithStatus = (data.matches || []).map(m => ({
+                ...m,
+                has_pending_request: pendingMentorIds.has(m.mentor_id)
+            }));
+
+            setMatches(matchesWithStatus);
             if (data.message) {
                 setSearchMessage(data.message);
             }
@@ -148,7 +167,7 @@ const MentorMatchPanel = () => {
                 <div className="flex items-center gap-3">
                     <Users className="w-5 h-5 text-[hsl(217,91%,65%)]" />
                     <h3 className="font-medium text-[hsl(210,11%,90%)]">
-                        {view === 'my_mentors' ? 'My Mentors' : 'Find a Mentor'}
+                        {view === 'my_mentors' ? 'My Mentors' : view === 'pending_requests' ? 'Pending Requests' : 'Find a Mentor'}
                     </h3>
                 </div>
                 {view === 'my_mentors' ? (
@@ -156,8 +175,8 @@ const MentorMatchPanel = () => {
                         onClick={() => setView('find')}
                         disabled={myMentors.length >= 5}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${myMentors.length >= 5
-                                ? 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,40%)] cursor-not-allowed'
-                                : 'bg-[hsl(217,91%,60%,0.15)] text-[hsl(217,91%,65%)] hover:bg-[hsl(217,91%,60%,0.25)]'
+                            ? 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,40%)] cursor-not-allowed'
+                            : 'bg-[hsl(217,91%,60%,0.15)] text-[hsl(217,91%,65%)] hover:bg-[hsl(217,91%,60%,0.25)]'
                             }`}
                     >
                         <Plus className="w-4 h-4" />
@@ -173,6 +192,16 @@ const MentorMatchPanel = () => {
                             My Mentors
                         </button>
                     )
+                )}
+                {/* Pending Requests Button */}
+                {pendingRequests.filter(r => r.status === 'pending').length > 0 && view !== 'pending_requests' && (
+                    <button
+                        onClick={() => setView('pending_requests')}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/15 hover:bg-yellow-500/25 text-yellow-400 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        <Send className="w-4 h-4" />
+                        Pending ({pendingRequests.filter(r => r.status === 'pending').length})
+                    </button>
                 )}
             </div>
 
@@ -244,6 +273,82 @@ const MentorMatchPanel = () => {
                         <div className="text-center py-10">
                             <Users className="w-10 h-10 text-[hsl(220,13%,20%)] mx-auto mb-3" />
                             <p className="text-[hsl(210,11%,50%)] mb-4">You don't have any mentors yet.</p>
+                            <button
+                                onClick={() => setView('find')}
+                                className="px-4 py-2 bg-[hsl(217,91%,50%)] text-white rounded-lg hover:bg-[hsl(217,91%,55%)] transition-colors text-sm font-medium"
+                            >
+                                Find a Mentor
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ) : view === 'pending_requests' ? (
+                <div className="space-y-4">
+                    {pendingRequests.filter(r => r.status === 'pending').length > 0 ? (
+                        <>
+                            <div className="flex items-center gap-2 p-3 mb-2 bg-yellow-500/10 border border-yellow-500/25 rounded-lg text-yellow-200 text-sm">
+                                <Clock className="w-4 h-4 flex-shrink-0" />
+                                <span>These mentorship requests are awaiting approval from the mentors.</span>
+                            </div>
+                            <div className="space-y-2">
+                                {pendingRequests.filter(r => r.status === 'pending').map((request) => (
+                                    <div
+                                        key={request.id}
+                                        className="flex items-center gap-4 p-4 bg-[hsl(220,13%,6%)] rounded-lg border border-yellow-500/25"
+                                    >
+                                        <img
+                                            src={request.mentor_avatar_url}
+                                            alt={request.mentor_username}
+                                            className="w-11 h-11 rounded-full"
+                                            onError={(e) => e.target.src = 'https://github.com/ghost.png'}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="font-medium text-[hsl(210,11%,85%)]">@{request.mentor_username}</span>
+                                                <span className="px-2 py-0.5 rounded text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">
+                                                    Pending
+                                                </span>
+                                                {request.mentor_expertise_level && (
+                                                    <span className="px-2 py-0.5 rounded text-xs bg-purple-500/15 text-purple-400 border border-purple-500/25">
+                                                        {request.mentor_expertise_level}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-[hsl(210,11%,50%)] truncate">
+                                                Sent {new Date(request.created_at).toLocaleDateString()}
+                                            </p>
+                                            {request.message && (
+                                                <p className="text-xs text-[hsl(210,11%,40%)] mt-1 line-clamp-1">
+                                                    "{request.message}"
+                                                </p>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={() => setActiveChat({
+                                                id: request.mentor_id,
+                                                name: request.mentor_username,
+                                                avatar: request.mentor_avatar_url
+                                            })}
+                                            className="p-2 text-[hsl(210,11%,50%)] hover:text-[hsl(217,91%,65%)] hover:bg-[hsl(217,91%,60%,0.1)] rounded-lg transition-colors"
+                                            title="Message Mentor"
+                                        >
+                                            <MessageSquare className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setView('find')}
+                                className="w-full mt-2 py-2 text-sm text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,70%)] flex items-center justify-center gap-1 transition-colors"
+                            >
+                                Find more mentors
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </>
+                    ) : (
+                        <div className="text-center py-10">
+                            <Send className="w-10 h-10 text-[hsl(220,13%,20%)] mx-auto mb-3" />
+                            <p className="text-[hsl(210,11%,50%)] mb-4">No pending requests.</p>
                             <button
                                 onClick={() => setView('find')}
                                 className="px-4 py-2 bg-[hsl(217,91%,50%)] text-white rounded-lg hover:bg-[hsl(217,91%,55%)] transition-colors text-sm font-medium"
@@ -378,8 +483,8 @@ const MentorMatchPanel = () => {
                                                 onClick={() => handleRequestMentorship(match.mentor_id)}
                                                 disabled={loadingRequest === match.mentor_id || match.has_pending_request || myMentors.length >= 5}
                                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${match.has_pending_request || myMentors.length >= 5
-                                                        ? 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,40%)] cursor-not-allowed'
-                                                        : 'bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] hover:bg-[hsl(142,70%,45%,0.25)]'
+                                                    ? 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,40%)] cursor-not-allowed'
+                                                    : 'bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] hover:bg-[hsl(142,70%,45%,0.25)]'
                                                     }`}
                                             >
                                                 {loadingRequest === match.mentor_id ? (

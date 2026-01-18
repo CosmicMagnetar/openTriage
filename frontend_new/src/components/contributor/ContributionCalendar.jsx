@@ -195,7 +195,7 @@ const ContributionCalendar = () => {
             </div>
 
             {/* Tooltip */}
-            {hoveredDay && hoveredDay.total > 0 && (
+            {hoveredDay && (hoveredDay.contributions > 0 || hoveredDay.total > 0) && (
                 <div className="mt-4 p-3 bg-slate-700/50 rounded-lg">
                     <div className="text-sm font-medium text-slate-200 mb-2">
                         {new Date(hoveredDay.date).toLocaleDateString('en-US', {
@@ -205,6 +205,10 @@ const ContributionCalendar = () => {
                             day: 'numeric'
                         })}
                     </div>
+                    <div className="text-xs text-emerald-400 font-medium mb-2">
+                        {hoveredDay.contributions || hoveredDay.total || 0} contribution{(hoveredDay.contributions || hoveredDay.total || 0) !== 1 ? 's' : ''}
+                    </div>
+                    {/* Breakdown if available */}
                     <div className="flex gap-4 text-xs text-slate-400">
                         {hoveredDay.issues > 0 && (
                             <div className="flex items-center gap-1">
@@ -237,10 +241,10 @@ const ContributionCalendar = () => {
             {/* Summary stats */}
             <div className="mt-4 flex justify-between text-sm text-slate-400">
                 <span>
-                    {calendarData.length} contributions in the last year
+                    {calendarData.filter(d => (d.contributions || d.total || 0) > 0).length} active days in the last year
                 </span>
                 <span>
-                    Total: {calendarData.reduce((sum, d) => sum + (d.total || 0), 0)} activities
+                    Total: {calendarData.reduce((sum, d) => sum + (d.contributions || d.total || 0), 0)} contributions
                 </span>
             </div>
         </div>

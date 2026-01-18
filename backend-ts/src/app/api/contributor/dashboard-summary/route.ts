@@ -2,14 +2,15 @@
  * Contributor Dashboard Summary Route
  * 
  * GET /api/contributor/dashboard-summary
- * Get dashboard statistics from database (matching original Python logic)
+ * Get dashboard statistics from database + GitHub contributions API
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
-import { issues, userRepositories } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { issues, userRepositories, users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { fetchGitHubContributions } from "@/lib/github-contributions";
 
 export async function GET(request: NextRequest) {
     try {
@@ -18,11 +19,22 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Get all issues/PRs by this contributor from the database
-        // This matches the original Python logic: db.issues.find({"authorName": user['username']})
-        const allItems = await db.select()
-            .from(issues)
-            .where(eq(issues.authorName, user.username));
+        // Fetch GitHub contributions in parallel with local data
+        const [allItems, trackedRepos, userRecord, githubData] = await Promise.all([
+            // Get all issues/PRs by this contributor from the database
+            db.select().from(issues).where(eq(issues.authorName, user.username)),
+            // Get tracked repos
+            db.select({ repoFullName: userRepositories.repoFullName })
+                .from(userRepositories)
+                .where(eq(userRepositories.userId, user.id)),
+            // Get user's GitHub token
+            db.select({ githubAccessToken: users.githubAccessToken })
+                .from(users)
+                .where(eq(users.id, user.id))
+                .limit(1),
+            // Fetch GitHub contributions (will use cache or make API call)
+            fetchGitHubContributions(user.username, null).catch(() => null)
+        ]);
 
         // Calculate metrics from database records
         const prs = allItems.filter(item => item.isPR);
@@ -30,26 +42,24 @@ export async function GET(request: NextRequest) {
 
         // PR metrics
         const openPRs = prs.filter(pr => pr.state === 'open').length;
-        const mergedPRs = prs.filter(pr => pr.state === 'closed').length; // Closed PRs are typically merged
+        const mergedPRs = prs.filter(pr => pr.state === 'closed').length;
 
         // Issue metrics
         const openIssues = issueItems.filter(i => i.state === 'open').length;
         const closedIssues = issueItems.filter(i => i.state === 'closed').length;
 
-        // Get unique repositories contributed to (from issues table)
+        // Get unique repositories contributed to
         const uniqueRepos = new Set(allItems.map(item => item.repoName).filter(Boolean));
-
-        // Also add repos from userRepositories (explicitly tracked)
-        const trackedRepos = await db.select({ repoFullName: userRepositories.repoFullName })
-            .from(userRepositories)
-            .where(eq(userRepositories.userId, user.id));
-
         for (const tracked of trackedRepos) {
             uniqueRepos.add(tracked.repoFullName);
         }
 
+        // Use GitHub API totalContributions if available, otherwise fallback to local count
+        const totalContributions = githubData?.totalContributions ?? allItems.length;
+        const dataSource = githubData ? 'github' : 'local';
+
         return NextResponse.json({
-            totalContributions: allItems.length,  // This is the key difference - count from DB, not GitHub API
+            totalContributions,
             totalPRs: prs.length,
             openPRs,
             mergedPRs,
@@ -57,7 +67,8 @@ export async function GET(request: NextRequest) {
             openIssues,
             closedIssues,
             repositoriesContributed: uniqueRepos.size,
-            repositories: Array.from(uniqueRepos), // Include list of repos for dropdown population
+            repositories: Array.from(uniqueRepos),
+            source: dataSource,  // Indicates where the totalContributions came from
         });
 
     } catch (error: any) {

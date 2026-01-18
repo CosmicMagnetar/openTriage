@@ -75,6 +75,9 @@ export const mentorApi = {
   getMyMentors: () =>
     apiRequest('/api/mentor/my-mentors'),
 
+  getMyPendingRequests: () =>
+    apiRequest('/api/mentor/my-requests'),
+
   disconnectMentor: (mentorId) =>
     apiRequest(`/api/mentor/disconnect/${mentorId}`, {
       method: 'DELETE',
