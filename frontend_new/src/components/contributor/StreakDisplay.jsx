@@ -46,30 +46,21 @@ const StreakDisplay = () => {
 
         try {
             setLoading(true);
+            // Fetch streak data and calendar data for selected year
             const [streakData, calendarData] = await Promise.all([
                 gamificationApi.getUserStreak(user.username),
-                gamificationApi.getUserCalendar(user.username, 365)
+                gamificationApi.getUserCalendar(user.username, 365, selectedYear)
             ]);
             setStreak(streakData);
 
-            // Filter calendar data for selected year
-            const yearData = (calendarData.calendar || []).filter(d =>
-                d.date && d.date.startsWith(String(selectedYear))
-            );
+            // Use calendar data directly from API (now year-specific from backend!)
+            const yearData = calendarData.calendar || [];
             setCalendar(yearData);
 
-            // Calculate total contributions for the SELECTED YEAR from filtered data
-            // Use contributions field (from GitHub) or total field (from local DB)
-            const yearTotal = yearData.reduce((sum, d) => sum + (d.contributions || d.total || 0), 0);
-
-            // If selected year is current year and API returned totalContributions, use it
-            // Otherwise calculate from the filtered year data
-            const currentYear = new Date().getFullYear();
-            if (selectedYear === currentYear && calendarData.totalContributions) {
-                setTotalContributions(calendarData.totalContributions);
-            } else {
-                setTotalContributions(yearTotal);
-            }
+            // Use totalContributions from API - this is now year-specific!
+            const total = calendarData.totalContributions ||
+                yearData.reduce((sum, d) => sum + (d.contributions || d.total || 0), 0);
+            setTotalContributions(total);
         } catch (error) {
             console.error('Failed to load streak data:', error);
             setStreak(MOCK_STREAK);

@@ -28,26 +28,39 @@ export interface ContributionData {
 
 /**
  * Fetch contribution calendar from GitHub GraphQL API
+ * @param username - GitHub username
+ * @param githubToken - Optional user's GitHub access token
+ * @param year - Optional year to fetch contributions for (defaults to current year's 365 days)
  */
 export async function fetchGitHubContributions(
     username: string,
-    githubToken?: string | null
+    githubToken?: string | null,
+    year?: number
 ): Promise<ContributionData | null> {
-    // Check cache first
-    const cacheKey = `contributions:${username}`;
+    // Check cache first (include year in cache key)
+    const cacheKey = year ? `contributions:${username}:${year}` : `contributions:${username}`;
     const cached = contributionCache.get(cacheKey);
     if (cached && cached.expires > Date.now()) {
-        console.log(`[GitHub] Cache HIT for ${username}`);
+        console.log(`[GitHub] Cache HIT for ${username} year=${year || 'current'}`);
         return cached.data;
     }
 
-    console.log(`[GitHub] Fetching contributions for ${username}`);
+    console.log(`[GitHub] Fetching contributions for ${username} year=${year || 'current'}`);
 
-    // GitHub GraphQL query for contribution calendar
+    // Calculate date range for the query
+    let fromDate: string | undefined;
+    let toDate: string | undefined;
+
+    if (year) {
+        fromDate = `${year}-01-01T00:00:00Z`;
+        toDate = `${year}-12-31T23:59:59Z`;
+    }
+
+    // GitHub GraphQL query for contribution calendar with optional date range
     const query = `
-    query($username: String!) {
+    query($username: String!${year ? ', $from: DateTime!, $to: DateTime!' : ''}) {
       user(login: $username) {
-        contributionsCollection {
+        contributionsCollection${year ? '(from: $from, to: $to)' : ''} {
           contributionCalendar {
             totalContributions
             weeks {
@@ -72,6 +85,13 @@ export async function fetchGitHubContributions(
     }
 
     try {
+        // Build variables object, including from/to dates if year is specified
+        const variables: { username: string; from?: string; to?: string } = { username };
+        if (year && fromDate && toDate) {
+            variables.from = fromDate;
+            variables.to = toDate;
+        }
+
         const response = await fetch(GITHUB_GRAPHQL_URL, {
             method: 'POST',
             headers: {
@@ -80,7 +100,7 @@ export async function fetchGitHubContributions(
             },
             body: JSON.stringify({
                 query,
-                variables: { username }
+                variables
             })
         });
 

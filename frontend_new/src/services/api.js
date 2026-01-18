@@ -242,8 +242,13 @@ export const gamificationApi = {
   getUserStreak: (username, days = 365) =>
     apiRequest(`/api/spark/gamification/streak/${username}?days=${days}`),
   
-  getUserCalendar: (username, days = 365) =>
-    apiRequest(`/api/spark/gamification/calendar/${username}?days=${days}`),
+  getUserCalendar: (username, days = 365, year = null) => {
+    let url = `/api/spark/gamification/calendar/${username}?days=${days}`;
+    if (year) {
+      url += `&year=${year}`;
+    }
+    return apiRequest(url);
+  },
   
   getLeaderboard: (days = 30, limit = 10) =>
     apiRequest(`/api/spark/gamification/leaderboard?days=${days}&limit=${limit}`),

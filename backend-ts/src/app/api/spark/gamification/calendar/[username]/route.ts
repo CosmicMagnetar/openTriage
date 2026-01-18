@@ -13,6 +13,8 @@ export async function GET(
         const { username } = await context.params;
         const { searchParams } = new URL(request.url);
         const days = parseInt(searchParams.get('days') || '365');
+        const yearParam = searchParams.get('year');
+        const year = yearParam ? parseInt(yearParam) : undefined;
 
         // Try to get user's GitHub token for API access
         const user = await db.select()
@@ -22,8 +24,8 @@ export async function GET(
 
         const githubToken = user[0]?.githubAccessToken;
 
-        // Try fetching from GitHub first
-        const githubData = await fetchGitHubContributions(username, githubToken);
+        // Try fetching from GitHub first (with optional year parameter)
+        const githubData = await fetchGitHubContributions(username, githubToken, year);
 
         if (githubData) {
             // Convert GitHub data to calendar format
@@ -38,6 +40,7 @@ export async function GET(
             return NextResponse.json({
                 calendar,
                 totalContributions: githubData.totalContributions,
+                year: year || new Date().getFullYear(),
                 source: 'github'
             });
         }
@@ -46,6 +49,7 @@ export async function GET(
         const calendar = await getUserCalendar(username, days);
         return NextResponse.json({
             calendar,
+            year: year || new Date().getFullYear(),
             source: 'local'
         });
     } catch (error) {
