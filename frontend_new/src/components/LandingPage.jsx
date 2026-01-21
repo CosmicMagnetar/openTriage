@@ -62,6 +62,63 @@ const AITechCard = ({ icon: Icon, name, description, color }) => {
 };
 
 // ============================================
+// 3D TILT CARD COMPONENT
+// ============================================
+
+const TiltCard3D = ({ children }) => {
+    const cardRef = useRef(null);
+    const [tiltStyle, setTiltStyle] = useState({
+        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)',
+        transition: 'transform 0.1s ease-out'
+    });
+
+    const handleMouseMove = (e) => {
+        if (!cardRef.current) return;
+
+        const card = cardRef.current;
+        const rect = card.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        // Calculate mouse position relative to card center
+        const mouseX = e.clientX - centerX;
+        const mouseY = e.clientY - centerY;
+
+        // Calculate rotation (max 15 degrees)
+        const maxTilt = 15;
+        const rotateY = (mouseX / (rect.width / 2)) * maxTilt;
+        const rotateX = -(mouseY / (rect.height / 2)) * maxTilt;
+
+        setTiltStyle({
+            transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
+            transition: 'transform 0.1s ease-out'
+        });
+    };
+
+    const handleMouseLeave = () => {
+        setTiltStyle({
+            transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+            transition: 'transform 0.4s ease-out'
+        });
+    };
+
+    return (
+        <div
+            ref={cardRef}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            style={{
+                ...tiltStyle,
+                transformStyle: 'preserve-3d',
+            }}
+            className="relative cursor-pointer"
+        >
+            {children}
+        </div>
+    );
+};
+
+// ============================================
 // TWITTER-STYLE TESTIMONIAL CARD
 // ============================================
 
@@ -468,22 +525,19 @@ const LandingPage = () => {
                         </div>
                     </div>
 
-                    {/* Right - Dashboard Preview */}
+                    {/* Right - Dashboard Preview with 3D Tilt */}
                     <div className="relative order-1 lg:order-2 hidden lg:block">
-                        <div className="relative" style={{ perspective: '1500px' }}>
+                        <TiltCard3D>
                             {/* Glow effect */}
                             <div
-                                className="absolute inset-0 blur-3xl opacity-30"
+                                className="absolute inset-0 blur-3xl opacity-30 pointer-events-none"
                                 style={{
                                     background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.4) 0%, rgba(59, 130, 246, 0.3) 100%)',
                                     transform: 'scale(1.2)'
                                 }}
                             />
                             {/* Dashboard frame */}
-                            <div
-                                className="relative rounded-2xl overflow-hidden shadow-2xl border border-zinc-700/50"
-                                style={{ transform: 'rotateY(-8deg) rotateX(2deg)' }}
-                            >
+                            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-zinc-700/50">
                                 <div className="bg-zinc-900 p-1">
                                     {/* Browser bar */}
                                     <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800/50 rounded-t-lg">
@@ -501,7 +555,7 @@ const LandingPage = () => {
                                     <img src="/dashboard-preview.png" alt="OpenTriage Dashboard" className="w-full h-auto rounded-b-lg" />
                                 </div>
                             </div>
-                        </div>
+                        </TiltCard3D>
                     </div>
                 </div>
             </section>
