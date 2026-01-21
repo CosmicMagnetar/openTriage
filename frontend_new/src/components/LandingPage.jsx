@@ -1,7 +1,8 @@
-import { Github, Zap, Users, BarChart3, GitPullRequest, Bot, BookOpen, ArrowRight, ChevronRight, Star, Mail, Play, CheckCircle2, Shield, Clock, Sparkles, Code2, Target, MessageSquare, Heart, ExternalLink, FolderPlus, GitBranch, Reply, UserPlus, Eye, Settings, Bell, ChevronDown, Cpu, Brain, Database, Workflow, Check, Tag, User } from 'lucide-react';
+import { Github, Zap, Users, BarChart3, GitPullRequest, Bot, BookOpen, ArrowRight, ChevronRight, Star, Mail, Play, CheckCircle2, Shield, Clock, Sparkles, Code2, Target, MessageSquare, Heart, ExternalLink, FolderPlus, GitBranch, Reply, UserPlus, Eye, Settings, Bell, ChevronDown, Cpu, Brain, Database, Workflow, Check, Tag, User, Award, Search, Send, MessageCircle, FileText, Layers, Trophy, Link } from 'lucide-react';
 import Logo from './Logo';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import useAuthStore from '../stores/authStore';
 
 // ============================================
 // REUSABLE COMPONENTS
@@ -177,207 +178,262 @@ const TestimonialsMarquee = ({ testimonials }) => {
 };
 
 // ============================================
-// INTERACTIVE STEPPER COMPONENT
+// ONBOARDING TUTORIAL COMPONENT
 // ============================================
 
-const StepperPreview = ({ step }) => {
-    const previews = {
-        0: (
-            <div className="space-y-4">
-                <div className="text-sm text-zinc-400 mb-4">Connect your GitHub account to get started</div>
-                <button className="flex items-center gap-3 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg transition-colors w-full">
-                    <Github className="w-5 h-5" />
-                    <span className="font-medium">Connect with GitHub</span>
-                </button>
-                <div className="mt-6 space-y-2">
-                    <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Your Repositories</div>
-                    {['react-components', 'node-api-server', 'typescript-utils'].map((repo, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center">
-                                    <FolderPlus className="w-4 h-4 text-zinc-400" />
-                                </div>
-                                <span className="text-sm text-zinc-300">{repo}</span>
-                            </div>
-                            <button className="text-xs px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20">
-                                Add
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        ),
-        1: (
-            <div className="space-y-4">
-                <div className="text-sm text-zinc-400 mb-4">Configure AI triage settings</div>
-                <div className="bg-zinc-900 rounded-lg p-4 font-mono text-sm overflow-hidden border border-zinc-800">
-                    <div className="text-zinc-500">// opentriage.config.json</div>
-                    <div className="text-zinc-300 mt-2">{'{'}</div>
-                    <div className="pl-4">
-                        <span className="text-purple-400">"ai_model"</span>: <span className="text-emerald-400">"gpt-4"</span>,
-                    </div>
-                    <div className="pl-4">
-                        <span className="text-purple-400">"auto_label"</span>: <span className="text-blue-400">true</span>,
-                    </div>
-                    <div className="pl-4">
-                        <span className="text-purple-400">"priority_threshold"</span>: <span className="text-orange-400">0.8</span>,
-                    </div>
-                    <div className="pl-4">
-                        <span className="text-purple-400">"labels"</span>: [
-                    </div>
-                    <div className="pl-8">
-                        <span className="text-emerald-400">"bug"</span>, <span className="text-emerald-400">"feature"</span>, <span className="text-emerald-400">"docs"</span>
-                    </div>
-                    <div className="pl-4">]</div>
-                    <div className="text-zinc-300">{'}'}</div>
-                </div>
-            </div>
-        ),
-        2: (
-            <div className="space-y-4">
-                <div className="text-sm text-zinc-400 mb-4">AI analyzing incoming issue...</div>
-                <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
-                    <div className="flex items-start gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
-                            <span className="text-red-400 text-sm">!</span>
-                        </div>
-                        <div className="flex-1">
-                            <div className="text-white font-medium mb-1">App crashes on startup</div>
-                            <div className="text-zinc-500 text-sm">#1234 opened 2 minutes ago</div>
-                        </div>
-                    </div>
-                    <div className="pl-11 space-y-3">
-                        <div className="flex items-center gap-2 text-sm">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-zinc-400">Analyzing issue content...</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-zinc-400">Detecting issue category...</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-zinc-400">Calculating priority score...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        ),
-        3: (
-            <div className="space-y-4">
-                <div className="flex items-center gap-2 text-emerald-400 mb-4">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span className="font-medium">Issue triaged successfully!</span>
-                </div>
-                <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
-                    <div className="flex items-start gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-emerald-400" />
-                        </div>
-                        <div className="flex-1">
-                            <div className="text-white font-medium mb-1">App crashes on startup</div>
-                            <div className="text-zinc-500 text-sm">#1234 · Auto-triaged just now</div>
-                        </div>
-                    </div>
-                    <div className="pl-11 flex flex-wrap gap-2">
-                        <span className="px-2.5 py-1 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30 flex items-center gap-1">
-                            <Tag className="w-3 h-3" /> bug
-                        </span>
-                        <span className="px-2.5 py-1 bg-orange-500/20 text-orange-400 text-xs rounded-full border border-orange-500/30 flex items-center gap-1">
-                            <Zap className="w-3 h-3" /> high-priority
-                        </span>
-                        <span className="px-2.5 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full border border-blue-500/30 flex items-center gap-1">
-                            <User className="w-3 h-3" /> assigned
-                        </span>
-                    </div>
-                </div>
-            </div>
-        ),
+const OnboardingStepCard = ({ icon: Icon, title, description, color = 'emerald' }) => {
+    const colorClasses = {
+        emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
+        blue: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
+        purple: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
+        orange: 'bg-orange-500/10 border-orange-500/30 text-orange-400',
+        pink: 'bg-pink-500/10 border-pink-500/30 text-pink-400',
+        cyan: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400',
     };
 
     return (
-        <AnimatePresence mode="wait">
-            <motion.div
-                key={step}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="h-full"
-            >
-                {previews[step]}
-            </motion.div>
-        </AnimatePresence>
+        <div className="group p-5 bg-zinc-900/50 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-all">
+            <div className={`w-12 h-12 mb-4 rounded-xl flex items-center justify-center ${colorClasses[color]} border`}>
+                <Icon className="w-6 h-6" />
+            </div>
+            <h4 className="text-white font-semibold mb-2">{title}</h4>
+            <p className="text-sm text-zinc-400 leading-relaxed">{description}</p>
+        </div>
     );
 };
 
-const InteractiveStepper = () => {
-    const [activeStep, setActiveStep] = useState(0);
+const ContributorFlowPreview = () => (
+    <div className="space-y-6">
+        <div className="grid md:grid-cols-2 gap-4">
+            <OnboardingStepCard
+                icon={Github}
+                title="Sign Up & Connect GitHub"
+                description="Start by connecting your GitHub account. We'll securely authenticate you via OAuth."
+                color="emerald"
+            />
+            <OnboardingStepCard
+                icon={Link}
+                title="Add Repository"
+                description="Paste any GitHub repo link to explore projects. Find open source projects that match your skills."
+                color="blue"
+            />
+            <OnboardingStepCard
+                icon={Search}
+                title="Browse & Claim Issues"
+                description="Discover issues tagged for contributors. Click on any issue you'd like to tackle."
+                color="purple"
+            />
+            <OnboardingStepCard
+                icon={Bot}
+                title="Write with AI Assistance"
+                description="Get AI-powered recommendations for your responses. Let AI help you craft better solutions."
+                color="orange"
+            />
+            <OnboardingStepCard
+                icon={MessageCircle}
+                title="AI Project Chatbot"
+                description="Use our AI assistant to analyze the codebase, understand project structure, and ask questions."
+                color="cyan"
+            />
+            <OnboardingStepCard
+                icon={Trophy}
+                title="Earn Badges"
+                description="Track your contributions and unlock achievements. Build your open source reputation."
+                color="pink"
+            />
+        </div>
 
-    const steps = [
-        { title: 'Connect Repo', description: 'Link your GitHub repositories to OpenTriage' },
-        { title: 'Configure AI', description: 'Set up AI triage rules and preferences' },
-        { title: 'Review Suggestions', description: 'AI analyzes and categorizes your issues' },
-        { title: 'Auto-Triage', description: 'Labels and assignments applied automatically' },
-    ];
+        {/* Interactive Demo Preview */}
+        <div className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">Live Preview</div>
+            <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                        <Target className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div className="flex-1">
+                        <div className="text-white text-sm font-medium">Issue: Add dark mode toggle</div>
+                        <div className="text-zinc-500 text-xs">react-components/ui-toolkit#42 · good first issue</div>
+                    </div>
+                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-full border border-emerald-500/30">
+                        Claim Issue
+                    </span>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                        <Bot className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                        <div className="text-white text-sm font-medium mb-2">AI Suggestion</div>
+                        <div className="text-zinc-400 text-sm">"Consider using CSS custom properties for theme switching. Check `ThemeContext.jsx` for existing patterns."</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+const MaintainerFlowPreview = () => (
+    <div className="space-y-6">
+        <div className="grid md:grid-cols-2 gap-4">
+            <OnboardingStepCard
+                icon={Github}
+                title="Sign Up & Connect GitHub"
+                description="Connect your GitHub account to access your repositories with secure OAuth."
+                color="emerald"
+            />
+            <OnboardingStepCard
+                icon={FolderPlus}
+                title="Fetch Your Repositories"
+                description="Import the repos you maintain. OpenTriage will sync with your GitHub data automatically."
+                color="blue"
+            />
+            <OnboardingStepCard
+                icon={GitPullRequest}
+                title="Analyze PRs"
+                description="Use AI-powered PR management tools to review and organize pull requests efficiently."
+                color="purple"
+            />
+            <OnboardingStepCard
+                icon={FileText}
+                title="AI PR Summaries"
+                description="Get instant AI-generated summaries for each PR. Understand changes at a glance."
+                color="orange"
+            />
+            <OnboardingStepCard
+                icon={Send}
+                title="Rapid Reply Templates"
+                description="Create and use prebuild response templates for common PR feedback scenarios."
+                color="cyan"
+            />
+            <OnboardingStepCard
+                icon={Users}
+                title="Manage Contributors"
+                description="Assign issues, label PRs, and organize contributions with smart automation."
+                color="pink"
+            />
+        </div>
+
+        {/* Interactive Demo Preview */}
+        <div className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
+            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">Live Preview</div>
+            <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                        <GitPullRequest className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div className="flex-1">
+                        <div className="text-white text-sm font-medium">PR: Add OAuth2 support</div>
+                        <div className="text-zinc-500 text-xs">+245 -12 · 3 files changed</div>
+                    </div>
+                    <div className="flex gap-2">
+                        <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-full">+8 score</span>
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full">ready</span>
+                    </div>
+                </div>
+                <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                    <div className="text-xs text-zinc-500 mb-2">AI Summary</div>
+                    <div className="text-zinc-300 text-sm">"Adds OAuth2 authentication flow with Google and GitHub providers. Includes token refresh logic and secure storage."</div>
+                </div>
+                <div className="flex gap-2">
+                    <button className="flex-1 px-4 py-2 bg-emerald-500/20 text-emerald-400 text-sm rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
+                        ✓ Approve & Merge
+                    </button>
+                    <button className="flex-1 px-4 py-2 bg-zinc-700/50 text-zinc-300 text-sm rounded-lg border border-zinc-600 hover:bg-zinc-700 transition-colors">
+                        Request Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+);
+
+const OnboardingTutorial = () => {
+    const [activeTab, setActiveTab] = useState('contributor');
+
+    const handleLogin = () => {
+        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/github`;
+    };
 
     return (
         <section className="py-24 px-4 bg-[#09090b]">
             <div className="max-w-6xl mx-auto">
                 <SectionTitle
-                    badge="HOW IT WORKS"
+                    badge="GET STARTED"
                     badgeColor="green"
-                    title="Get Started in Minutes"
-                    subtitle="Four simple steps to automate your issue triage workflow"
+                    title="Your Journey Starts Here"
+                    subtitle="Choose your path and discover how OpenTriage can transform your open source workflow"
                 />
-                <div className="grid lg:grid-cols-5 gap-8 lg:gap-12">
-                    {/* Stepper - Left 40% */}
-                    <div className="lg:col-span-2 space-y-3">
-                        {steps.map((step, idx) => (
-                            <div
-                                key={idx}
-                                onClick={() => setActiveStep(idx)}
-                                className={`cursor-pointer p-5 rounded-xl border-2 transition-all duration-300 ${activeStep === idx
-                                    ? 'bg-emerald-500/5 border-emerald-500/50'
-                                    : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-all ${activeStep === idx
-                                        ? 'bg-emerald-500 text-black'
-                                        : 'bg-zinc-800 text-zinc-500'
-                                        }`}>
-                                        {idx + 1}
-                                    </div>
-                                    <div>
-                                        <div className={`font-semibold transition-colors ${activeStep === idx ? 'text-white' : 'text-zinc-400'
-                                            }`}>
-                                            {step.title}
-                                        </div>
-                                        <div className="text-sm text-zinc-500">{step.description}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
 
-                    {/* Preview - Right 60% */}
-                    <div className="lg:col-span-3">
-                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 min-h-[400px]">
-                            <StepperPreview step={activeStep} />
-                        </div>
+                {/* Initial CTA */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+                    <button
+                        onClick={handleLogin}
+                        className="flex items-center gap-3 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-black rounded-xl font-semibold transition-colors"
+                    >
+                        <Github className="w-5 h-5" />
+                        Sign Up to OpenTriage
+                    </button>
+                    <span className="text-zinc-500">or</span>
+                    <button
+                        onClick={handleLogin}
+                        className="flex items-center gap-3 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-medium border border-zinc-700 transition-colors"
+                    >
+                        <Github className="w-5 h-5" />
+                        Connect GitHub Account
+                    </button>
+                </div>
+
+                {/* Role Selection Tabs */}
+                <div className="flex justify-center mb-8">
+                    <div className="inline-flex p-1 bg-zinc-900 rounded-xl border border-zinc-800">
+                        <button
+                            onClick={() => setActiveTab('contributor')}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${activeTab === 'contributor'
+                                ? 'bg-emerald-500 text-black'
+                                : 'text-zinc-400 hover:text-white'
+                                }`}
+                        >
+                            <Code2 className="w-5 h-5" />
+                            I'm a Contributor
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('maintainer')}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${activeTab === 'maintainer'
+                                ? 'bg-blue-500 text-black'
+                                : 'text-zinc-400 hover:text-white'
+                                }`}
+                        >
+                            <Settings className="w-5 h-5" />
+                            I'm a Maintainer
+                        </button>
                     </div>
                 </div>
+
+                {/* Flow Preview */}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        {activeTab === 'contributor' ? <ContributorFlowPreview /> : <MaintainerFlowPreview />}
+                    </motion.div>
+                </AnimatePresence>
             </div>
         </section>
     );
 };
+
 
 // ============================================
 // MAIN LANDING PAGE COMPONENT
 // ============================================
 
 const LandingPage = () => {
+    const { user, role } = useAuthStore();
     const [email, setEmail] = useState('');
     const [emailSubmitted, setEmailSubmitted] = useState(false);
 
@@ -398,6 +454,10 @@ const LandingPage = () => {
 
     const handleLogin = () => {
         window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/github`;
+    };
+
+    const goToDashboard = () => {
+        window.location.href = '/';
     };
 
     const handleEmailSubmit = (e) => {
@@ -462,10 +522,28 @@ const LandingPage = () => {
                         <a href="#testimonials" onClick={(e) => scrollToSection(e, 'testimonials')} className="text-zinc-400 hover:text-white transition-colors">Reviews</a>
                         <a href="#contribute" onClick={(e) => scrollToSection(e, 'contribute')} className="text-zinc-400 hover:text-white transition-colors">Contribute</a>
                     </nav>
-                    <button onClick={handleLogin} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black rounded-lg font-medium transition-colors">
-                        <Github className="w-4 h-4" />
-                        Sign In
-                    </button>
+                    {user ? (
+                        <div className="flex items-center gap-3">
+                            <img
+                                src={user.avatarUrl || 'https://github.com/ghost.png'}
+                                alt={user.username}
+                                className="w-8 h-8 rounded-full border border-zinc-700"
+                            />
+                            <span className="text-white text-sm font-medium hidden sm:inline">{user.username}</span>
+                            <button
+                                onClick={goToDashboard}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black rounded-lg font-medium transition-colors"
+                            >
+                                <ArrowRight className="w-4 h-4" />
+                                Go to Dashboard
+                            </button>
+                        </div>
+                    ) : (
+                        <button onClick={handleLogin} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black rounded-lg font-medium transition-colors">
+                            <Github className="w-4 h-4" />
+                            Sign In
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -584,9 +662,9 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* Interactive Stepper - How it Works */}
+            {/* Onboarding Tutorial - How it Works */}
             <div id="how-it-works" className="scroll-mt-20">
-                <InteractiveStepper />
+                <OnboardingTutorial />
             </div>
 
             {/* AI Technologies */}
