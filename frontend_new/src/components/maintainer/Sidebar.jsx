@@ -1,4 +1,4 @@
-import { LayoutDashboard, GitPullRequest, LogOut, Settings, Menu, X, Sparkles, User, Plus } from 'lucide-react';
+import { LayoutDashboard, GitPullRequest, LogOut, Settings, Menu, X, Sparkles, User, Plus, Home } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import useAuthStore from '../../stores/authStore';
@@ -15,7 +15,8 @@ const Sidebar = () => {
     { icon: GitPullRequest, label: 'PR Management', path: '/prs' },
     { icon: Sparkles, label: 'Maintainer Hub', path: '/hub' },
     { icon: User, label: 'Profile', path: '/profile' },
-    { icon: Settings, label: 'Settings', path: '/settings' }
+    { icon: Settings, label: 'Settings', path: '/settings' },
+    { icon: Home, label: 'Landing Page', path: '/landing', external: true }
   ];
 
   const handleNavigation = (path) => {
@@ -87,8 +88,8 @@ const Sidebar = () => {
                 data-testid={`nav-${item.label.toLowerCase()}`}
                 onClick={() => handleNavigation(item.path)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors mb-1 ${isActive
-                    ? 'bg-[hsl(217,91%,60%,0.15)] text-[hsl(217,91%,65%)] border border-[hsl(217,91%,60%,0.2)]'
-                    : 'text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,12%)] hover:text-[hsl(210,11%,80%)] border border-transparent'
+                  ? 'bg-[hsl(217,91%,60%,0.15)] text-[hsl(217,91%,65%)] border border-[hsl(217,91%,60%,0.2)]'
+                  : 'text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,12%)] hover:text-[hsl(210,11%,80%)] border border-transparent'
                   }`}
               >
                 <Icon className="w-4.5 h-4.5" />

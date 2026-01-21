@@ -178,254 +178,732 @@ const TestimonialsMarquee = ({ testimonials }) => {
 };
 
 // ============================================
-// ONBOARDING TUTORIAL COMPONENT
+// INTERACTIVE ONBOARDING TUTORIAL COMPONENT
 // ============================================
 
-const OnboardingStepCard = ({ icon: Icon, title, description, color = 'emerald' }) => {
+// Enhanced step indicator with progress connection
+const StepIndicator = ({ icon: Icon, title, color = 'emerald', index, isActive, isCompleted, onClick, isLast }) => {
     const colorClasses = {
-        emerald: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-        blue: 'bg-blue-500/10 border-blue-500/30 text-blue-400',
-        purple: 'bg-purple-500/10 border-purple-500/30 text-purple-400',
-        orange: 'bg-orange-500/10 border-orange-500/30 text-orange-400',
-        pink: 'bg-pink-500/10 border-pink-500/30 text-pink-400',
-        cyan: 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400',
+        emerald: { bg: 'bg-emerald-500', ring: 'ring-emerald-500/30', text: 'text-emerald-400' },
+        blue: { bg: 'bg-blue-500', ring: 'ring-blue-500/30', text: 'text-blue-400' },
+        purple: { bg: 'bg-purple-500', ring: 'ring-purple-500/30', text: 'text-purple-400' },
+        orange: { bg: 'bg-orange-500', ring: 'ring-orange-500/30', text: 'text-orange-400' },
+        pink: { bg: 'bg-pink-500', ring: 'ring-pink-500/30', text: 'text-pink-400' },
+        cyan: { bg: 'bg-cyan-500', ring: 'ring-cyan-500/30', text: 'text-cyan-400' },
     };
 
+    const c = colorClasses[color];
+
     return (
-        <div className="group p-5 bg-zinc-900/50 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-all">
-            <div className={`w-12 h-12 mb-4 rounded-xl flex items-center justify-center ${colorClasses[color]} border`}>
-                <Icon className="w-6 h-6" />
-            </div>
-            <h4 className="text-white font-semibold mb-2">{title}</h4>
-            <p className="text-sm text-zinc-400 leading-relaxed">{description}</p>
+        <div className="flex items-center">
+            <motion.button
+                onClick={onClick}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex flex-col items-center gap-2 relative"
+            >
+                {/* Step circle */}
+                <div className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${isActive
+                    ? `${c.bg} ring-4 ${c.ring} shadow-lg`
+                    : isCompleted
+                        ? `${c.bg} opacity-80`
+                        : 'bg-zinc-800 border-2 border-zinc-700'
+                    }`}>
+                    <Icon className={`w-6 h-6 ${isActive || isCompleted ? 'text-black' : c.text}`} />
+                    {isActive && (
+                        <motion.div
+                            className={`absolute inset-0 rounded-full ${c.bg} opacity-30`}
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                        />
+                    )}
+                </div>
+                {/* Label */}
+                <div className="text-center w-20">
+                    <div className={`text-xs font-semibold ${isActive ? 'text-white' : isCompleted ? c.text : 'text-zinc-500'}`}>
+                        {title}
+                    </div>
+                </div>
+            </motion.button>
+
+            {/* Connection line */}
+            {!isLast && (
+                <div className="w-8 h-0.5 mx-1 relative -top-3">
+                    <div className="absolute inset-0 bg-zinc-700 rounded-full" />
+                    <motion.div
+                        className={`absolute inset-0 ${c.bg} rounded-full origin-left`}
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: isCompleted ? 1 : 0 }}
+                        transition={{ duration: 0.3 }}
+                    />
+                </div>
+            )}
         </div>
     );
 };
 
-const ContributorFlowPreview = () => (
-    <div className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-4">
-            <OnboardingStepCard
-                icon={Github}
-                title="Sign Up & Connect GitHub"
-                description="Start by connecting your GitHub account. We'll securely authenticate you via OAuth."
-                color="emerald"
-            />
-            <OnboardingStepCard
-                icon={Link}
-                title="Add Repository"
-                description="Paste any GitHub repo link to explore projects. Find open source projects that match your skills."
-                color="blue"
-            />
-            <OnboardingStepCard
-                icon={Search}
-                title="Browse & Claim Issues"
-                description="Discover issues tagged for contributors. Click on any issue you'd like to tackle."
-                color="purple"
-            />
-            <OnboardingStepCard
-                icon={Bot}
-                title="Write with AI Assistance"
-                description="Get AI-powered recommendations for your responses. Let AI help you craft better solutions."
-                color="orange"
-            />
-            <OnboardingStepCard
-                icon={MessageCircle}
-                title="AI Project Chatbot"
-                description="Use our AI assistant to analyze the codebase, understand project structure, and ask questions."
-                color="cyan"
-            />
-            <OnboardingStepCard
-                icon={Trophy}
-                title="Earn Badges"
-                description="Track your contributions and unlock achievements. Build your open source reputation."
-                color="pink"
-            />
-        </div>
 
-        {/* Interactive Demo Preview */}
-        <div className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
-            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">Live Preview</div>
-            <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                        <Target className="w-5 h-5 text-emerald-400" />
+// Typing animation component
+const TypewriterText = ({ text, delay = 0 }) => {
+    const [displayText, setDisplayText] = useState('');
+    const [started, setStarted] = useState(false);
+
+    useEffect(() => {
+        const startTimer = setTimeout(() => setStarted(true), delay);
+        return () => clearTimeout(startTimer);
+    }, [delay]);
+
+    useEffect(() => {
+        if (!started) return;
+        let currentIndex = 0;
+        const interval = setInterval(() => {
+            if (currentIndex <= text.length) {
+                setDisplayText(text.slice(0, currentIndex));
+                currentIndex++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 30);
+        return () => clearInterval(interval);
+    }, [text, started]);
+
+    return (
+        <span>
+            {displayText}
+            {displayText.length < text.length && started && (
+                <span className="inline-block w-2 h-4 bg-emerald-400 ml-0.5 animate-pulse" />
+            )}
+        </span>
+    );
+};
+
+// Confetti celebration component
+const Confetti = ({ show }) => {
+    const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
+
+    if (!show) return null;
+
+    return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
+            {Array.from({ length: 50 }).map((_, i) => (
+                <motion.div
+                    key={i}
+                    initial={{
+                        opacity: 1,
+                        y: -20,
+                        x: `${Math.random() * 100}%`,
+                        rotate: 0,
+                        scale: Math.random() * 0.5 + 0.5
+                    }}
+                    animate={{
+                        opacity: 0,
+                        y: '100vh',
+                        rotate: Math.random() * 720 - 360,
+                    }}
+                    transition={{
+                        duration: Math.random() * 2 + 2,
+                        delay: Math.random() * 0.5,
+                        ease: 'easeOut'
+                    }}
+                    className="absolute w-3 h-3 rounded-sm"
+                    style={{ backgroundColor: colors[i % colors.length] }}
+                />
+            ))}
+        </div>
+    );
+};
+
+// Interactive Demo Simulation
+const InteractiveDemo = ({ role, step }) => {
+    const contributorSteps = [
+        {
+            content: (
+                <div className="space-y-4">
+                    <div className="text-center">
+                        <motion.div
+                            animate={{ scale: [1, 1.05, 1] }}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                            className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center"
+                        >
+                            <Github className="w-10 h-10 text-black" />
+                        </motion.div>
+                        <h4 className="text-white font-semibold mb-2">Connect Your GitHub</h4>
+                        <p className="text-zinc-400 text-sm mb-4">One-click secure authentication</p>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="px-6 py-3 bg-white text-black font-semibold rounded-xl flex items-center gap-2 mx-auto"
+                        >
+                            <Github className="w-5 h-5" />
+                            Authorize OpenTriage
+                        </motion.button>
                     </div>
-                    <div className="flex-1">
-                        <div className="text-white text-sm font-medium">Issue: Add dark mode toggle</div>
-                        <div className="text-zinc-500 text-xs">react-components/ui-toolkit#42 · good first issue</div>
-                    </div>
-                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-full border border-emerald-500/30">
-                        Claim Issue
-                    </span>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
-                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                        <Bot className="w-5 h-5 text-blue-400" />
+            )
+        },
+        {
+            content: (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 p-3 bg-zinc-800 rounded-lg border border-zinc-700">
+                        <Link className="w-5 h-5 text-zinc-400" />
+                        <span className="text-zinc-300"><TypewriterText text="https://github.com/facebook/react" /></span>
                     </div>
-                    <div className="flex-1">
-                        <div className="text-white text-sm font-medium mb-2">AI Suggestion</div>
-                        <div className="text-zinc-400 text-sm">"Consider using CSS custom properties for theme switching. Check `ThemeContext.jsx` for existing patterns."</div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 1.5 }}
+                        className="flex items-center gap-3 p-4 bg-zinc-800/50 rounded-xl border border-emerald-500/30"
+                    >
+                        <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                            <FolderPlus className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="text-white font-semibold">facebook/react</div>
+                            <div className="text-zinc-400 text-sm">A JavaScript library for building UIs</div>
+                        </div>
+                        <motion.div
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                            className="px-4 py-2 bg-emerald-500 text-black font-semibold rounded-lg"
+                        >
+                            Add Project
+                        </motion.div>
+                    </motion.div>
+                </div>
+            )
+        },
+        {
+            content: (
+                <div className="space-y-3">
+                    {[
+                        { title: 'Fix memory leak in useEffect', labels: ['bug', 'good first issue'], comments: 12 },
+                        { title: 'Add TypeScript types for hooks', labels: ['enhancement', 'help wanted'], comments: 8 },
+                        { title: 'Update docs for Suspense', labels: ['documentation'], comments: 3 },
+                    ].map((issue, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.2 }}
+                            whileHover={{ x: 5, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
+                            className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50 cursor-pointer transition-all"
+                        >
+                            <div className={`w-3 h-3 rounded-full ${i === 0 ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+                            <div className="flex-1">
+                                <div className="text-white text-sm font-medium">{issue.title}</div>
+                                <div className="flex gap-2 mt-1">
+                                    {issue.labels.map((label, j) => (
+                                        <span key={j} className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">
+                                            {label}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="text-zinc-500 text-sm flex items-center gap-1">
+                                <MessageSquare className="w-4 h-4" /> {issue.comments}
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            )
+        },
+        {
+            content: (
+                <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                            <Bot className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 p-4 bg-zinc-800/80 rounded-2xl rounded-tl-none">
+                            <div className="text-zinc-300 text-sm">
+                                <TypewriterText text="I've analyzed the codebase. The memory leak occurs in the cleanup function. Here's a suggested fix..." delay={500} />
+                            </div>
+                        </div>
+                    </div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 2.5 }}
+                        className="ml-11 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/30"
+                    >
+                        <div className="text-xs text-emerald-400 mb-2">AI Suggested Code</div>
+                        <code className="text-sm text-zinc-300 font-mono block">
+                            useEffect(() =&gt; {'{'}<br />
+                            &nbsp;&nbsp;const sub = subscribe();<br />
+                            &nbsp;&nbsp;return () =&gt; sub.cleanup();<br />
+                            {'}'}, [deps]);
+                        </code>
+                    </motion.div>
+                </div>
+            )
+        },
+        {
+            content: (
+                <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
+                            <User className="w-4 h-4 text-zinc-300" />
+                        </div>
+                        <div className="p-3 bg-zinc-700/50 rounded-2xl rounded-tl-none">
+                            <p className="text-zinc-200 text-sm">How does the reconciler work?</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                            <Sparkles className="w-4 h-4 text-white" />
+                        </div>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex-1 p-4 bg-zinc-800/80 rounded-2xl rounded-tl-none border border-purple-500/20"
+                        >
+                            <div className="text-zinc-300 text-sm leading-relaxed">
+                                <TypewriterText text="React's reconciliation uses a 'diffing' algorithm to compare Virtual DOM trees. It updates only changed elements for optimal performance!" delay={300} />
+                            </div>
+                        </motion.div>
                     </div>
                 </div>
+            )
+        },
+        {
+            content: (
+                <div className="text-center">
+                    <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: 'spring', damping: 10 }}
+                        className="relative inline-block mb-4"
+                    >
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 flex items-center justify-center">
+                            <Trophy className="w-12 h-12 text-white" />
+                        </div>
+                        <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ repeat: Infinity, duration: 1 }}
+                            className="absolute -top-1 -right-1 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-black font-bold text-sm"
+                        >
+                            +1
+                        </motion.div>
+                    </motion.div>
+                    <h4 className="text-white font-bold text-lg mb-1">First Contribution!</h4>
+                    <p className="text-zinc-400 text-sm mb-4">You earned your first badge</p>
+                    <div className="flex gap-3 justify-center flex-wrap">
+                        {['3 day streak', '150 XP', 'Level 2'].map((stat, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.5 + i * 0.1 }}
+                                className="px-3 py-2 bg-zinc-800 rounded-lg text-sm text-white"
+                            >
+                                {stat}
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            )
+        }
+    ];
+
+    const maintainerSteps = [
+        contributorSteps[0],
+        {
+            content: (
+                <div className="space-y-3">
+                    <div className="text-xs text-zinc-500 mb-2">Syncing your repositories...</div>
+                    {['awesome-project', 'react-toolkit', 'node-api'].map((repo, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.3 }}
+                            className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50"
+                        >
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ delay: i * 0.3 + 0.2, type: 'spring' }}
+                                className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center"
+                            >
+                                <FolderPlus className="w-5 h-5 text-blue-400" />
+                            </motion.div>
+                            <div className="flex-1">
+                                <div className="text-white font-medium">{repo}</div>
+                                <div className="text-zinc-500 text-xs">{Math.floor(Math.random() * 50 + 10)} open issues</div>
+                            </div>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: i * 0.3 + 0.4 }}
+                            >
+                                <Check className="w-5 h-5 text-emerald-400" />
+                            </motion.div>
+                        </motion.div>
+                    ))}
+                </div>
+            )
+        },
+        {
+            content: (
+                <div className="p-4 bg-zinc-800/50 rounded-xl border border-purple-500/30">
+                    <div className="flex items-center gap-3 mb-4">
+                        <GitPullRequest className="w-6 h-6 text-purple-400" />
+                        <div>
+                            <div className="text-white font-semibold">#127 – Add dark mode</div>
+                            <div className="text-zinc-400 text-xs">+312 -45 • 8 files</div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        {[
+                            { label: 'Quality', value: 92, color: '#10b981' },
+                            { label: 'Tests', value: 85, color: '#3b82f6' },
+                            { label: 'Security', value: 100, color: '#8b5cf6' },
+                        ].map((metric, i) => (
+                            <div key={i} className="text-center">
+                                <div className="h-2 bg-zinc-700 rounded-full overflow-hidden mb-2">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${metric.value}%` }}
+                                        transition={{ delay: i * 0.2 + 0.3, duration: 0.8 }}
+                                        className="h-full"
+                                        style={{ backgroundColor: metric.color }}
+                                    />
+                                </div>
+                                <div className="text-zinc-400 text-xs">{metric.label}</div>
+                                <div className="text-white font-semibold">{metric.value}%</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )
+        },
+        {
+            content: (
+                <div className="p-4 bg-gradient-to-br from-orange-500/10 to-yellow-500/10 rounded-xl border border-orange-500/30">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Sparkles className="w-5 h-5 text-orange-400" />
+                        <span className="text-orange-400 font-semibold text-sm">AI Summary</span>
+                    </div>
+                    <div className="text-zinc-200 text-sm leading-relaxed">
+                        <TypewriterText text="This PR implements dark mode using CSS variables and React Context. All tests pass. Ready for review!" delay={300} />
+                    </div>
+                </div>
+            )
+        },
+        {
+            content: (
+                <div className="space-y-3">
+                    <div className="text-xs text-zinc-500 mb-2">Quick Response Templates</div>
+                    {[
+                        { icon: Check, label: 'LGTM', text: 'Looks good! Great work.' },
+                        { icon: Settings, label: 'Minor Changes', text: 'Just a few tweaks needed.' },
+                        { icon: FileText, label: 'Need Tests', text: 'Please add tests.' },
+                    ].map((template, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.15 }}
+                            whileHover={{ scale: 1.02, x: 5 }}
+                            className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50 cursor-pointer hover:border-cyan-500/30 transition-all"
+                        >
+                            <template.icon className="w-5 h-5 text-cyan-400" />
+                            <div className="flex-1">
+                                <div className="text-white text-sm font-medium">{template.label}</div>
+                                <div className="text-zinc-400 text-xs">{template.text}</div>
+                            </div>
+                            <Send className="w-4 h-4 text-zinc-500" />
+                        </motion.div>
+                    ))}
+                </div>
+            )
+        },
+        {
+            content: (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
+                                <User className="w-5 h-5 text-black" />
+                            </div>
+                            <div>
+                                <div className="text-white font-medium">Alex Chen</div>
+                                <div className="text-emerald-400 text-xs">3 PRs merged</div>
+                            </div>
+                        </div>
+                        <motion.span
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ repeat: Infinity, duration: 1.5 }}
+                            className="px-3 py-1 bg-emerald-500 text-black text-xs font-bold rounded-full"
+                        >
+                            Top Contributor
+                        </motion.span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                        {[{ value: '24', label: 'Open PRs' }, { value: '156', label: 'This month' }, { value: '98%', label: 'Response' }].map((stat, i) => (
+                            <div key={i} className="p-3 bg-zinc-800/50 rounded-lg">
+                                <div className="text-white font-bold text-xl">{stat.value}</div>
+                                <div className="text-zinc-400 text-xs">{stat.label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )
+        }
+    ];
+
+    const steps = role === 'contributor' ? contributorSteps : maintainerSteps;
+
+    return (
+        <div className="relative min-h-[350px] bg-zinc-900/70 rounded-2xl p-6 border border-zinc-800 overflow-hidden">
+            <motion.div
+                animate={{
+                    background: [
+                        'radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%)',
+                        'radial-gradient(circle at 80% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)',
+                        'radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%)',
+                    ]
+                }}
+                transition={{ duration: 6, repeat: Infinity }}
+                className="absolute inset-0 pointer-events-none"
+            />
+
+            <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="text-xs text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                        <Play className="w-4 h-4 text-emerald-400" />
+                        Interactive Demo
+                    </div>
+                    <div className="text-xs text-zinc-500">Step {step + 1} / {steps.length}</div>
+                </div>
+
+                <div className="h-1 bg-zinc-800 rounded-full mb-6 overflow-hidden">
+                    <motion.div
+                        className="h-full bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
+                        transition={{ duration: 0.5 }}
+                    />
+                </div>
+
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={`${role}-${step}`}
+                        initial={{ opacity: 0, x: 30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -30 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        {steps[step]?.content}
+                    </motion.div>
+                </AnimatePresence>
             </div>
         </div>
-    </div>
-);
-
-const MaintainerFlowPreview = () => (
-    <div className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-4">
-            <OnboardingStepCard
-                icon={Github}
-                title="Sign Up & Connect GitHub"
-                description="Connect your GitHub account to access your repositories with secure OAuth."
-                color="emerald"
-            />
-            <OnboardingStepCard
-                icon={FolderPlus}
-                title="Fetch Your Repositories"
-                description="Import the repos you maintain. OpenTriage will sync with your GitHub data automatically."
-                color="blue"
-            />
-            <OnboardingStepCard
-                icon={GitPullRequest}
-                title="Analyze PRs"
-                description="Use AI-powered PR management tools to review and organize pull requests efficiently."
-                color="purple"
-            />
-            <OnboardingStepCard
-                icon={FileText}
-                title="AI PR Summaries"
-                description="Get instant AI-generated summaries for each PR. Understand changes at a glance."
-                color="orange"
-            />
-            <OnboardingStepCard
-                icon={Send}
-                title="Rapid Reply Templates"
-                description="Create and use prebuild response templates for common PR feedback scenarios."
-                color="cyan"
-            />
-            <OnboardingStepCard
-                icon={Users}
-                title="Manage Contributors"
-                description="Assign issues, label PRs, and organize contributions with smart automation."
-                color="pink"
-            />
-        </div>
-
-        {/* Interactive Demo Preview */}
-        <div className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
-            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-4">Live Preview</div>
-            <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
-                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                        <GitPullRequest className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div className="flex-1">
-                        <div className="text-white text-sm font-medium">PR: Add OAuth2 support</div>
-                        <div className="text-zinc-500 text-xs">+245 -12 · 3 files changed</div>
-                    </div>
-                    <div className="flex gap-2">
-                        <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs rounded-full">+8 score</span>
-                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full">ready</span>
-                    </div>
-                </div>
-                <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
-                    <div className="text-xs text-zinc-500 mb-2">AI Summary</div>
-                    <div className="text-zinc-300 text-sm">"Adds OAuth2 authentication flow with Google and GitHub providers. Includes token refresh logic and secure storage."</div>
-                </div>
-                <div className="flex gap-2">
-                    <button className="flex-1 px-4 py-2 bg-emerald-500/20 text-emerald-400 text-sm rounded-lg border border-emerald-500/30 hover:bg-emerald-500/30 transition-colors">
-                        ✓ Approve & Merge
-                    </button>
-                    <button className="flex-1 px-4 py-2 bg-zinc-700/50 text-zinc-300 text-sm rounded-lg border border-zinc-600 hover:bg-zinc-700 transition-colors">
-                        Request Changes
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-);
+    );
+};
 
 const OnboardingTutorial = () => {
     const [activeTab, setActiveTab] = useState('contributor');
+    const [activeStep, setActiveStep] = useState(0);
+    const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+    const [showConfetti, setShowConfetti] = useState(false);
+
+    const contributorSteps = [
+        { icon: Github, title: 'Connect GitHub', description: 'Sign in securely with OAuth', color: 'emerald' },
+        { icon: Link, title: 'Add Repository', description: 'Paste a repo link to explore', color: 'blue' },
+        { icon: Search, title: 'Browse Issues', description: 'Find issues to contribute to', color: 'purple' },
+        { icon: Bot, title: 'AI Assistance', description: 'Get smart code suggestions', color: 'orange' },
+        { icon: MessageCircle, title: 'Project Chat', description: 'Ask questions about the code', color: 'cyan' },
+        { icon: Trophy, title: 'Earn Badges', description: 'Track your achievements', color: 'pink' },
+    ];
+
+    const maintainerSteps = [
+        { icon: Github, title: 'Connect GitHub', description: 'Sign in securely with OAuth', color: 'emerald' },
+        { icon: FolderPlus, title: 'Sync Repos', description: 'Import your repositories', color: 'blue' },
+        { icon: GitPullRequest, title: 'Analyze PRs', description: 'AI-powered PR analysis', color: 'purple' },
+        { icon: FileText, title: 'PR Summaries', description: 'Instant AI summaries', color: 'orange' },
+        { icon: Send, title: 'Quick Replies', description: 'Template responses', color: 'cyan' },
+        { icon: Users, title: 'Manage Team', description: 'Organize contributors', color: 'pink' },
+    ];
+
+    const steps = activeTab === 'contributor' ? contributorSteps : maintainerSteps;
+
+    useEffect(() => {
+        if (isAutoPlaying) {
+            const timer = setTimeout(() => {
+                if (activeStep < steps.length - 1) {
+                    setActiveStep(prev => prev + 1);
+                } else {
+                    setIsAutoPlaying(false);
+                    setShowConfetti(true);
+                    setTimeout(() => setShowConfetti(false), 3000);
+                }
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [isAutoPlaying, activeStep, steps.length]);
+
+    useEffect(() => {
+        setActiveStep(0);
+        setIsAutoPlaying(false);
+    }, [activeTab]);
 
     const handleLogin = () => {
         window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/github`;
     };
 
     return (
-        <section className="py-24 px-4 bg-[#09090b]">
-            <div className="max-w-6xl mx-auto">
+        <section className="py-24 px-4 bg-[#09090b] relative overflow-hidden">
+            <Confetti show={showConfetti} />
+
+            <div className="absolute inset-0 pointer-events-none">
+                {Array.from({ length: 15 }).map((_, i) => (
+                    <motion.div
+                        key={i}
+                        className="absolute w-1 h-1 bg-emerald-500/30 rounded-full"
+                        style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
+                        animate={{
+                            y: [0, -100, 0],
+                            opacity: [0.3, 0.6, 0.3]
+                        }}
+                        transition={{
+                            duration: Math.random() * 8 + 6,
+                            repeat: Infinity,
+                            delay: Math.random() * 3
+                        }}
+                    />
+                ))}
+            </div>
+
+            <div className="max-w-6xl mx-auto relative z-10">
                 <SectionTitle
-                    badge="GET STARTED"
+                    badge="INTERACTIVE TUTORIAL"
                     badgeColor="green"
-                    title="Your Journey Starts Here"
-                    subtitle="Choose your path and discover how OpenTriage can transform your open source workflow"
+                    title="Experience OpenTriage"
+                    subtitle="Try our interactive demo — click through or auto-play!"
                 />
 
-                {/* Initial CTA */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-                    <button
+                    <motion.button
                         onClick={handleLogin}
-                        className="flex items-center gap-3 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-black rounded-xl font-semibold transition-colors"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black rounded-xl font-semibold shadow-lg shadow-emerald-500/20"
                     >
                         <Github className="w-5 h-5" />
-                        Sign Up to OpenTriage
-                    </button>
-                    <span className="text-zinc-500">or</span>
-                    <button
-                        onClick={handleLogin}
-                        className="flex items-center gap-3 px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-medium border border-zinc-700 transition-colors"
-                    >
-                        <Github className="w-5 h-5" />
-                        Connect GitHub Account
-                    </button>
+                        Start Contributing Now
+                        <ArrowRight className="w-5 h-5" />
+                    </motion.button>
                 </div>
 
-                {/* Role Selection Tabs */}
                 <div className="flex justify-center mb-8">
-                    <div className="inline-flex p-1 bg-zinc-900 rounded-xl border border-zinc-800">
-                        <button
+                    <div className="inline-flex p-1.5 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800">
+                        <motion.button
                             onClick={() => setActiveTab('contributor')}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${activeTab === 'contributor'
-                                ? 'bg-emerald-500 text-black'
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'contributor'
+                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-black shadow-lg shadow-emerald-500/30'
                                 : 'text-zinc-400 hover:text-white'
                                 }`}
                         >
                             <Code2 className="w-5 h-5" />
-                            I'm a Contributor
-                        </button>
-                        <button
+                            Contributor
+                        </motion.button>
+                        <motion.button
                             onClick={() => setActiveTab('maintainer')}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${activeTab === 'maintainer'
-                                ? 'bg-blue-500 text-black'
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'maintainer'
+                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-black shadow-lg shadow-blue-500/30'
                                 : 'text-zinc-400 hover:text-white'
                                 }`}
                         >
                             <Settings className="w-5 h-5" />
-                            I'm a Maintainer
-                        </button>
+                            Maintainer
+                        </motion.button>
                     </div>
                 </div>
 
-                {/* Flow Preview */}
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={activeTab}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        {activeTab === 'contributor' ? <ContributorFlowPreview /> : <MaintainerFlowPreview />}
-                    </motion.div>
-                </AnimatePresence>
+                {/* Horizontal Stepper */}
+                <div className="mb-10">
+                    {/* Progress bar */}
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span className="text-zinc-400 text-sm">Step {activeStep + 1} of {steps.length}</span>
+                        </div>
+                        <motion.button
+                            onClick={() => { setActiveStep(0); setIsAutoPlaying(true); }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isAutoPlaying
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                                }`}
+                        >
+                            <Play className="w-4 h-4" />
+                            {isAutoPlaying ? 'Playing...' : 'Auto Play'}
+                        </motion.button>
+                    </div>
+
+                    {/* Steps Row - Centered */}
+                    <div className="flex justify-center gap-0 overflow-x-auto pb-4 scrollbar-hide">
+                        {steps.map((step, idx) => (
+                            <StepIndicator
+                                key={idx}
+                                {...step}
+                                index={idx}
+                                isActive={activeStep === idx}
+                                isCompleted={activeStep > idx}
+                                isLast={idx === steps.length - 1}
+                                onClick={() => { setActiveStep(idx); setIsAutoPlaying(false); }}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Demo Panel */}
+                <div className="max-w-3xl mx-auto">
+                    <InteractiveDemo role={activeTab} step={activeStep} />
+
+                    <div className="flex gap-3 mt-4">
+                        <motion.button
+                            onClick={() => setActiveStep(prev => Math.max(0, prev - 1))}
+                            disabled={activeStep === 0}
+                            whileHover={{ scale: activeStep === 0 ? 1 : 1.05 }}
+                            whileTap={{ scale: activeStep === 0 ? 1 : 0.95 }}
+                            className="flex-1 py-3 bg-zinc-800 text-zinc-300 rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-700 transition-all"
+                        >
+                            Previous
+                        </motion.button>
+                        <motion.button
+                            onClick={() => {
+                                if (activeStep === steps.length - 1) {
+                                    setShowConfetti(true);
+                                    setTimeout(() => setShowConfetti(false), 3000);
+                                } else {
+                                    setActiveStep(prev => Math.min(steps.length - 1, prev + 1));
+                                }
+                            }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className={`flex-1 py-3 rounded-xl font-medium transition-all ${activeStep === steps.length - 1
+                                ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-black'
+                                : 'bg-emerald-500 text-black hover:bg-emerald-400'
+                                }`}
+                        >
+                            {activeStep === steps.length - 1 ? 'Complete' : 'Next'}
+                        </motion.button>
+                    </div>
+                </div>
             </div>
         </section>
     );
 };
+
+
+
 
 
 // ============================================

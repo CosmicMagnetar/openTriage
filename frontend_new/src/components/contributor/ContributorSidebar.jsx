@@ -1,4 +1,4 @@
-import { FileText, LogOut, BarChart3, Settings, Menu, X, User, MessageSquare, TrendingUp, Building2 } from 'lucide-react';
+import { FileText, LogOut, BarChart3, Settings, Menu, X, User, MessageSquare, TrendingUp, Building2, Home } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import useAuthStore from '../../stores/authStore';
@@ -40,7 +40,8 @@ const ContributorSidebar = () => {
     { icon: MessageSquare, label: 'Messages', path: '/messages', badge: unreadCount },
     { icon: User, label: 'Profile', path: '/profile' },
     { icon: BarChart3, label: 'Metrics', path: '/metrics' },
-    { icon: Settings, label: 'Settings', path: '/settings' }
+    { icon: Settings, label: 'Settings', path: '/settings' },
+    { icon: Home, label: 'Landing Page', path: '/landing', external: true }
   ];
 
   const handleNavigation = (path) => {
