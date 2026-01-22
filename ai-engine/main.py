@@ -10,8 +10,11 @@ Designed for Hugging Face Spaces deployment.
 import logging
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+
+# Import authentication middleware
+from middleware import require_api_key_or_auth, get_optional_user
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
@@ -167,11 +170,12 @@ async def root():
 # =============================================================================
 
 @app.post("/triage")
-async def triage_issue(request: TriageRequest):
+async def triage_issue(request: TriageRequest, auth: dict = Depends(require_api_key_or_auth)):
     """
     Classify and triage a GitHub issue using AI.
     
     Passes directly to ai_triage_service.classify_issue()
+    Requires authentication (API key or JWT token).
     """
     try:
         # Create Issue object matching the original service expectation
@@ -199,11 +203,12 @@ async def triage_issue(request: TriageRequest):
 # =============================================================================
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest, auth: dict = Depends(require_api_key_or_auth)):
     """
     AI chat endpoint for general assistance.
     
     Passes directly to ai_chat_service.chat()
+    Requires authentication (API key or JWT token).
     """
     try:
         response = await ai_chat_service.chat(
@@ -222,11 +227,12 @@ async def chat(request: ChatRequest):
 # =============================================================================
 
 @app.post("/rag/chat")
-async def rag_chat(request: RAGChatRequest):
+async def rag_chat(request: RAGChatRequest, auth: dict = Depends(require_api_key_or_auth)):
     """
     Answer questions using RAG (Retrieval-Augmented Generation).
     
     Passes directly to rag_chatbot_service.answer_question()
+    Requires authentication.
     """
     try:
         result = await rag_chatbot_service.answer_question(
@@ -242,11 +248,12 @@ async def rag_chat(request: RAGChatRequest):
 
 
 @app.post("/rag/index")
-async def rag_index(request: RAGIndexRequest):
+async def rag_index(request: RAGIndexRequest, auth: dict = Depends(require_api_key_or_auth)):
     """
     Index a repository for RAG search.
     
     Passes directly to rag_chatbot_service.index_repository()
+    Requires authentication.
     """
     try:
         result = await rag_chatbot_service.index_repository(
@@ -275,11 +282,12 @@ async def rag_suggestions(repo_name: Optional[str] = None):
 # =============================================================================
 
 @app.post("/mentor-match")
-async def mentor_match(request: MentorMatchRequest):
+async def mentor_match(request: MentorMatchRequest, auth: dict = Depends(require_api_key_or_auth)):
     """
     Find mentor matches for a user.
     
     Passes directly to mentor_matching_service.find_mentors_for_user()
+    Requires authentication.
     """
     try:
         matches = mentor_matching_service.find_mentors_for_user(
@@ -299,11 +307,12 @@ async def mentor_match(request: MentorMatchRequest):
 # =============================================================================
 
 @app.post("/hype")
-async def generate_hype(request: HypeRequest):
+async def generate_hype(request: HypeRequest, auth: dict = Depends(require_api_key_or_auth)):
     """
     Generate hype/celebration message for a PR.
     
     Passes directly to hype_generator_service.generate_hype()
+    Requires authentication.
     """
     try:
         result = hype_generator_service.generate_hype(
