@@ -49,7 +49,10 @@ const Sidebar = () => {
           }`}
       >
         {/* Logo Section - Well framed */}
-        <button className="p-5 border-b border-[hsl(220,13%,14%)]" onClick={() => handleNavigation('/landing')}>
+        <button className="p-5 border-b border-[hsl(220,13%,14%)]" onClick={() => {
+          handleNavigation('/landing');
+          setIsMobileMenuOpen(false);
+        }}>
           <div className="flex items-center gap-3">
             <Logo size="sm" />
             <div>
