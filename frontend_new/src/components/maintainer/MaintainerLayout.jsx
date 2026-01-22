@@ -9,6 +9,7 @@ import ProfilePage from '../contributor/ProfilePage';
 import Settings from '../Settings';
 import IssueDetailPanel from './IssueDetailPanel';
 import AIChat from './AIChat';
+import LandingPage from '../LandingPage';
 import useIssueStore from '../../stores/issueStore';
 
 const MaintainerLayout = () => {
@@ -28,6 +29,7 @@ const MaintainerLayout = () => {
           <Route path="/hub" element={<MaintainerPortal />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
       </div>
