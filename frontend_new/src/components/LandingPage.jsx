@@ -935,7 +935,7 @@ const LandingPage = () => {
     };
 
     const goToDashboard = () => {
-        window.location.href = '/';
+        window.location.href = '/dashboard';
     };
 
     const handleEmailSubmit = (e) => {
