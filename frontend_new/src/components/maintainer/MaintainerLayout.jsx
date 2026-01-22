@@ -9,7 +9,6 @@ import ProfilePage from '../contributor/ProfilePage';
 import Settings from '../Settings';
 import IssueDetailPanel from './IssueDetailPanel';
 import AIChat from './AIChat';
-import LandingPage from '../LandingPage';
 import useIssueStore from '../../stores/issueStore';
 
 const MaintainerLayout = () => {
@@ -25,11 +24,10 @@ const MaintainerLayout = () => {
       <div className="flex-1 overflow-hidden">
         <Routes>
           <Route path="/" element={<DashboardPage />} />
-          <Route path="/prs" element={<PRManagementPage />} />
-          <Route path="/hub" element={<MaintainerPortal />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/landing" element={<LandingPage />} />
+          <Route path="prs" element={<PRManagementPage />} />
+          <Route path="hub" element={<MaintainerPortal />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
       </div>

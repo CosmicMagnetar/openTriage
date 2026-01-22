@@ -63,10 +63,10 @@ const ContributorLayout = () => {
         <div className="flex-1 overflow-hidden">
           <Routes>
             <Route path="/" element={<MyIssuesDashboard />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/messages" element={<MessagesPage />} />
-            <Route path="/metrics" element={<ContributorMetrics />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="messages" element={<MessagesPage />} />
+            <Route path="metrics" element={<ContributorMetrics />} />
+            <Route path="settings" element={<Settings />} />
             <Route path="*" element={<MyIssuesDashboard />} />
           </Routes>
         </div>
@@ -81,8 +81,8 @@ const ContributorLayout = () => {
           data-testid="ai-chat-button"
           onClick={toggleAIChat}
           className={`fixed bottom-6 right-6 z-[60] p-4 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 ${showAIChat
-              ? 'bg-[hsl(220,13%,15%)] text-[hsl(210,11%,60%)]'
-              : 'bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black'
+            ? 'bg-[hsl(220,13%,15%)] text-[hsl(210,11%,60%)]'
+            : 'bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black'
             }`}
         >
           <Bot className="w-6 h-6" />
