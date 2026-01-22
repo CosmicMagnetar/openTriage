@@ -49,7 +49,7 @@ const Sidebar = () => {
           }`}
       >
         {/* Logo Section - Well framed */}
-        <nav className="p-5 border-b border-[hsl(220,13%,14%)]" onClick={() => handleNavigation('/landing')}>
+        <button className="p-5 border-b border-[hsl(220,13%,14%)]" onClick={() => handleNavigation('/landing')}>
           <div className="flex items-center gap-3">
             <Logo size="sm" />
             <div>
@@ -57,7 +57,7 @@ const Sidebar = () => {
               <p className="text-[10px] text-[hsl(217,91%,60%)] font-medium">Maintainer</p>
             </div>
           </div>
-        </nav>
+        </button>
 
         {/* User Info - Card style */}
         <div className="px-4 py-4 border-b border-[hsl(220,13%,14%)]">
