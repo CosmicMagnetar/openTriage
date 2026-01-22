@@ -224,25 +224,25 @@ const MyIssuesDashboard = () => {
             <button
               data-testid="opportunities-button"
               onClick={() => setShowOpportunities(true)}
-              className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
+              className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
             >
-              <TrendingUp className="w-5 h-5" />
+              <TrendingUp className="w-4 h-4" />
               Opportunities
             </button>
             <button
               data-testid="organizations-button"
               onClick={() => setShowOrganizations(true)}
-              className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,55%)] text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
+              className="bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,55%)] text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
             >
-              <Building2 className="w-5 h-5" />
+              <Building2 className="w-4 h-4" />
               Organizations
             </button>
             <button
               data-testid="track-repo-button"
               onClick={() => setShowTrackRepo(true)}
-              className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
+              className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all duration-300 active:scale-[0.98]"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
               Track Repo
             </button>
 

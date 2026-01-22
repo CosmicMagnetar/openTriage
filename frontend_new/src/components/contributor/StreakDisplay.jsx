@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { gamificationApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 
-// Generate years for selector (current and 2 previous)
+// Generate years for selector (current and 4 previous for better historical view)
 const currentYear = new Date().getFullYear();
-const YEARS = [currentYear, currentYear - 1, currentYear - 2];
+const YEARS = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4];
 
 const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
     const { user } = useAuthStore();

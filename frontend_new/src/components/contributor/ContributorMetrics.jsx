@@ -1,22 +1,30 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { TrendingUp, GitPullRequest, AlertCircle, CheckCircle, GitBranch, Calendar, Award } from 'lucide-react';
+import { TrendingUp, GitPullRequest, AlertCircle, CheckCircle, GitBranch, Calendar, Award, Star, Users } from 'lucide-react';
+import { profileApi } from '../../services/api';
+import useAuthStore from '../../stores/authStore';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
 const ContributorMetrics = () => {
+    const { user } = useAuthStore();
     const [metrics, setMetrics] = useState(null);
+    const [githubStats, setGithubStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         loadMetrics();
-    }, []);
+    }, [user]);
 
     const loadMetrics = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${API}/contributor/dashboard-summary`);
-            setMetrics(response.data);
+            const [metricsResponse, statsResponse] = await Promise.all([
+                axios.get(`${API}/contributor/dashboard-summary`),
+                user?.username ? profileApi.getGitHubStats(user.username) : Promise.resolve(null)
+            ]);
+            setMetrics(metricsResponse.data);
+            setGithubStats(statsResponse);
         } catch (error) {
             console.error('Error loading metrics:', error);
         } finally {
@@ -236,6 +244,49 @@ const ContributorMetrics = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* GitHub Stats Section */}
+                {githubStats && (
+                    <div className="bg-[hsl(220,13%,8%)] border border-[hsl(217,91%,60%,0.2)] rounded-lg p-5">
+                        <div className="flex items-center gap-3 mb-4">
+                            <GitBranch className="w-6 h-6 text-[hsl(217,91%,65%)]" />
+                            <div>
+                                <h3 className="text-base font-semibold text-[hsl(217,91%,65%)]">GitHub Profile Stats</h3>
+                                <p className="text-xs text-[hsl(210,11%,50%)]">Your overall GitHub statistics</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <GitBranch className="w-4 h-4 text-[hsl(217,91%,65%)]" />
+                                    <span className="text-sm text-[hsl(210,11%,50%)]">Public Repos</span>
+                                </div>
+                                <div className="text-2xl font-bold text-[hsl(217,91%,65%)]">{githubStats.public_repos || 0}</div>
+                            </div>
+                            <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Star className="w-4 h-4 text-yellow-400" />
+                                    <span className="text-sm text-[hsl(210,11%,50%)]">Total Stars</span>
+                                </div>
+                                <div className="text-2xl font-bold text-yellow-400">{githubStats.total_stars || 0}</div>
+                            </div>
+                            <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Users className="w-4 h-4 text-[hsl(142,70%,55%)]" />
+                                    <span className="text-sm text-[hsl(210,11%,50%)]">Followers</span>
+                                </div>
+                                <div className="text-2xl font-bold text-[hsl(142,70%,55%)]">{githubStats.followers || 0}</div>
+                            </div>
+                            <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Users className="w-4 h-4 text-purple-400" />
+                                    <span className="text-sm text-[hsl(210,11%,50%)]">Following</span>
+                                </div>
+                                <div className="text-2xl font-bold text-purple-400">{githubStats.following || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

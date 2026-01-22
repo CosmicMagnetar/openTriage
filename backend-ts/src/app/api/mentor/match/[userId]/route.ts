@@ -49,7 +49,7 @@ export async function GET(
         // Otherwise, find all available mentors (exclude the user themselves)
         const limit = parseInt(searchParams.get("limit") || "10");
 
-        const matches = await db
+        const mentorList = await db
             .select({
                 id: mentors.id,
                 userId: mentors.userId,
@@ -63,7 +63,19 @@ export async function GET(
             .where(not(eq(mentors.userId, userId)))
             .limit(limit);
 
-        return NextResponse.json(matches);
+        // Transform to format expected by frontend
+        const matches = mentorList.map(m => ({
+            mentor_id: m.id,
+            mentor_username: m.username,
+            avatar_url: m.avatarUrl,
+            bio: m.bio,
+            expertise_level: m.expertiseLevel,
+            compatibility_score: Math.floor(Math.random() * 30) + 60, // Mock score between 60-90
+            matched_skills: [], // Would be populated by actual matching logic
+            match_reason: "Available mentor in your area of interest"
+        }));
+
+        return NextResponse.json({ matches });
     } catch (error) {
         console.error("GET /api/mentor/match/:userId error:", error);
         return NextResponse.json({

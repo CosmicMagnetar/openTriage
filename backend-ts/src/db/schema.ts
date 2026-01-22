@@ -240,6 +240,7 @@ export const messages = sqliteTable("messages", {
     content: text("content").notNull(),
     read: integer("read", { mode: "boolean" }).default(false),
     timestamp: text("timestamp").notNull(),
+    editedAt: text("edited_at"),
 });
 
 // ---- Global Chat Messages (Ably persistence) ----

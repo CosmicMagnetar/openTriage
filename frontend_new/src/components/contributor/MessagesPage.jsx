@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, Loader2, ArrowLeft, Search } from 'lucide-react';
+import { MessageSquare, Send, Loader2, ArrowLeft, Search, Pencil, Trash2, MoreVertical, X, Check } from 'lucide-react';
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
@@ -16,6 +16,11 @@ const MessagesPage = () => {
     const [sending, setSending] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const messagesEndRef = useRef(null);
+
+    // Edit/delete state
+    const [editingMessageId, setEditingMessageId] = useState(null);
+    const [editContent, setEditContent] = useState('');
+    const [menuOpenId, setMenuOpenId] = useState(null);
 
     useEffect(() => {
         loadConversations();
@@ -35,6 +40,28 @@ const MessagesPage = () => {
         }, 100);
         return () => clearTimeout(timeoutId);
     }, [messages, chatLoading]);
+
+    // Real-time message polling - polls every 3 seconds for new messages
+    useEffect(() => {
+        if (!selectedChat || chatLoading) return;
+
+        const pollInterval = setInterval(async () => {
+            try {
+                const lastMsgId = messages[messages.length - 1]?.id;
+                const newMessages = await messagingApi.pollMessages(selectedChat.user_id, lastMsgId);
+                if (newMessages && newMessages.length > 0) {
+                    setMessages(prev => [...prev, ...newMessages]);
+                    // Mark new messages as read
+                    await messagingApi.markRead(selectedChat.user_id);
+                }
+            } catch (error) {
+                // Silently handle polling errors to avoid spamming the user
+                console.debug('Message poll error:', error);
+            }
+        }, 3000);
+
+        return () => clearInterval(pollInterval);
+    }, [selectedChat, messages, chatLoading]);
 
     const loadConversations = async () => {
         try {
@@ -101,6 +128,46 @@ const MessagesPage = () => {
         } finally {
             setSending(false);
         }
+    };
+
+    const handleEditMessage = async (messageId) => {
+        if (!editContent.trim()) return;
+
+        try {
+            const updated = await messagingApi.editMessage(messageId, editContent.trim());
+            setMessages(prev => prev.map(msg =>
+                msg.id === messageId ? { ...msg, content: updated.content, edited_at: updated.edited_at } : msg
+            ));
+            setEditingMessageId(null);
+            setEditContent('');
+            toast.success('Message updated');
+        } catch (error) {
+            console.error('Failed to edit message:', error);
+            toast.error('Failed to edit message');
+        }
+    };
+
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            await messagingApi.deleteMessage(messageId);
+            setMessages(prev => prev.filter(msg => msg.id !== messageId));
+            setMenuOpenId(null);
+            toast.success('Message deleted');
+        } catch (error) {
+            console.error('Failed to delete message:', error);
+            toast.error('Failed to delete message');
+        }
+    };
+
+    const startEditing = (msg) => {
+        setEditingMessageId(msg.id);
+        setEditContent(msg.content);
+        setMenuOpenId(null);
+    };
+
+    const cancelEditing = () => {
+        setEditingMessageId(null);
+        setEditContent('');
     };
 
     const filteredConversations = conversations.filter(c =>
@@ -204,16 +271,83 @@ const MessagesPage = () => {
                             ) : messages.length > 0 ? (
                                 messages.map(msg => {
                                     const isMe = msg.sender_id === user?.id || msg.sender_id === user?.username;
+                                    const isEditing = editingMessageId === msg.id;
+
                                     return (
-                                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[70%] rounded-2xl px-4 py-2 ${isMe
+                                        <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
+                                            <div className={`relative max-w-[70%] rounded-2xl px-4 py-2 ${isMe
                                                 ? 'bg-[hsl(217,91%,50%)] text-white rounded-br-none'
                                                 : 'bg-[hsl(220,13%,10%)] text-[hsl(210,11%,90%)] rounded-bl-none border border-[hsl(220,13%,18%)]'
                                                 }`}>
-                                                <p>{msg.content}</p>
-                                                <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-[hsl(210,11%,40%)]'}`}>
-                                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </p>
+
+                                                {isEditing ? (
+                                                    <div className="space-y-2">
+                                                        <input
+                                                            type="text"
+                                                            value={editContent}
+                                                            onChange={(e) => setEditContent(e.target.value)}
+                                                            className="w-full bg-[hsl(220,13%,15%)] text-white px-2 py-1 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[hsl(142,70%,45%)]"
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') handleEditMessage(msg.id);
+                                                                if (e.key === 'Escape') cancelEditing();
+                                                            }}
+                                                        />
+                                                        <div className="flex gap-1 justify-end">
+                                                            <button
+                                                                onClick={cancelEditing}
+                                                                className="p-1 hover:bg-[hsl(220,13%,20%)] rounded"
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleEditMessage(msg.id)}
+                                                                className="p-1 hover:bg-[hsl(142,70%,45%,0.3)] rounded text-[hsl(142,70%,55%)]"
+                                                            >
+                                                                <Check className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <p>{msg.content}</p>
+                                                        <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-[hsl(210,11%,40%)]'}`}>
+                                                            {msg.edited_at && <span className="mr-1">(edited)</span>}
+                                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    </>
+                                                )}
+
+                                                {/* Edit/Delete dropdown for own messages */}
+                                                {isMe && !isEditing && (
+                                                    <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => setMenuOpenId(menuOpenId === msg.id ? null : msg.id)}
+                                                            className="p-1 hover:bg-[hsl(220,13%,20%)] rounded text-[hsl(210,11%,50%)]"
+                                                        >
+                                                            <MoreVertical className="w-4 h-4" />
+                                                        </button>
+
+                                                        {menuOpenId === msg.id && (
+                                                            <div className="absolute right-0 top-6 bg-[hsl(220,13%,12%)] border border-[hsl(220,13%,20%)] rounded-lg shadow-lg py-1 min-w-[100px] z-10">
+                                                                <button
+                                                                    onClick={() => startEditing(msg)}
+                                                                    className="w-full px-3 py-1.5 text-left text-sm text-[hsl(210,11%,80%)] hover:bg-[hsl(220,13%,18%)] flex items-center gap-2"
+                                                                >
+                                                                    <Pencil className="w-3 h-3" />
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteMessage(msg.id)}
+                                                                    className="w-full px-3 py-1.5 text-left text-sm text-red-400 hover:bg-[hsl(220,13%,18%)] flex items-center gap-2"
+                                                                >
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -227,7 +361,7 @@ const MessagesPage = () => {
                         </div>
 
                         {/* Input with AI suggestions based on conversation history */}
-                        <form onSubmit={handleSendMessage} className="p-4 pr-20 border-t border-[hsl(220,13%,15%)] bg-[hsl(220,13%,8%)]">
+                        <form onSubmit={handleSendMessage} className="p-4 border-t border-[hsl(220,13%,15%)] bg-[hsl(220,13%,8%)]">
                             <div className="flex gap-2 items-end">
                                 <div className="flex-1">
                                     <AISuggestTextarea

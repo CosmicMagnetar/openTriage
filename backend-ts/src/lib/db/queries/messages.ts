@@ -53,6 +53,64 @@ export async function markMessagesAsRead(currentUserId: string, otherUserId: str
         );
 }
 
+export async function editMessage(messageId: string, userId: string, newContent: string) {
+    // First verify the message exists and belongs to the user
+    const existingMessage = await db.select()
+        .from(messages)
+        .where(
+            and(
+                eq(messages.id, messageId),
+                eq(messages.senderId, userId)
+            )
+        )
+        .limit(1);
+
+    if (!existingMessage[0]) {
+        return null;
+    }
+
+    const now = new Date().toISOString();
+
+    await db.update(messages)
+        .set({
+            content: newContent,
+            editedAt: now,
+        })
+        .where(eq(messages.id, messageId));
+
+    // Return updated message in snake_case for frontend compatibility
+    return {
+        id: messageId,
+        sender_id: existingMessage[0].senderId,
+        receiver_id: existingMessage[0].receiverId,
+        content: newContent,
+        read: existingMessage[0].read,
+        timestamp: existingMessage[0].timestamp,
+        edited_at: now,
+    };
+}
+
+export async function deleteMessage(messageId: string, userId: string) {
+    // First verify the message exists and belongs to the user
+    const existingMessage = await db.select()
+        .from(messages)
+        .where(
+            and(
+                eq(messages.id, messageId),
+                eq(messages.senderId, userId)
+            )
+        )
+        .limit(1);
+
+    if (!existingMessage[0]) {
+        return false;
+    }
+
+    await db.delete(messages).where(eq(messages.id, messageId));
+
+    return true;
+}
+
 // =============================================================================
 // Chat History
 // =============================================================================

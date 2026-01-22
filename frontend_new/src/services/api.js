@@ -388,6 +388,15 @@ export const messagingApi = {
 
   removeMentee: (menteeId) =>
     apiRequest(`/api/messaging/mentees/${menteeId}`, { method: 'DELETE' }),
+
+  editMessage: (messageId, content) =>
+    apiRequest(`/api/messaging/${messageId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    }),
+
+  deleteMessage: (messageId) =>
+    apiRequest(`/api/messaging/${messageId}`, { method: 'DELETE' }),
 };
 
 // ============ Profile API ============
