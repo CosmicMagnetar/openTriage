@@ -1,4 +1,4 @@
-import { LayoutDashboard, GitPullRequest, LogOut, Settings, Menu, X, Sparkles, User, Plus, Home } from 'lucide-react';
+import { LayoutDashboard, GitPullRequest, LogOut, Settings, Menu, X, Sparkles, User, Plus } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import useAuthStore from '../../stores/authStore';
@@ -11,12 +11,11 @@ const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: GitPullRequest, label: 'PR Management', path: '/prs' },
-    { icon: Sparkles, label: 'Maintainer Hub', path: '/hub' },
-    { icon: User, label: 'Profile', path: '/profile' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
-    { icon: Home, label: 'Landing Page', path: '/landing', external: true }
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: GitPullRequest, label: 'PR Management', path: '/dashboard/prs' },
+    { icon: Sparkles, label: 'Maintainer Hub', path: '/dashboard/hub' },
+    { icon: User, label: 'Profile', path: '/dashboard/profile' },
+    { icon: Settings, label: 'Settings', path: '/dashboard/settings' }
   ];
 
   const handleNavigation = (path) => {
@@ -48,9 +47,9 @@ const Sidebar = () => {
         className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[hsl(220,13%,7%)] border-r border-[hsl(220,13%,14%)] flex flex-col transition-transform duration-200 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
       >
-        {/* Logo Section - Well framed */}
+        {/* Logo Section - Clickable to go to landing page */}
         <button className="p-5 border-b border-[hsl(220,13%,14%)]" onClick={() => {
-          handleNavigation('/landing');
+          navigate('/');
           setIsMobileMenuOpen(false);
         }}>
           <div className="flex items-center gap-3">

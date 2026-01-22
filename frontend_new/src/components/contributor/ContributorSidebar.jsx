@@ -1,4 +1,4 @@
-import { FileText, LogOut, BarChart3, Settings, Menu, X, User, MessageSquare, TrendingUp, Building2, Home } from 'lucide-react';
+import { FileText, LogOut, BarChart3, Settings, Menu, X, User, MessageSquare, TrendingUp, Building2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import useAuthStore from '../../stores/authStore';
@@ -36,12 +36,11 @@ const ContributorSidebar = () => {
   }, []);
 
   const menuItems = [
-    { icon: FileText, label: 'My Issues', path: '/' },
-    { icon: MessageSquare, label: 'Messages', path: '/messages', badge: unreadCount },
-    { icon: User, label: 'Profile', path: '/profile' },
-    { icon: BarChart3, label: 'Metrics', path: '/metrics' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
-    { icon: Home, label: 'Landing Page', path: '/landing', external: true }
+    { icon: FileText, label: 'My Issues', path: '/dashboard' },
+    { icon: MessageSquare, label: 'Messages', path: '/dashboard/messages', badge: unreadCount },
+    { icon: User, label: 'Profile', path: '/dashboard/profile' },
+    { icon: BarChart3, label: 'Metrics', path: '/dashboard/metrics' },
+    { icon: Settings, label: 'Settings', path: '/dashboard/settings' }
   ];
 
   const handleNavigation = (path) => {
@@ -73,8 +72,11 @@ const ContributorSidebar = () => {
         className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[hsl(220,13%,7%)] border-r border-[hsl(220,13%,14%)] flex flex-col transition-transform duration-200 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
       >
-        {/* Logo Section - Well framed */}
-        <div className="p-5 border-b border-[hsl(220,13%,14%)]">
+        {/* Logo Section - Clickable to go to landing page */}
+        <button className="p-5 border-b border-[hsl(220,13%,14%)] w-full text-left" onClick={() => {
+          navigate('/');
+          setIsMobileMenuOpen(false);
+        }}>
           <div className="flex items-center gap-3">
             <Logo size="sm" />
             <div>
@@ -82,7 +84,7 @@ const ContributorSidebar = () => {
               <p className="text-[10px] text-[hsl(142,70%,55%)] font-medium">Contributor</p>
             </div>
           </div>
-        </div>
+        </button>
 
         {/* User Info - Card style */}
         <div className="px-4 py-4 border-b border-[hsl(220,13%,14%)]">

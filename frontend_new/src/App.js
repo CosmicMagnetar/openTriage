@@ -19,8 +19,8 @@ function App() {
     const token = urlParams.get('token');
     if (token) {
       localStorage.setItem('token', token);
-      // Clean URL immediately
-      window.history.replaceState({}, document.title, '/');
+      // Clean URL immediately - redirect to dashboard
+      window.history.replaceState({}, document.title, '/dashboard');
     }
     // Now load user (will use token from localStorage if present)
     loadUser();
@@ -66,9 +66,9 @@ function App() {
         }}
       >
         <Routes>
-          <Route path="/landing" element={<LandingPage />} />
+          <Route path="/" element={<LandingPage />} />
           <Route
-            path="/*"
+            path="/dashboard/*"
             element={
               role === 'MAINTAINER' ? (
                 <MaintainerLayout />
