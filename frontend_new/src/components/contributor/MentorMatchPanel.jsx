@@ -520,7 +520,24 @@ const MentorMatchPanel = () => {
                         <div className="text-center py-8">
                             <Users className="w-10 h-10 text-[hsl(220,13%,20%)] mx-auto mb-3" />
                             <p className="text-[hsl(210,11%,50%)]">No mentor matches found yet</p>
-                            <p className="text-sm text-[hsl(210,11%,40%)] mt-1">Contribute more to find compatible mentors!</p>
+                            <p className="text-sm text-[hsl(210,11%,40%)] mt-1 mb-4">Try searching for a specific skill to find mentors!</p>
+
+                            {/* Skill Suggestion Chips */}
+                            <div className="flex flex-wrap justify-center gap-2 mt-3">
+                                <span className="text-xs text-[hsl(210,11%,40%)] self-center">Try:</span>
+                                {['TypeScript', 'Next.js', 'Machine Learning', 'React', 'Python'].map((skill) => (
+                                    <button
+                                        key={skill}
+                                        onClick={() => {
+                                            setSearchQuery(skill);
+                                            loadMatches(skill);
+                                        }}
+                                        className="px-3 py-1.5 text-sm bg-[hsl(217,91%,60%,0.15)] text-[hsl(217,91%,65%)] hover:bg-[hsl(217,91%,60%,0.25)] rounded-full border border-[hsl(217,91%,60%,0.3)] transition-colors"
+                                    >
+                                        {skill}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </>

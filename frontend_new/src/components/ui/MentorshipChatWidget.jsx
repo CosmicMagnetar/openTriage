@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, X, MessageSquare, Loader2 } from 'lucide-react';
+import { Send, X, MessageSquare, Loader2, Trash2 } from 'lucide-react';
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 
 const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onClose }) => {
     const { user } = useAuthStore();
@@ -76,18 +77,48 @@ const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onC
         e.preventDefault();
         if (!newMessage.trim() || sending) return;
 
-        try {
-            setSending(true);
-            const sentMessage = await messagingApi.sendMessage(recipientId, newMessage);
+        const messageContent = newMessage.trim();
+        const tempId = uuidv4();
+        const optimisticMessage = {
+            id: tempId,
+            sender_id: user?.id,
+            receiver_id: recipientId,
+            content: messageContent,
+            timestamp: new Date().toISOString(),
+            pending: true,
+        };
 
-            setMessages(prev => [...prev, sentMessage]);
+        // Optimistic update - add message immediately
+        setMessages(prev => [...prev, optimisticMessage]);
+        setNewMessage('');
+        setSending(true);
+
+        try {
+            const sentMessage = await messagingApi.sendMessage(recipientId, messageContent);
+            // Replace optimistic message with real message
+            setMessages(prev => prev.map(msg =>
+                msg.id === tempId ? { ...sentMessage, pending: false } : msg
+            ));
             lastMessageIdRef.current = sentMessage.id;
-            setNewMessage('');
         } catch (error) {
             console.error('Failed to send message:', error);
+            // Remove optimistic message on failure
+            setMessages(prev => prev.filter(msg => msg.id !== tempId));
+            setNewMessage(messageContent); // Restore message
             toast.error('Failed to send message');
         } finally {
             setSending(false);
+        }
+    };
+
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            await messagingApi.deleteMessage(messageId);
+            setMessages(prev => prev.filter(msg => msg.id !== messageId));
+            toast.success('Message deleted');
+        } catch (error) {
+            console.error('Failed to delete message:', error);
+            toast.error('Failed to delete message');
         }
     };
 
@@ -136,18 +167,30 @@ const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onC
                         return (
                             <div
                                 key={msg.id}
-                                className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                                className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}
                             >
-                                <div
-                                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${isMe
-                                        ? 'bg-[hsl(217,91%,50%)] text-white'
-                                        : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,85%)] border border-[hsl(220,13%,18%)]'
-                                        }`}
-                                >
-                                    {msg.content}
-                                    <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-[hsl(210,11%,40%)]'}`}>
-                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
+                                <div className={`relative flex items-center gap-1 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                    {/* Delete button - shows on hover for own messages */}
+                                    {isMe && !msg.pending && (
+                                        <button
+                                            onClick={() => handleDeleteMessage(msg.id)}
+                                            className="opacity-0 group-hover:opacity-100 p-1 text-[hsl(210,11%,40%)] hover:text-red-400 transition-opacity"
+                                            title="Delete message"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                    <div
+                                        className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${isMe
+                                            ? 'bg-[hsl(217,91%,50%)] text-white'
+                                            : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,85%)] border border-[hsl(220,13%,18%)]'
+                                            } ${msg.pending ? 'opacity-70' : ''}`}
+                                    >
+                                        {msg.content}
+                                        <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-[hsl(210,11%,40%)]'}`}>
+                                            {msg.pending ? 'Sending...' : new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         );
@@ -158,18 +201,18 @@ const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onC
 
             {/* Input */}
             <form onSubmit={handleSendMessage} className="p-3 bg-[hsl(220,13%,10%)] border-t border-[hsl(220,13%,15%)]">
-                <div className="flex gap-2">
+                <div className="flex items-center gap-3">
                     <input
                         type="text"
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Type a message..."
-                        className="flex-1 bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,18%)] rounded-md px-3 py-2 text-sm text-[hsl(210,11%,85%)] focus:outline-none focus:border-[hsl(217,91%,60%)] placeholder-[hsl(210,11%,35%)]"
+                        className="flex-1 min-w-0 bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,18%)] rounded-md px-3 py-2 text-sm text-[hsl(210,11%,85%)] focus:outline-none focus:border-[hsl(217,91%,60%)] placeholder-[hsl(210,11%,35%)]"
                     />
                     <button
                         type="submit"
                         disabled={!newMessage.trim() || sending}
-                        className="p-2 bg-[hsl(217,91%,50%)] text-white rounded-md hover:bg-[hsl(217,91%,55%)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex-shrink-0 p-2 bg-[hsl(217,91%,50%)] text-white rounded-md hover:bg-[hsl(217,91%,55%)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         {sending ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
