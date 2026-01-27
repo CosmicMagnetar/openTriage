@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users, MessageSquare, Check, X, UserMinus, Send, Loader2, Sparkles, Bell } from 'lucide-react';
+import { Users, MessageSquare, Check, X, UserMinus, Send, Loader2, Sparkles, Bell, Pencil, Trash2 } from 'lucide-react';
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
@@ -16,6 +16,8 @@ const MentorDashboardPanel = () => {
     const [chatLoading, setChatLoading] = useState(false);
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
+    const [editingMessageId, setEditingMessageId] = useState(null);
+    const [editContent, setEditContent] = useState('');
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
@@ -129,30 +131,67 @@ const MentorDashboardPanel = () => {
         }
     };
 
+    const handleEditMessage = async (messageId) => {
+        if (!editContent.trim()) return;
+        try {
+            await messagingApi.editMessage(messageId, editContent.trim());
+            setChatMessages(prev => prev.map(msg =>
+                msg.id === messageId ? { ...msg, content: editContent.trim(), edited_at: new Date().toISOString() } : msg
+            ));
+            setEditingMessageId(null);
+            setEditContent('');
+            toast.success('Message updated');
+        } catch (error) {
+            console.error('Failed to edit message:', error);
+            toast.error('Failed to edit message');
+        }
+    };
+
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            await messagingApi.deleteMessage(messageId);
+            setChatMessages(prev => prev.filter(msg => msg.id !== messageId));
+            toast.success('Message deleted');
+        } catch (error) {
+            console.error('Failed to delete message:', error);
+            toast.error('Failed to delete message');
+        }
+    };
+
+    const startEditing = (msg) => {
+        setEditingMessageId(msg.id);
+        setEditContent(msg.content);
+    };
+
+    const cancelEditing = () => {
+        setEditingMessageId(null);
+        setEditContent('');
+    };
+
     if (loading) {
         return (
-            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+            <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">
                 <div className="flex items-center gap-3 mb-4">
-                    <Users className="w-6 h-6 text-purple-400" />
-                    <h2 className="text-lg font-bold text-slate-200">Mentorship Dashboard</h2>
+                    <Users className="w-6 h-6 text-pink-400" />
+                    <h2 className="text-lg font-bold text-[hsl(210,11%,90%)]">Mentorship Dashboard</h2>
                 </div>
                 <div className="flex justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+                    <Loader2 className="w-8 h-8 animate-spin text-pink-400" />
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+        <div className="bg-[hsl(220,13%,8%)] rounded-xl border border-[hsl(220,13%,15%)] overflow-hidden">
             {/* Header */}
-            <div className="p-4 border-b border-slate-700">
+            <div className="p-4 border-b border-[hsl(220,13%,15%)]">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Users className="w-6 h-6 text-purple-400" />
+                        <Users className="w-6 h-6 text-pink-400" />
                         <div>
-                            <h2 className="text-lg font-bold text-slate-200">Mentorship Dashboard</h2>
-                            <p className="text-xs text-slate-400">Manage your mentees and conversations</p>
+                            <h2 className="text-lg font-bold text-[hsl(210,11%,90%)]">Mentorship Dashboard</h2>
+                            <p className="text-xs text-[hsl(210,11%,50%)]">Manage your mentees and conversations</p>
                         </div>
                     </div>
                     {requests.length > 0 && (
@@ -165,7 +204,7 @@ const MentorDashboardPanel = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-700">
+            <div className="flex border-b border-[hsl(220,13%,15%)]">
                 {[
                     { id: 'conversations', label: 'Conversations', count: conversations.length },
                     { id: 'requests', label: 'Requests', count: requests.length },
@@ -175,13 +214,13 @@ const MentorDashboardPanel = () => {
                         key={tab.id}
                         onClick={() => { setActiveTab(tab.id); setSelectedChat(null); }}
                         className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${activeTab === tab.id
-                            ? 'text-purple-400 border-b-2 border-purple-500 bg-purple-500/10'
-                            : 'text-slate-400 hover:text-slate-200'
+                            ? 'text-pink-400 border-b-2 border-pink-500 bg-pink-500/10'
+                            : 'text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,80%)]'
                             }`}
                     >
                         {tab.label}
                         {tab.count > 0 && (
-                            <span className="ml-2 px-1.5 py-0.5 bg-slate-700 rounded text-xs">{tab.count}</span>
+                            <span className="ml-2 px-1.5 py-0.5 bg-[hsl(220,13%,15%)] rounded text-xs">{tab.count}</span>
                         )}
                     </button>
                 ))}
@@ -189,14 +228,14 @@ const MentorDashboardPanel = () => {
 
             <div className="flex h-[400px]">
                 {/* Left Panel - List */}
-                <div className="w-1/3 border-r border-slate-700 overflow-y-auto">
+                <div className="w-1/3 border-r border-[hsl(220,13%,15%)] overflow-y-auto">
                     {activeTab === 'conversations' && (
                         conversations.length > 0 ? (
                             conversations.map(conv => (
                                 <button
                                     key={conv.user_id}
                                     onClick={() => setSelectedChat(conv)}
-                                    className={`w-full p-3 flex items-center gap-3 hover:bg-slate-700/50 transition-colors ${selectedChat?.user_id === conv.user_id ? 'bg-slate-700/50' : ''
+                                    className={`w-full p-3 flex items-center gap-3 hover:bg-[hsl(220,13%,12%)] transition-colors ${selectedChat?.user_id === conv.user_id ? 'bg-[hsl(220,13%,12%)]' : ''
                                         }`}
                                 >
                                     <img
@@ -207,19 +246,19 @@ const MentorDashboardPanel = () => {
                                     />
                                     <div className="flex-1 text-left min-w-0">
                                         <div className="flex items-center justify-between">
-                                            <span className="font-medium text-slate-200 truncate">@{conv.username}</span>
+                                            <span className="font-medium text-[hsl(210,11%,90%)] truncate">@{conv.username}</span>
                                             {conv.unread_count > 0 && (
-                                                <span className="w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center">
+                                                <span className="w-5 h-5 bg-pink-500 text-white text-xs rounded-full flex items-center justify-center">
                                                     {conv.unread_count}
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-slate-500 truncate">{conv.last_message}</p>
+                                        <p className="text-xs text-[hsl(210,11%,40%)] truncate">{conv.last_message}</p>
                                     </div>
                                 </button>
                             ))
                         ) : (
-                            <div className="p-6 text-center text-slate-500">
+                            <div className="p-6 text-center text-[hsl(210,11%,50%)]">
                                 <MessageSquare className="w-10 h-10 mx-auto mb-2 opacity-30" />
                                 <p className="text-sm">No conversations yet</p>
                             </div>
@@ -229,7 +268,7 @@ const MentorDashboardPanel = () => {
                     {activeTab === 'requests' && (
                         requests.length > 0 ? (
                             requests.map(req => (
-                                <div key={req.id} className="p-3 border-b border-slate-700">
+                                <div key={req.id} className="p-3 border-b border-[hsl(220,13%,15%)]">
                                     <div className="flex items-center gap-3 mb-2">
                                         <img
                                             src={req.mentee_avatar || `https://github.com/${req.mentee_username}.png`}
@@ -238,8 +277,8 @@ const MentorDashboardPanel = () => {
                                             onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                                         />
                                         <div className="flex-1">
-                                            <span className="font-medium text-slate-200">@{req.mentee_username}</span>
-                                            <p className="text-xs text-slate-500">{req.message || 'Wants to connect'}</p>
+                                            <span className="font-medium text-[hsl(210,11%,90%)]">@{req.mentee_username}</span>
+                                            <p className="text-xs text-[hsl(210,11%,40%)]">{req.message || 'Wants to connect'}</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -259,7 +298,7 @@ const MentorDashboardPanel = () => {
                                 </div>
                             ))
                         ) : (
-                            <div className="p-6 text-center text-slate-500">
+                            <div className="p-6 text-center text-[hsl(210,11%,50%)]">
                                 <Bell className="w-10 h-10 mx-auto mb-2 opacity-30" />
                                 <p className="text-sm">No pending requests</p>
                             </div>
@@ -269,7 +308,7 @@ const MentorDashboardPanel = () => {
                     {activeTab === 'mentees' && (
                         mentees.length > 0 ? (
                             mentees.map(mentee => (
-                                <div key={mentee.user_id} className="p-3 flex items-center gap-3 border-b border-slate-700">
+                                <div key={mentee.user_id} className="p-3 flex items-center gap-3 border-b border-[hsl(220,13%,15%)]">
                                     <img
                                         src={mentee.avatar_url || `https://github.com/${mentee.username}.png`}
                                         alt={mentee.username}
@@ -277,19 +316,19 @@ const MentorDashboardPanel = () => {
                                         onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                                     />
                                     <div className="flex-1">
-                                        <span className="font-medium text-slate-200">@{mentee.username}</span>
-                                        <p className="text-xs text-slate-500">Since {new Date(mentee.since).toLocaleDateString()}</p>
+                                        <span className="font-medium text-[hsl(210,11%,90%)]">@{mentee.username}</span>
+                                        <p className="text-xs text-[hsl(210,11%,40%)]">Since {new Date(mentee.since).toLocaleDateString()}</p>
                                     </div>
                                     <div className="flex gap-1">
                                         <button
                                             onClick={() => setSelectedChat({ user_id: mentee.user_id, username: mentee.username, avatar_url: mentee.avatar_url })}
-                                            className="p-2 text-blue-400 hover:bg-blue-500/20 rounded"
+                                            className="p-2 text-pink-400 hover:bg-pink-500/20 rounded transition-colors"
                                         >
                                             <MessageSquare className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => handleRemoveMentee(mentee.user_id)}
-                                            className="p-2 text-red-400 hover:bg-red-500/20 rounded"
+                                            className="p-2 text-red-400 hover:bg-red-500/20 rounded transition-colors"
                                         >
                                             <UserMinus className="w-4 h-4" />
                                         </button>
@@ -297,7 +336,7 @@ const MentorDashboardPanel = () => {
                                 </div>
                             ))
                         ) : (
-                            <div className="p-6 text-center text-slate-500">
+                            <div className="p-6 text-center text-[hsl(210,11%,50%)]">
                                 <Sparkles className="w-10 h-10 mx-auto mb-2 opacity-30" />
                                 <p className="text-sm">No active mentees</p>
                             </div>
@@ -310,38 +349,100 @@ const MentorDashboardPanel = () => {
                     {selectedChat ? (
                         <>
                             {/* Chat Header */}
-                            <div className="p-3 border-b border-slate-700 flex items-center gap-3">
+                            <div className="p-3 border-b border-[hsl(220,13%,15%)] flex items-center gap-3">
                                 <img
                                     src={selectedChat.avatar_url || `https://github.com/${selectedChat.username}.png`}
                                     alt={selectedChat.username}
                                     className="w-8 h-8 rounded-full"
                                     onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                                 />
-                                <span className="font-medium text-slate-200">@{selectedChat.username}</span>
+                                <span className="font-medium text-[hsl(210,11%,90%)]">@{selectedChat.username}</span>
                             </div>
 
                             {/* Messages */}
                             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                 {chatLoading ? (
                                     <div className="flex justify-center py-8">
-                                        <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                                        <Loader2 className="w-6 h-6 animate-spin text-pink-400" />
                                     </div>
                                 ) : chatMessages.length > 0 ? (
                                     chatMessages.map(msg => {
                                         const isMe = msg.sender_id === user?.id || msg.sender_id === user?.username;
+                                        const isEditing = editingMessageId === msg.id;
                                         return (
-                                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                                <div className={`max-w-[70%] rounded-xl px-3 py-2 text-sm ${isMe
-                                                    ? 'bg-purple-600 text-white rounded-br-none'
-                                                    : 'bg-slate-700 text-slate-200 rounded-bl-none'
-                                                    }`}>
-                                                    {msg.content}
+                                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
+                                                <div className={`relative flex items-center gap-1.5 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                                    {/* Edit/Delete buttons for own messages */}
+                                                    {isMe && !isEditing && (
+                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={() => startEditing(msg)}
+                                                                className="p-1.5 bg-[hsl(220,13%,12%)] hover:bg-pink-500/20 text-[hsl(210,11%,50%)] hover:text-pink-400 rounded-md transition-colors border border-[hsl(220,13%,18%)]"
+                                                                title="Edit message"
+                                                            >
+                                                                <Pencil className="w-3 h-3" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (window.confirm('Delete this message?')) {
+                                                                        handleDeleteMessage(msg.id);
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 bg-[hsl(220,13%,12%)] hover:bg-red-500/20 text-[hsl(210,11%,50%)] hover:text-red-400 rounded-md transition-colors border border-[hsl(220,13%,18%)]"
+                                                                title="Delete message"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <div className={`max-w-[70%] rounded-xl px-3 py-2 text-sm ${isMe
+                                                        ? 'bg-pink-600 text-white rounded-br-none'
+                                                        : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,90%)] rounded-bl-none border border-[hsl(220,13%,18%)]'
+                                                        }`}>
+                                                        {isEditing ? (
+                                                            <div className="space-y-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editContent}
+                                                                    onChange={(e) => setEditContent(e.target.value)}
+                                                                    className="w-full bg-[hsl(220,13%,15%)] text-white px-2 py-1 rounded text-sm focus:outline-none focus:ring-1 focus:ring-pink-400"
+                                                                    autoFocus
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') handleEditMessage(msg.id);
+                                                                        if (e.key === 'Escape') cancelEditing();
+                                                                    }}
+                                                                />
+                                                                <div className="flex gap-1 justify-end">
+                                                                    <button
+                                                                        onClick={cancelEditing}
+                                                                        className="p-1 hover:bg-[hsl(220,13%,20%)] rounded"
+                                                                    >
+                                                                        <X className="w-3 h-3" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleEditMessage(msg.id)}
+                                                                        className="p-1 hover:bg-pink-400/30 rounded text-pink-300"
+                                                                    >
+                                                                        <Check className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                {msg.content}
+                                                                <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-pink-200' : 'text-[hsl(210,11%,40%)]'}`}>
+                                                                    {msg.edited_at && <span className="mr-1">(edited)</span>}
+                                                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                </p>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
                                     })
                                 ) : (
-                                    <div className="text-center text-slate-500 py-8">
+                                    <div className="text-center text-[hsl(210,11%,50%)] py-8">
                                         <p>No messages yet. Start the conversation!</p>
                                     </div>
                                 )}
@@ -349,25 +450,25 @@ const MentorDashboardPanel = () => {
                             </div>
 
                             {/* Input */}
-                            <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-700 flex gap-2">
+                            <form onSubmit={handleSendMessage} className="p-3 border-t border-[hsl(220,13%,15%)] flex gap-2">
                                 <input
                                     type="text"
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     placeholder="Type a message..."
-                                    className="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                                    className="flex-1 bg-[hsl(220,13%,5%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,90%)] placeholder-[hsl(210,11%,40%)] focus:outline-none focus:border-pink-500"
                                 />
                                 <button
                                     type="submit"
                                     disabled={!newMessage.trim() || sending}
-                                    className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-shrink-0 p-2 bg-pink-600 text-white rounded-lg hover:bg-pink-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                 </button>
                             </form>
                         </>
                     ) : (
-                        <div className="flex-1 flex items-center justify-center text-slate-500">
+                        <div className="flex-1 flex items-center justify-center text-[hsl(210,11%,50%)]">
                             <div className="text-center">
                                 <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
                                 <p>Select a conversation to start chatting</p>

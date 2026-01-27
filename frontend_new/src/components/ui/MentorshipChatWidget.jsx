@@ -169,12 +169,16 @@ const MentorshipChatWidget = ({ recipientId, recipientName, recipientAvatar, onC
                                 key={msg.id}
                                 className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}
                             >
-                                <div className={`relative flex items-center gap-1 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                <div className={`relative flex items-center gap-1.5 ${isMe ? 'flex-row-reverse' : ''}`}>
                                     {/* Delete button - shows on hover for own messages */}
                                     {isMe && !msg.pending && (
                                         <button
-                                            onClick={() => handleDeleteMessage(msg.id)}
-                                            className="opacity-0 group-hover:opacity-100 p-1 text-[hsl(210,11%,40%)] hover:text-red-400 transition-opacity"
+                                            onClick={() => {
+                                                if (window.confirm('Delete this message?')) {
+                                                    handleDeleteMessage(msg.id);
+                                                }
+                                            }}
+                                            className="opacity-0 group-hover:opacity-100 p-1.5 bg-[hsl(220,13%,12%)] hover:bg-red-500/20 text-[hsl(210,11%,50%)] hover:text-red-400 rounded-md transition-all border border-[hsl(220,13%,18%)]"
                                             title="Delete message"
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />

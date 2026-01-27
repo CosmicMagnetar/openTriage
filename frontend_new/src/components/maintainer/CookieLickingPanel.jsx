@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Cookie, Clock, AlertCircle, UserX, Play, Square, RefreshCw, Filter } from 'lucide-react';
 import { cookieLickingApi, profileApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
+import { toast } from 'sonner';
 
 const CookieLickingPanel = () => {
     const { user } = useAuthStore();
@@ -41,6 +42,7 @@ const CookieLickingPanel = () => {
             setConnectedRepos(repos);
         } catch (error) {
             console.error('Failed to load repos:', error);
+            toast.error('Failed to load repositories');
         }
     };
 
@@ -56,6 +58,7 @@ const CookieLickingPanel = () => {
             setAtRiskClaims(atRiskData.claims || []);
         } catch (error) {
             console.error('Failed to load cookie-licking data:', error);
+            toast.error('Failed to load cookie-licking data');
         } finally {
             setLoading(false);
         }
@@ -67,13 +70,16 @@ const CookieLickingPanel = () => {
             if (status?.scanning) {
                 await cookieLickingApi.stopScan();
                 setStatus(prev => ({ ...prev, scanning: false }));
+                toast.success('Scan stopped successfully');
             } else {
                 await cookieLickingApi.startScan();
                 setStatus(prev => ({ ...prev, scanning: true }));
+                toast.success('Scan started - monitoring for inactive claims');
             }
             await loadData();
         } catch (error) {
             console.error('Failed to toggle scan:', error);
+            toast.error('Failed to toggle scan');
         } finally {
             setScanStarted(false);
         }
@@ -82,10 +88,13 @@ const CookieLickingPanel = () => {
     const releaseExpired = async () => {
         try {
             setReleasing(true);
-            await cookieLickingApi.releaseExpired();
+            const result = await cookieLickingApi.releaseExpired();
+            const releasedCount = result?.released || 0;
+            toast.success(`Released ${releasedCount} expired claim${releasedCount !== 1 ? 's' : ''}`);
             await loadData();
         } catch (error) {
             console.error('Failed to release expired claims:', error);
+            toast.error('Failed to release expired claims');
         } finally {
             setReleasing(false);
         }
@@ -100,10 +109,10 @@ const CookieLickingPanel = () => {
 
     if (loading && !status) {
         return (
-            <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+            <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">
                 <div className="flex items-center gap-3 mb-4">
                     <Cookie className="w-6 h-6 text-amber-400" />
-                    <h2 className="text-lg font-bold text-slate-200">Cookie-Licking Monitor</h2>
+                    <h2 className="text-lg font-bold text-[hsl(210,11%,90%)]">Cookie-Licking Monitor</h2>
                 </div>
                 <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-400"></div>
@@ -113,14 +122,14 @@ const CookieLickingPanel = () => {
     }
 
     return (
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+        <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                     <Cookie className="w-6 h-6 text-amber-400" />
                     <div>
-                        <h2 className="text-lg font-bold text-slate-200">Cookie-Licking Monitor</h2>
-                        <p className="text-xs text-slate-400">Track claimed issues with no activity</p>
+                        <h2 className="text-lg font-bold text-[hsl(210,11%,90%)]">Cookie-Licking Monitor</h2>
+                        <p className="text-xs text-[hsl(210,11%,50%)]">Track claimed issues with no activity</p>
                     </div>
                 </div>
 
@@ -130,20 +139,20 @@ const CookieLickingPanel = () => {
                         <select
                             value={selectedRepo}
                             onChange={(e) => setSelectedRepo(e.target.value)}
-                            className="appearance-none bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 pr-8 text-sm 
-                        text-slate-200 focus:outline-none focus:border-amber-400 cursor-pointer"
+                            className="appearance-none bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-1.5 pr-8 text-sm 
+                        text-[hsl(210,11%,85%)] focus:outline-none focus:border-amber-400 cursor-pointer"
                         >
                             <option value="">All Repositories</option>
                             {connectedRepos.map(repo => (
                                 <option key={repo} value={repo}>{repo}</option>
                             ))}
                         </select>
-                        <Filter className="w-3 h-3 text-slate-400 absolute right-3 top-2.5 pointer-events-none" />
+                        <Filter className="w-3 h-3 text-[hsl(210,11%,50%)] absolute right-3 top-2.5 pointer-events-none" />
                     </div>
 
                     <button
                         onClick={loadData}
-                        className="p-2 text-slate-400 hover:text-slate-200 transition-colors"
+                        className="p-2 text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,85%)] transition-colors"
                     >
                         <RefreshCw className="w-4 h-4" />
                     </button>
@@ -176,9 +185,9 @@ const CookieLickingPanel = () => {
             {/* Status Summary */}
             {status && (
                 <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="bg-slate-700/30 rounded-lg p-4 text-center">
-                        <div className="text-2xl font-bold text-slate-200">{status.total_claimed || 0}</div>
-                        <div className="text-xs text-slate-400">Total Claimed</div>
+                    <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center border border-[hsl(220,13%,15%)]">
+                        <div className="text-2xl font-bold text-[hsl(210,11%,90%)]">{status.total_claimed || 0}</div>
+                        <div className="text-xs text-[hsl(210,11%,50%)]">Total Claimed</div>
                     </div>
                     <div className="bg-orange-500/10 rounded-lg p-4 text-center border border-orange-500/30">
                         <div className="text-2xl font-bold text-orange-400">{status.at_risk || 0}</div>
@@ -195,7 +204,7 @@ const CookieLickingPanel = () => {
             {atRiskClaims.length > 0 ? (
                 <>
                     <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-slate-300">At-Risk Claims</h3>
+                        <h3 className="text-sm font-semibold text-[hsl(210,11%,80%)]">At-Risk Claims</h3>
                         <button
                             onClick={releaseExpired}
                             disabled={releasing}
@@ -215,7 +224,7 @@ const CookieLickingPanel = () => {
                         {atRiskClaims.map((claim, i) => (
                             <div
                                 key={i}
-                                className="flex items-center gap-4 p-4 bg-slate-700/30 rounded-lg border-l-4 
+                                className="flex items-center gap-4 p-4 bg-[hsl(220,13%,10%)] rounded-lg border-l-4 
                           border-orange-500"
                             >
                                 <img
@@ -227,15 +236,15 @@ const CookieLickingPanel = () => {
 
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-medium text-slate-200">
+                                        <span className="font-medium text-[hsl(210,11%,90%)]">
                                             #{claim.issue_number}
                                         </span>
-                                        <span className="text-sm text-slate-400 truncate">
+                                        <span className="text-sm text-[hsl(210,11%,50%)] truncate">
                                             {claim.issue_title}
                                         </span>
                                     </div>
 
-                                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                                    <div className="flex items-center gap-3 text-xs text-[hsl(210,11%,40%)]">
                                         <span>@{claim.username}</span>
                                         <span>•</span>
                                         <span>{claim.repo_name}</span>
@@ -262,17 +271,17 @@ const CookieLickingPanel = () => {
                 </>
             ) : (
                 <div className="text-center py-8">
-                    <Cookie className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-400">No at-risk claims</p>
-                    <p className="text-sm text-slate-500 mt-1">
+                    <Cookie className="w-12 h-12 text-[hsl(220,13%,20%)] mx-auto mb-3" />
+                    <p className="text-[hsl(210,11%,50%)]">No at-risk claims</p>
+                    <p className="text-sm text-[hsl(210,11%,40%)] mt-1">
                         {selectedRepo ? `All clear in ${selectedRepo}` : 'All claimed issues are progressing well'}
                     </p>
                 </div>
             )}
 
             {/* Settings Note */}
-            <div className="mt-4 pt-4 border-t border-slate-700">
-                <div className="flex items-start gap-2 text-xs text-slate-500">
+            <div className="mt-4 pt-4 border-t border-[hsl(220,13%,15%)]">
+                <div className="flex items-start gap-2 text-xs text-[hsl(210,11%,40%)]">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <p>
                         Issues are marked at-risk after 24h with no activity.

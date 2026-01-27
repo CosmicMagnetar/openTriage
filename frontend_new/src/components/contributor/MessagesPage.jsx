@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, Loader2, ArrowLeft, Search, Pencil, Trash2, MoreVertical, X, Check, Bot } from 'lucide-react';
+import { MessageSquare, Send, Loader2, ArrowLeft, Search, Pencil, Trash2, X, Check, Bot } from 'lucide-react';
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
@@ -19,10 +19,9 @@ const MessagesPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const messagesEndRef = useRef(null);
 
-    // Edit/delete state
+    // Edit state
     const [editingMessageId, setEditingMessageId] = useState(null);
     const [editContent, setEditContent] = useState('');
-    const [menuOpenId, setMenuOpenId] = useState(null);
 
     useEffect(() => {
         loadConversations();
@@ -320,34 +319,27 @@ const MessagesPage = () => {
                                                     </>
                                                 )}
 
-                                                {/* Edit/Delete dropdown for own messages */}
+                                                {/* Edit/Delete buttons for own messages - inline on hover */}
                                                 {isMe && !isEditing && (
-                                                    <div className="absolute -left-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="absolute -left-16 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <button
-                                                            onClick={() => setMenuOpenId(menuOpenId === msg.id ? null : msg.id)}
-                                                            className="p-1 hover:bg-[hsl(220,13%,20%)] rounded text-[hsl(210,11%,50%)]"
+                                                            onClick={() => startEditing(msg)}
+                                                            className="p-1.5 bg-[hsl(220,13%,12%)] hover:bg-[hsl(217,91%,60%,0.2)] text-[hsl(210,11%,50%)] hover:text-[hsl(217,91%,65%)] rounded-md transition-colors border border-[hsl(220,13%,20%)]"
+                                                            title="Edit message"
                                                         >
-                                                            <MoreVertical className="w-4 h-4" />
+                                                            <Pencil className="w-3.5 h-3.5" />
                                                         </button>
-
-                                                        {menuOpenId === msg.id && (
-                                                            <div className="absolute right-0 top-6 bg-[hsl(220,13%,12%)] border border-[hsl(220,13%,20%)] rounded-lg shadow-lg py-1 min-w-[100px] z-10">
-                                                                <button
-                                                                    onClick={() => startEditing(msg)}
-                                                                    className="w-full px-3 py-1.5 text-left text-sm text-[hsl(210,11%,80%)] hover:bg-[hsl(220,13%,18%)] flex items-center gap-2"
-                                                                >
-                                                                    <Pencil className="w-3 h-3" />
-                                                                    Edit
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDeleteMessage(msg.id)}
-                                                                    className="w-full px-3 py-1.5 text-left text-sm text-red-400 hover:bg-[hsl(220,13%,18%)] flex items-center gap-2"
-                                                                >
-                                                                    <Trash2 className="w-3 h-3" />
-                                                                    Delete
-                                                                </button>
-                                                            </div>
-                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                if (window.confirm('Delete this message?')) {
+                                                                    handleDeleteMessage(msg.id);
+                                                                }
+                                                            }}
+                                                            className="p-1.5 bg-[hsl(220,13%,12%)] hover:bg-red-500/20 text-[hsl(210,11%,50%)] hover:text-red-400 rounded-md transition-colors border border-[hsl(220,13%,20%)]"
+                                                            title="Delete message"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
