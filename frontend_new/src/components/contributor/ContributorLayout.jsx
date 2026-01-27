@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { useState, useCallback, createContext, useContext } from 'react';
 import { Bot } from 'lucide-react';
 import ContributorSidebar from './ContributorSidebar';
@@ -17,6 +17,10 @@ export const useChatContext = () => useContext(ChatContext);
 const ContributorLayout = () => {
   const [showAIChat, setShowAIChat] = useState(false);
   const [showMentorshipChat, setShowMentorshipChat] = useState(false);
+  const location = useLocation();
+
+  // Hide floating button on messages page (has its own inline button)
+  const isMessagesPage = location.pathname.includes('/messages');
 
   // Mutex: Opening one chat closes the other
   const openAIChat = useCallback(() => {
@@ -76,17 +80,19 @@ const ContributorLayout = () => {
           <ContributorAIChat onClose={closeAIChat} />
         )}
 
-        {/* Floating AI Button - positioned to avoid message input overlap */}
-        <button
-          data-testid="ai-chat-button"
-          onClick={toggleAIChat}
-          className={`fixed bottom-6 right-6 z-[60] p-4 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 ${showAIChat
-            ? 'bg-[hsl(220,13%,15%)] text-[hsl(210,11%,60%)]'
-            : 'bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black'
-            }`}
-        >
-          <Bot className="w-6 h-6" />
-        </button>
+        {/* Floating AI Button - hidden on messages page (has inline button) */}
+        {!isMessagesPage && (
+          <button
+            data-testid="ai-chat-button"
+            onClick={toggleAIChat}
+            className={`fixed bottom-6 right-6 z-[60] p-4 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 ${showAIChat
+              ? 'bg-[hsl(220,13%,15%)] text-[hsl(210,11%,60%)]'
+              : 'bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black'
+              }`}
+          >
+            <Bot className="w-6 h-6" />
+          </button>
+        )}
       </div>
     </ChatContext.Provider>
   );

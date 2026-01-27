@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Send, Loader2, ArrowLeft, Search, Pencil, Trash2, MoreVertical, X, Check } from 'lucide-react';
+import { MessageSquare, Send, Loader2, ArrowLeft, Search, Pencil, Trash2, MoreVertical, X, Check, Bot } from 'lucide-react';
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
+import { useChatContext } from './ContributorLayout';
 
 const MessagesPage = () => {
     const { user } = useAuthStore();
+    const chatContext = useChatContext();
     const [conversations, setConversations] = useState([]);
     const [selectedChat, setSelectedChat] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -362,11 +364,17 @@ const MessagesPage = () => {
 
                         {/* Input with AI suggestions based on conversation history */}
                         <form onSubmit={handleSendMessage} className="p-4 border-t border-[hsl(220,13%,15%)] bg-[hsl(220,13%,8%)]">
-                            <div className="flex gap-2 items-end">
-                                <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 min-w-0">
                                     <AISuggestTextarea
                                         value={newMessage}
-                                        onChange={setNewMessage}
+                                        onChange={(val) => {
+                                            setNewMessage(val);
+                                            // Close AI chatbot when user starts typing
+                                            if (val && chatContext?.showAIChat) {
+                                                chatContext.closeAIChat();
+                                            }
+                                        }}
                                         contextType="direct_message"
                                         conversationHistory={messages.map(m => ({
                                             sender: m.sender_id === user?.userId ? 'user' : 'other',
@@ -384,6 +392,18 @@ const MessagesPage = () => {
                                     className="flex-shrink-0 p-2.5 bg-[hsl(142,70%,45%)] text-black rounded-lg hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] transition-colors"
                                 >
                                     {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                                </button>
+                                {/* AI Chatbot Button - inline to prevent overlap */}
+                                <button
+                                    type="button"
+                                    onClick={() => chatContext?.toggleAIChat()}
+                                    className={`flex-shrink-0 p-2.5 rounded-lg transition-all ${chatContext?.showAIChat
+                                        ? 'bg-[hsl(220,13%,15%)] text-[hsl(210,11%,60%)]'
+                                        : 'bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,55%)] text-white'
+                                        }`}
+                                    title="AI Assistant"
+                                >
+                                    <Bot className="w-5 h-5" />
                                 </button>
                             </div>
                             <p className="text-[10px] text-[hsl(210,11%,35%)] mt-1.5">AI suggests completions based on your conversation</p>
