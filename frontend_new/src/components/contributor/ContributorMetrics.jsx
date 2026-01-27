@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { TrendingUp, GitPullRequest, AlertCircle, CheckCircle, GitBranch, Calendar, Award, Star, Users } from 'lucide-react';
+import { TrendingUp, GitPullRequest, AlertCircle, CheckCircle, GitBranch, Calendar, Award, Star, Users, Flame, GitCommit, MessageSquare } from 'lucide-react';
 import { profileApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 
@@ -67,16 +67,23 @@ const ContributorMetrics = () => {
                     <MetricCard
                         icon={TrendingUp}
                         label="Total Contributions"
-                        value={metrics?.totalContributions || 0}
+                        value={githubStats?.totalContributions || metrics?.totalContributions || 0}
                         color="emerald"
-                        trend="+12% this month"
+                        trend={`This year on GitHub`}
                     />
                     <MetricCard
-                        icon={GitBranch}
-                        label="Repositories"
-                        value={metrics?.repositoriesContributed || 0}
+                        icon={Flame}
+                        label="Current Streak"
+                        value={`${githubStats?.currentStreak || 0} days`}
+                        color="orange"
+                        trend={`Best: ${githubStats?.longestStreak || 0} days`}
+                    />
+                    <MetricCard
+                        icon={GitCommit}
+                        label="Total Commits"
+                        value={githubStats?.totalCommits || 0}
                         color="purple"
-                        trend="Across GitHub"
+                        trend="Recent activity"
                     />
                     <MetricCard
                         icon={Award}
@@ -84,13 +91,6 @@ const ContributorMetrics = () => {
                         value={`${prSuccessRate}%`}
                         color="blue"
                         trend={`${metrics?.mergedPRs || 0} merged`}
-                    />
-                    <MetricCard
-                        icon={CheckCircle}
-                        label="Issue Resolution"
-                        value={`${issueResolutionRate}%`}
-                        color="orange"
-                        trend={`${metrics?.closedIssues || 0} resolved`}
                     />
                 </div>
 
@@ -258,6 +258,27 @@ const ContributorMetrics = () => {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
                                 <div className="flex items-center gap-2 mb-2">
+                                    <GitPullRequest className="w-4 h-4 text-purple-400" />
+                                    <span className="text-sm text-[hsl(210,11%,50%)]">Pull Requests</span>
+                                </div>
+                                <div className="text-2xl font-bold text-purple-400">{githubStats.totalPRs || metrics?.totalPRs || 0}</div>
+                            </div>
+                            <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <AlertCircle className="w-4 h-4 text-orange-400" />
+                                    <span className="text-sm text-[hsl(210,11%,50%)]">Issues Opened</span>
+                                </div>
+                                <div className="text-2xl font-bold text-orange-400">{githubStats.totalIssues || metrics?.totalIssues || 0}</div>
+                            </div>
+                            <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <MessageSquare className="w-4 h-4 text-cyan-400" />
+                                    <span className="text-sm text-[hsl(210,11%,50%)]">Code Reviews</span>
+                                </div>
+                                <div className="text-2xl font-bold text-cyan-400">{githubStats.totalReviews || 0}</div>
+                            </div>
+                            <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
+                                <div className="flex items-center gap-2 mb-2">
                                     <GitBranch className="w-4 h-4 text-[hsl(217,91%,65%)]" />
                                     <span className="text-sm text-[hsl(210,11%,50%)]">Public Repos</span>
                                 </div>
@@ -266,7 +287,7 @@ const ContributorMetrics = () => {
                             <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Star className="w-4 h-4 text-yellow-400" />
-                                    <span className="text-sm text-[hsl(210,11%,50%)]">Total Stars</span>
+                                    <span className="text-sm text-[hsl(210,11%,50%)]">Stars Earned</span>
                                 </div>
                                 <div className="text-2xl font-bold text-yellow-400">{githubStats.total_stars || 0}</div>
                             </div>
@@ -279,10 +300,17 @@ const ContributorMetrics = () => {
                             </div>
                             <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Users className="w-4 h-4 text-purple-400" />
+                                    <Users className="w-4 h-4 text-pink-400" />
                                     <span className="text-sm text-[hsl(210,11%,50%)]">Following</span>
                                 </div>
-                                <div className="text-2xl font-bold text-purple-400">{githubStats.following || 0}</div>
+                                <div className="text-2xl font-bold text-pink-400">{githubStats.following || 0}</div>
+                            </div>
+                            <div className="bg-[hsl(220,13%,10%)] rounded-md p-4 border border-[hsl(220,13%,15%)]">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <CheckCircle className="w-4 h-4 text-[hsl(142,70%,55%)]" />
+                                    <span className="text-sm text-[hsl(210,11%,50%)]">Repos Contributed</span>
+                                </div>
+                                <div className="text-2xl font-bold text-[hsl(142,70%,55%)]">{metrics?.repositoriesContributed || 0}</div>
                             </div>
                         </div>
                     </div>
