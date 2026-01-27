@@ -94,31 +94,40 @@ const ContributorMetrics = () => {
                     />
                 </div>
 
-                {/* Pull Requests Section */}
+                {/* Pull Requests Section - All GitHub PRs */}
                 <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg p-5">
-                    <div className="flex items-center gap-3 mb-5">
-                        <GitPullRequest className="w-5 h-5 text-purple-400" />
-                        <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">Pull Requests</h2>
+                    <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-3">
+                            <GitPullRequest className="w-5 h-5 text-purple-400" />
+                            <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">Pull Requests</h2>
+                        </div>
+                        <span className="text-xs text-[hsl(210,11%,40%)] bg-[hsl(220,13%,12%)] px-2 py-1 rounded">All of GitHub</span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-4 gap-4">
                         <StatBox
                             label="Total PRs"
-                            value={metrics?.totalPRs || 0}
+                            value={githubStats?.totalPRs || metrics?.totalPRs || 0}
                             icon={GitPullRequest}
                             color="purple"
                         />
                         <StatBox
                             label="Open PRs"
-                            value={metrics?.openPRs || 0}
+                            value={githubStats?.openPRs || metrics?.openPRs || 0}
                             icon={GitPullRequest}
                             color="blue"
                         />
                         <StatBox
                             label="Merged PRs"
-                            value={metrics?.mergedPRs || 0}
+                            value={githubStats?.mergedPRs || metrics?.mergedPRs || 0}
                             icon={CheckCircle}
                             color="emerald"
+                        />
+                        <StatBox
+                            label="Closed PRs"
+                            value={githubStats?.closedPRs || 0}
+                            icon={AlertCircle}
+                            color="orange"
                         />
                     </div>
 
@@ -126,56 +135,68 @@ const ContributorMetrics = () => {
                     <div className="mt-5">
                         <div className="flex justify-between text-sm text-[hsl(210,11%,50%)] mb-2">
                             <span>PR Status Distribution</span>
-                            <span>{metrics?.totalPRs || 0} total</span>
+                            <span>{githubStats?.totalPRs || metrics?.totalPRs || 0} total</span>
                         </div>
                         <div className="h-2 bg-[hsl(220,13%,12%)] rounded-full overflow-hidden flex">
                             <div
                                 className="bg-[hsl(142,70%,45%)] transition-all duration-500"
-                                style={{ width: `${(metrics?.mergedPRs / (metrics?.totalPRs || 1)) * 100}%` }}
-                                title={`Merged: ${metrics?.mergedPRs || 0}`}
+                                style={{ width: `${((githubStats?.mergedPRs || metrics?.mergedPRs || 0) / (githubStats?.totalPRs || metrics?.totalPRs || 1)) * 100}%` }}
+                                title={`Merged: ${githubStats?.mergedPRs || metrics?.mergedPRs || 0}`}
                             />
                             <div
                                 className="bg-[hsl(217,91%,60%)] transition-all duration-500"
-                                style={{ width: `${(metrics?.openPRs / (metrics?.totalPRs || 1)) * 100}%` }}
-                                title={`Open: ${metrics?.openPRs || 0}`}
+                                style={{ width: `${((githubStats?.openPRs || metrics?.openPRs || 0) / (githubStats?.totalPRs || metrics?.totalPRs || 1)) * 100}%` }}
+                                title={`Open: ${githubStats?.openPRs || metrics?.openPRs || 0}`}
+                            />
+                            <div
+                                className="bg-orange-500 transition-all duration-500"
+                                style={{ width: `${((githubStats?.closedPRs || 0) / (githubStats?.totalPRs || metrics?.totalPRs || 1)) * 100}%` }}
+                                title={`Closed: ${githubStats?.closedPRs || 0}`}
                             />
                         </div>
                         <div className="flex gap-4 mt-2 text-xs">
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 bg-[hsl(142,70%,45%)] rounded-full" />
-                                <span className="text-[hsl(210,11%,50%)]">Merged ({metrics?.mergedPRs || 0})</span>
+                                <span className="text-[hsl(210,11%,50%)]">Merged ({githubStats?.mergedPRs || metrics?.mergedPRs || 0})</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 bg-[hsl(217,91%,60%)] rounded-full" />
-                                <span className="text-[hsl(210,11%,50%)]">Open ({metrics?.openPRs || 0})</span>
+                                <span className="text-[hsl(210,11%,50%)]">Open ({githubStats?.openPRs || metrics?.openPRs || 0})</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2.5 h-2.5 bg-orange-500 rounded-full" />
+                                <span className="text-[hsl(210,11%,50%)]">Closed ({githubStats?.closedPRs || 0})</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Issues Section */}
+                {/* Issues Section - All GitHub Issues */}
                 <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg p-5">
-                    <div className="flex items-center gap-3 mb-5">
-                        <AlertCircle className="w-5 h-5 text-orange-400" />
-                        <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">Issues</h2>
+                    <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-3">
+                            <AlertCircle className="w-5 h-5 text-orange-400" />
+                            <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">Issues</h2>
+                        </div>
+                        <span className="text-xs text-[hsl(210,11%,40%)] bg-[hsl(220,13%,12%)] px-2 py-1 rounded">All of GitHub</span>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
                         <StatBox
                             label="Total Issues"
-                            value={metrics?.totalIssues || 0}
+                            value={githubStats?.totalIssues || metrics?.totalIssues || 0}
                             icon={AlertCircle}
                             color="orange"
                         />
                         <StatBox
                             label="Open Issues"
-                            value={metrics?.openIssues || 0}
+                            value={githubStats?.openIssues || metrics?.openIssues || 0}
                             icon={AlertCircle}
                             color="blue"
                         />
                         <StatBox
                             label="Closed Issues"
-                            value={metrics?.closedIssues || 0}
+                            value={githubStats?.closedIssues || metrics?.closedIssues || 0}
                             icon={CheckCircle}
                             color="emerald"
                         />
@@ -185,28 +206,28 @@ const ContributorMetrics = () => {
                     <div className="mt-5">
                         <div className="flex justify-between text-sm text-[hsl(210,11%,50%)] mb-2">
                             <span>Issue Status Distribution</span>
-                            <span>{metrics?.totalIssues || 0} total</span>
+                            <span>{githubStats?.totalIssues || metrics?.totalIssues || 0} total</span>
                         </div>
                         <div className="h-2 bg-[hsl(220,13%,12%)] rounded-full overflow-hidden flex">
                             <div
                                 className="bg-[hsl(142,70%,45%)] transition-all duration-500"
-                                style={{ width: `${(metrics?.closedIssues / (metrics?.totalIssues || 1)) * 100}%` }}
-                                title={`Closed: ${metrics?.closedIssues || 0}`}
+                                style={{ width: `${((githubStats?.closedIssues || metrics?.closedIssues || 0) / (githubStats?.totalIssues || metrics?.totalIssues || 1)) * 100}%` }}
+                                title={`Closed: ${githubStats?.closedIssues || metrics?.closedIssues || 0}`}
                             />
                             <div
                                 className="bg-[hsl(217,91%,60%)] transition-all duration-500"
-                                style={{ width: `${(metrics?.openIssues / (metrics?.totalIssues || 1)) * 100}%` }}
-                                title={`Open: ${metrics?.openIssues || 0}`}
+                                style={{ width: `${((githubStats?.openIssues || metrics?.openIssues || 0) / (githubStats?.totalIssues || metrics?.totalIssues || 1)) * 100}%` }}
+                                title={`Open: ${githubStats?.openIssues || metrics?.openIssues || 0}`}
                             />
                         </div>
                         <div className="flex gap-4 mt-2 text-xs">
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 bg-[hsl(142,70%,45%)] rounded-full" />
-                                <span className="text-[hsl(210,11%,50%)]">Closed ({metrics?.closedIssues || 0})</span>
+                                <span className="text-[hsl(210,11%,50%)]">Closed ({githubStats?.closedIssues || metrics?.closedIssues || 0})</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-2.5 h-2.5 bg-[hsl(217,91%,60%)] rounded-full" />
-                                <span className="text-[hsl(210,11%,50%)]">Open ({metrics?.openIssues || 0})</span>
+                                <span className="text-[hsl(210,11%,50%)]">Open ({githubStats?.openIssues || metrics?.openIssues || 0})</span>
                             </div>
                         </div>
                     </div>
