@@ -52,8 +52,10 @@ LABEL: (kebab-case, max 3 words)
 SENTIMENT: (POSITIVE, NEUTRAL, NEGATIVE, or FRUSTRATED)"""
         
         # Try each model in sequence until one works
+        errors = []
         for model in self.TRIAGE_MODELS:
             try:
+                logger.info(f"Attempting triage with model: {model}")
                 response = self.client.chat.completions.create(
                     model=model,
                     messages=[
@@ -80,14 +82,17 @@ SENTIMENT: (POSITIVE, NEUTRAL, NEGATIVE, or FRUSTRATED)"""
                     'sentiment': result.get('SENTIMENT', 'NEUTRAL')
                 }
             except Exception as e:
-                logger.warning(f"Triage failed with model {model}: {e}")
+                error_msg = f"{model}: {str(e)}"
+                errors.append(error_msg)
+                logger.error(f"Triage failed with model {model}: {e}")
                 continue
         
         # All models failed
-        logger.error("All triage models failed")
+        error_summary = " | ".join(errors)
+        logger.error(f"All triage models failed. Errors: {error_summary}")
         return {
             'classification': 'NEEDS_INFO',
-            'summary': 'AI analysis pending',
+            'summary': f'AI analysis unavailable. Errors: {error_summary}',
             'suggestedLabel': 'needs-review',
             'sentiment': 'NEUTRAL'
         }
@@ -174,8 +179,10 @@ Above all, be patient and remember that every expert was once a beginner. Your e
         messages.append({"role": "user", "content": message})
         
         # Try each model in sequence until one works
+        errors = []
         for model in self.CHAT_MODELS:
             try:
+                logger.info(f"Attempting chat with model: {model}")
                 response = self.client.chat.completions.create(
                     model=model,
                     messages=messages,
@@ -186,12 +193,15 @@ Above all, be patient and remember that every expert was once a beginner. Your e
                 logger.info(f"Chat success with model: {model}")
                 return response.choices[0].message.content
             except Exception as e:
-                logger.warning(f"Chat failed with model {model}: {e}")
+                error_msg = f"{model}: {str(e)}"
+                errors.append(error_msg)
+                logger.error(f"Chat failed with model {model}: {e}")
                 continue
         
         # All models failed
-        logger.error("All chat models failed")
-        return "I'm sorry, I couldn't generate an answer at this time. All AI models are currently unavailable. Please try again in a moment."
+        error_summary = " | ".join(errors)
+        logger.error(f"All chat models failed. Errors: {error_summary}")
+        return f"I'm sorry, I couldn't generate an answer at this time. All AI models are unavailable. Errors: {error_summary}"
     
     async def analyze_pr(
         self,

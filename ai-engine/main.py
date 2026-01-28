@@ -157,6 +157,50 @@ async def debug_env(auth: dict = Depends(require_api_key_or_auth)):
     }
 
 
+@app.post("/debug/test-openrouter")
+async def test_openrouter(auth: dict = Depends(require_api_key_or_auth)):
+    """Test OpenRouter API connectivity."""
+    try:
+        from openai import OpenAI
+        from config.settings import settings
+        
+        api_key = settings.OPENROUTER_API_KEY
+        if not api_key:
+            return {
+                "status": "error",
+                "message": "OPENROUTER_API_KEY not configured",
+                "api_key_configured": False
+            }
+        
+        client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key
+        )
+        
+        # Try a simple completion
+        response = client.chat.completions.create(
+            model="meta-llama/llama-3.3-70b-instruct:free",
+            messages=[
+                {"role": "user", "content": "Say 'test successful' in one word"}
+            ],
+            temperature=0.7,
+            max_tokens=10
+        )
+        
+        return {
+            "status": "success",
+            "message": "OpenRouter API is working",
+            "response": response.choices[0].message.content,
+            "api_key_configured": True
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "api_key_configured": bool(settings.OPENROUTER_API_KEY)
+        }
+
+
 @app.get("/")
 async def root():
     """Root endpoint with service info."""
