@@ -40,7 +40,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json(result);
     } catch (error) {
         console.error("PUT /api/messaging/[id] error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        console.error("Error details:", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+        });
+        return NextResponse.json({ 
+            error: "Internal server error",
+            detail: error instanceof Error ? error.message : "Unknown error"
+        }, { status: 500 });
     }
 }
 
@@ -66,6 +73,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("DELETE /api/messaging/[id] error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        console.error("Error details:", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+        });
+        return NextResponse.json({ 
+            error: "Internal server error",
+            detail: error instanceof Error ? error.message : "Unknown error"
+        }, { status: 500 });
     }
 }

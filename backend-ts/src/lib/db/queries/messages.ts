@@ -55,40 +55,43 @@ export async function markMessagesAsRead(currentUserId: string, otherUserId: str
 }
 
 export async function editMessage(messageId: string, userId: string, newContent: string) {
-    // First verify the message exists and belongs to the user
-    const existingMessage = await db.select()
-        .from(messages)
-        .where(
-            and(
-                eq(messages.id, messageId),
-                eq(messages.senderId, userId)
+    try {
+        // First verify the message exists and belongs to the user
+        const existingMessage = await db.select()
+            .from(messages)
+            .where(
+                and(
+                    eq(messages.id, messageId),
+                    eq(messages.senderId, userId)
+                )
             )
-        )
-        .limit(1);
+            .limit(1);
 
-    if (!existingMessage[0]) {
-        return null;
-    }
+        if (!existingMessage[0]) {
+            return null;
+        }
 
-    const now = new Date().toISOString();
+        // Update only content - editedAt column may not exist yet
+        await db.update(messages)
+            .set({
+                content: newContent,
+            })
+            .where(eq(messages.id, messageId));
 
-    await db.update(messages)
-        .set({
+        // Return updated message in snake_case for frontend compatibility
+        return {
+            id: messageId,
+            sender_id: existingMessage[0].senderId,
+            receiver_id: existingMessage[0].receiverId,
             content: newContent,
-            editedAt: now,
-        })
-        .where(eq(messages.id, messageId));
-
-    // Return updated message in snake_case for frontend compatibility
-    return {
-        id: messageId,
-        sender_id: existingMessage[0].senderId,
-        receiver_id: existingMessage[0].receiverId,
-        content: newContent,
-        read: existingMessage[0].read,
-        timestamp: existingMessage[0].timestamp,
-        edited_at: now,
-    };
+            read: existingMessage[0].read,
+            timestamp: existingMessage[0].timestamp,
+            edited_at: null,
+        };
+    } catch (error) {
+        console.error("editMessage error:", error);
+        throw error;
+    }
 }
 
 export async function deleteMessage(messageId: string, userId: string) {
