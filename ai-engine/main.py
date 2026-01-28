@@ -142,7 +142,18 @@ async def health_check():
         "status": "healthy",
         "service": "ai-engine-full",
         "version": "2.0.0",
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "api_key_configured": bool(os.environ.get('API_KEY', ''))
+    }
+
+
+@app.get("/debug/env")
+async def debug_env(auth: dict = Depends(require_api_key_or_auth)):
+    """Debug endpoint to show environment variable configuration."""
+    return {
+        "api_key_set": bool(os.environ.get('API_KEY', '')),
+        "api_key_value": os.environ.get('API_KEY', 'NOT_SET'),
+        "jwt_secret_set": bool(os.environ.get('JWT_SECRET', '')),
     }
 
 
