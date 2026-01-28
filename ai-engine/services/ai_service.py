@@ -11,6 +11,15 @@ logger = logging.getLogger(__name__)
 class AITriageService:
     """Service for AI-powered issue triage and classification."""
     
+    # Fallback models to try if primary fails
+    TRIAGE_MODELS = [
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "arcee-ai/trinity-large-preview:free",
+        "liquid/lfm-2.5-1.2b-thinking:free",
+        "allenai/molmo-2-8b:free",
+        "nvidia/nemotron-3-nano-30b-a3b:free",
+    ]
+    
     def __init__(self):
         self.api_key = settings.OPENROUTER_API_KEY
         self.client = OpenAI(
@@ -20,7 +29,7 @@ class AITriageService:
     
     async def classify_issue(self, issue: Issue) -> Dict:
         """
-        Classify an issue or PR using AI.
+        Classify an issue or PR using AI with fallback models.
         
         Args:
             issue: Issue object to classify
@@ -28,10 +37,9 @@ class AITriageService:
         Returns:
             Dict with classification, summary, suggestedLabel, and sentiment
         """
-        try:
-            item_type = "Pull Request" if issue.isPR else "Issue"
-            system_message = f"You are an expert GitHub {item_type.lower()} triaging assistant."
-            prompt = f"""Analyze this GitHub {item_type}:
+        item_type = "Pull Request" if issue.isPR else "Issue"
+        system_message = f"You are an expert GitHub {item_type.lower()} triaging assistant."
+        prompt = f"""Analyze this GitHub {item_type}:
 
 Title: {issue.title}
 Body: {issue.body}
@@ -42,43 +50,60 @@ CLASSIFICATION: (CRITICAL_BUG, BUG, FEATURE_REQUEST, QUESTION, DOCS, DUPLICATE, 
 SUMMARY: (max 100 words)
 LABEL: (kebab-case, max 3 words)
 SENTIMENT: (POSITIVE, NEUTRAL, NEGATIVE, or FRUSTRATED)"""
-            
-            response = self.client.chat.completions.create(
-                model="meta-llama/llama-3.3-70b-instruct:free",
-                messages=[
-                    {"role": "system", "content": system_message},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=500
-            )
-            
-            response_text = response.choices[0].message.content
-            lines = response_text.strip().split('\n')
-            result = {}
-            for line in lines:
-                if ':' in line:
-                    key, value = line.split(':', 1)
-                    result[key.strip()] = value.strip()
-            
-            return {
-                'classification': result.get('CLASSIFICATION', 'NEEDS_INFO'),
-                'summary': result.get('SUMMARY', 'Unable to analyze'),
-                'suggestedLabel': result.get('LABEL', 'needs-review'),
-                'sentiment': result.get('SENTIMENT', 'NEUTRAL')
-            }
-        except Exception as e:
-            logger.error(f"AI classification error: {e}")
-            return {
-                'classification': 'NEEDS_INFO',
-                'summary': 'AI analysis pending',
-                'suggestedLabel': 'needs-review',
-                'sentiment': 'NEUTRAL'
-            }
+        
+        # Try each model in sequence until one works
+        for model in self.TRIAGE_MODELS:
+            try:
+                response = self.client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=500
+                )
+                
+                response_text = response.choices[0].message.content
+                lines = response_text.strip().split('\n')
+                result = {}
+                for line in lines:
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        result[key.strip()] = value.strip()
+                
+                logger.info(f"Triage success with model: {model}")
+                return {
+                    'classification': result.get('CLASSIFICATION', 'NEEDS_INFO'),
+                    'summary': result.get('SUMMARY', 'Unable to analyze'),
+                    'suggestedLabel': result.get('LABEL', 'needs-review'),
+                    'sentiment': result.get('SENTIMENT', 'NEUTRAL')
+                }
+            except Exception as e:
+                logger.warning(f"Triage failed with model {model}: {e}")
+                continue
+        
+        # All models failed
+        logger.error("All triage models failed")
+        return {
+            'classification': 'NEEDS_INFO',
+            'summary': 'AI analysis pending',
+            'suggestedLabel': 'needs-review',
+            'sentiment': 'NEUTRAL'
+        }
 
 
 class AIChatService:
     """Service for AI-powered chat assistance."""
+    
+    # Fallback models to try if primary fails
+    CHAT_MODELS = [
+        "meta-llama/llama-3.3-70b-instruct:free",
+        "arcee-ai/trinity-large-preview:free",
+        "liquid/lfm-2.5-1.2b-thinking:free",
+        "allenai/molmo-2-8b:free",
+        "nvidia/nemotron-3-nano-30b-a3b:free",
+    ]
     
     def __init__(self):
         self.api_key = settings.OPENROUTER_API_KEY
@@ -94,7 +119,7 @@ class AIChatService:
         context: Optional[dict] = None
     ) -> str:
         """
-        Generate a chat response using AI.
+        Generate a chat response using AI with fallback models.
         
         Args:
             message: User message
@@ -104,14 +129,13 @@ class AIChatService:
         Returns:
             AI-generated response text
         """
-        try:
-            system_message = """You are OpenTriage AI, an intelligent assistant for open source development."""
+        system_message = """You are OpenTriage AI, an intelligent assistant for open source development."""
+        
+        if context:
+            role = context.get('role', 'user').upper()
             
-            if context:
-                role = context.get('role', 'user').upper()
-                
-                if role == 'MAINTAINER':
-                    system_message += """
+            if role == 'MAINTAINER':
+                system_message += """
 You are acting as a **Maintainer's Copilot**. Your goal is to help project maintainers be efficient, fair, and effective.
 - Help triage issues quickly (bug vs feature, severity).
 - Draft professional and concise replies to contributors.
@@ -120,9 +144,9 @@ You are acting as a **Maintainer's Copilot**. Your goal is to help project maint
 - Summarize long discussions.
 - Be direct, professional, and solution-oriented.
 """
-                elif role == 'CONTRIBUTOR':
-                    stats = f"They have made {context.get('totalContributions', 0)} contributions so far." if context.get('totalContributions') else ""
-                    system_message += f"""
+            elif role == 'CONTRIBUTOR':
+                stats = f"They have made {context.get('totalContributions', 0)} contributions so far." if context.get('totalContributions') else ""
+                system_message += f"""
 You are acting as a **Contributor's Mentor**, much like a friendly senior developer who genuinely wants to see them succeed in open source. {stats}
 
 Your approach should feel like having a conversation with a supportive colleague over coffee. When they ask questions, take the time to understand where they're coming from, and craft your responses in a way that not only answers their immediate question but also helps them develop intuition for future situations.
@@ -133,34 +157,41 @@ When discussing programs like Google Summer of Code, LFX Mentorship, or Hacktobe
 
 Above all, be patient and remember that every expert was once a beginner. Your encouragement could be the spark that ignites their open source journey.
 """
-                else:
-                    system_message += "\nHelp users with GitHub issues and open source contributions."
             else:
                 system_message += "\nHelp users with GitHub issues and open source contributions."
-            
-            messages = [{"role": "system", "content": system_message}]
-            
-            if history:
-                for msg in history[-6:]:  # Keep last 6 messages for context
-                    messages.append({
-                        "role": msg.get('role', 'user'),
-                        "content": msg.get('content', '')
-                    })
-            
-            messages.append({"role": "user", "content": message})
-            
-            response = self.client.chat.completions.create(
-                model="meta-llama/llama-3.3-70b-instruct:free",
-                messages=messages,
-                temperature=0.8,
-                max_tokens=1000
-            )
-            
-            return response.choices[0].message.content
-            
-        except Exception as e:
-            logger.error(f"AI chat error: {e}")
-            return "I'm sorry, I encountered an error. Please try again."
+        else:
+            system_message += "\nHelp users with GitHub issues and open source contributions."
+        
+        messages = [{"role": "system", "content": system_message}]
+        
+        if history:
+            for msg in history[-6:]:  # Keep last 6 messages for context
+                messages.append({
+                    "role": msg.get('role', 'user'),
+                    "content": msg.get('content', '')
+                })
+        
+        messages.append({"role": "user", "content": message})
+        
+        # Try each model in sequence until one works
+        for model in self.CHAT_MODELS:
+            try:
+                response = self.client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=0.8,
+                    max_tokens=1000
+                )
+                
+                logger.info(f"Chat success with model: {model}")
+                return response.choices[0].message.content
+            except Exception as e:
+                logger.warning(f"Chat failed with model {model}: {e}")
+                continue
+        
+        # All models failed
+        logger.error("All chat models failed")
+        return "I'm sorry, I couldn't generate an answer at this time. All AI models are currently unavailable. Please try again in a moment."
     
     async def analyze_pr(
         self,
