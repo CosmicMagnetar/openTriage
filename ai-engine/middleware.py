@@ -50,13 +50,16 @@ async def require_api_key_or_auth(
     if x_api_key:
         # Validate API key (can be extended to check against database)
         api_key = os.environ.get('API_KEY', '')
+        # Log for debugging (remove in production)
+        import logging
+        logging.warning(f"API Key validation: received='{x_api_key}', configured='{api_key}', match={x_api_key == api_key}")
         if api_key and x_api_key == api_key:
             return {
                 'type': 'api_key',
                 'api_key': x_api_key,
                 'authenticated': True
             }
-        raise HTTPException(status_code=401, detail="Invalid API key")
+        raise HTTPException(status_code=401, detail=f"Invalid API key (expected: {api_key})")
     
     # No authentication provided
     raise HTTPException(
