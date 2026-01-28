@@ -5,7 +5,7 @@
  */
 
 import { db } from "@/db";
-import { users, profiles, profileSkills, profileMentoringTopics, profileConnectedRepos, userRepositories, mentors, mentorTechStack } from "@/db/schema";
+import { users, profiles, profileSkills, profileMentoringTopics, profileConnectedRepos, userRepositories } from "@/db/schema";
 import { eq, and, like, desc } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
@@ -160,56 +160,6 @@ export async function createOrUpdateProfile(userId: string, data: {
         await db.delete(profileMentoringTopics).where(eq(profileMentoringTopics.profileId, userId));
         for (const topic of data.mentoringTopics) {
             await db.insert(profileMentoringTopics).values({ profileId: userId, topic });
-        }
-    }
-
-    // Sync to mentors table for discoverability
-    // When availableForMentoring is true, create/update mentor entry so they appear in searches
-    if (data.availableForMentoring !== undefined) {
-        const existingMentor = await db.select().from(mentors).where(eq(mentors.userId, userId)).limit(1);
-
-        if (data.availableForMentoring) {
-            // User wants to be a mentor - create or update mentor entry
-            if (existingMentor[0]) {
-                // Update existing mentor entry
-                await db.update(mentors)
-                    .set({
-                        isActive: true,
-                        bio: data.bio || null,
-                        avatarUrl: data.avatarUrl || null,
-                        updatedAt: now,
-                    })
-                    .where(eq(mentors.userId, userId));
-            } else {
-                // Create new mentor entry
-                const mentorId = uuidv4();
-                await db.insert(mentors).values({
-                    id: mentorId,
-                    userId,
-                    username: data.username,
-                    bio: data.bio || null,
-                    avatarUrl: data.avatarUrl || null,
-                    isActive: true,
-                    expertiseLevel: "intermediate",
-                    maxMentees: 3,
-                    createdAt: now,
-                    updatedAt: now,
-                });
-
-                // Add skills as tech stack for mentor matching
-                if (data.skills && data.skills.length > 0) {
-                    for (const tech of data.skills) {
-                        await db.insert(mentorTechStack).values({ mentorId, tech });
-                    }
-                }
-            }
-        } else {
-            // User disabled mentoring - set isActive to false
-            if (existingMentor[0]) {
-                await db.update(mentors)
-                    .set({ isActive: false, updatedAt: now })
-                    .where(eq(mentors.userId, userId));
-            }
         }
     }
 
