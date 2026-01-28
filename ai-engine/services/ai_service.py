@@ -4,6 +4,8 @@ from openai import OpenAI
 from models.issue import Issue
 from models.triage import Classification, Sentiment
 from config.settings import settings
+import os
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -87,12 +89,12 @@ SENTIMENT: (POSITIVE, NEUTRAL, NEGATIVE, or FRUSTRATED)"""
                 logger.error(f"Triage failed with model {model}: {e}")
                 continue
         
-        # All models failed
+        # All OpenRouter models failed, return defaults with logging
         error_summary = " | ".join(errors)
         logger.error(f"All triage models failed. Errors: {error_summary}")
         return {
             'classification': 'NEEDS_INFO',
-            'summary': f'AI analysis unavailable. Errors: {error_summary}',
+            'summary': 'Issue triage currently unavailable. Please review manually.',
             'suggestedLabel': 'needs-review',
             'sentiment': 'NEUTRAL'
         }
@@ -116,6 +118,9 @@ class AIChatService:
             base_url="https://openrouter.ai/api/v1",
             api_key=self.api_key
         )
+        # Fallback to Hugging Face Inference API if OpenRouter fails
+        self.hf_token = os.environ.get('HF_API_TOKEN', '')
+        logger.info(f"OpenRouter key set: {bool(self.api_key)}, HF token set: {bool(self.hf_token)}")
     
     async def chat(
         self, 
@@ -198,10 +203,60 @@ Above all, be patient and remember that every expert was once a beginner. Your e
                 logger.error(f"Chat failed with model {model}: {e}")
                 continue
         
-        # All models failed
+        # All OpenRouter models failed, try HuggingFace Inference API
+        logger.warning("All OpenRouter models failed, trying HuggingFace Inference API...")
+        try:
+            hf_response = self._chat_huggingface(message, messages[-5:] if len(messages) > 5 else messages)
+            if hf_response:
+                logger.info("Chat success with HuggingFace Inference API")
+                return hf_response
+        except Exception as e:
+            logger.error(f"HuggingFace Inference API also failed: {e}")
+        
+        # All fallbacks failed
         error_summary = " | ".join(errors)
-        logger.error(f"All chat models failed. Errors: {error_summary}")
-        return f"I'm sorry, I couldn't generate an answer at this time. All AI models are unavailable. Errors: {error_summary}"
+        logger.error(f"All chat models and fallbacks failed. Errors: {error_summary}")
+        return f"I'm sorry, I couldn't generate an answer at this time. Please check your OpenRouter API key or try again later."
+    
+    def _chat_huggingface(self, user_message: str, recent_messages: List[dict]) -> Optional[str]:
+        """Fallback to HuggingFace Inference API."""
+        hf_token = os.environ.get('HF_API_TOKEN')
+        if not hf_token:
+            logger.warning("HF_API_TOKEN not set, cannot use HuggingFace fallback")
+            return None
+        
+        try:
+            # Use a simple, free HuggingFace model
+            api_url = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
+            headers = {"Authorization": f"Bearer {hf_token}"}
+            
+            # Build prompt from recent messages
+            prompt = ""
+            for msg in recent_messages:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                prompt += f"{role}: {content}\n"
+            prompt += f"user: {user_message}\nassistant: "
+            
+            payload = {
+                "inputs": prompt,
+                "parameters": {
+                    "max_new_tokens": 500,
+                    "temperature": 0.8
+                }
+            }
+            
+            response = requests.post(api_url, headers=headers, json=payload, timeout=30)
+            if response.status_code == 200:
+                result = response.json()
+                if isinstance(result, list) and len(result) > 0:
+                    return result[0].get("generated_text", "").split("assistant: ")[-1].strip()
+            
+            logger.warning(f"HuggingFace API returned status {response.status_code}: {response.text}")
+            return None
+        except Exception as e:
+            logger.error(f"HuggingFace fallback error: {e}")
+            return None
     
     async def analyze_pr(
         self,
