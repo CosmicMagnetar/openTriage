@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: opentriage-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    container_name: opentriage-ai-engine
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PORT=7860
+      - ENVIRONMENT=production
+    env_file:
+      - ./ai-engine/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend-ts:
+    build:
+      context: ./backend-ts
+      dockerfile: Dockerfile
+    container_name: opentriage-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - AI_ENGINE_URL=http://ai-engine:7860
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - ./backend-ts/.env.local
+    depends_on:
+      - ai-engine
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis-data:
+    driver: local

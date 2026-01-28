@@ -321,25 +321,27 @@ const MessagesPage = () => {
 
                                                 {/* Edit/Delete buttons for own messages - inline on hover */}
                                                 {isMe && !isEditing && (
-                                                    <div className="absolute -left-16 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => startEditing(msg)}
-                                                            className="p-1.5 bg-[hsl(220,13%,12%)] hover:bg-[hsl(217,91%,60%,0.2)] text-[hsl(210,11%,50%)] hover:text-[hsl(217,91%,65%)] rounded-md transition-colors border border-[hsl(220,13%,20%)]"
-                                                            title="Edit message"
-                                                        >
-                                                            <Pencil className="w-3.5 h-3.5" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                if (window.confirm('Delete this message?')) {
-                                                                    handleDeleteMessage(msg.id);
-                                                                }
-                                                            }}
-                                                            className="p-1.5 bg-[hsl(220,13%,12%)] hover:bg-red-500/20 text-[hsl(210,11%,50%)] hover:text-red-400 rounded-md transition-colors border border-[hsl(220,13%,20%)]"
-                                                            title="Delete message"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
+                                                    <div className="absolute -left-20 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                                        <div className="flex items-center gap-1.5 bg-[hsl(220,13%,8%)] backdrop-blur-sm rounded-lg p-1 border border-[hsl(220,13%,18%)] shadow-lg">
+                                                            <button
+                                                                onClick={() => startEditing(msg)}
+                                                                className="p-2 bg-[hsl(220,13%,12%)] hover:bg-[hsl(217,91%,60%,0.2)] text-[hsl(210,11%,55%)] hover:text-[hsl(217,91%,65%)] rounded-md transition-all duration-150 border border-transparent hover:border-[hsl(217,91%,60%,0.3)]"
+                                                                title="Edit message"
+                                                            >
+                                                                <Pencil className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (window.confirm('Delete this message?')) {
+                                                                        handleDeleteMessage(msg.id);
+                                                                    }
+                                                                }}
+                                                                className="p-2 bg-[hsl(220,13%,12%)] hover:bg-red-500/20 text-[hsl(210,11%,55%)] hover:text-red-400 rounded-md transition-all duration-150 border border-transparent hover:border-red-500/30"
+                                                                title="Delete message"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>

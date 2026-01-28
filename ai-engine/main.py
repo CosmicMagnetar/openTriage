@@ -176,8 +176,32 @@ async def triage_issue(request: TriageRequest, auth: dict = Depends(require_api_
     
     Passes directly to ai_triage_service.classify_issue()
     Requires authentication (API key or JWT token).
+    
+    Implements Redis caching with 24-hour TTL.
     """
     try:
+        # Import Redis utilities (lazy import to avoid startup dependencies)
+        from config.redis import generate_cache_key, cache_get, cache_set
+        
+        # Generate cache key from request data
+        cache_data = {
+            "title": request.title,
+            "body": request.body or "",
+            "isPR": request.isPR
+        }
+        cache_key = generate_cache_key("triage", cache_data)
+        
+        # Check cache first
+        cached_result = cache_get(cache_key)
+        if cached_result is not None:
+            logger.info(f"Cache HIT for triage request: {cache_key}")
+            # Add cache metadata
+            cached_result["_cached"] = True
+            cached_result["_cache_key"] = cache_key
+            return cached_result
+        
+        logger.info(f"Cache MISS for triage request: {cache_key}")
+        
         # Create Issue object matching the original service expectation
         issue = Issue(
             id=request.id or "temp-id",
@@ -191,7 +215,17 @@ async def triage_issue(request: TriageRequest, auth: dict = Depends(require_api_
             isPR=request.isPR
         )
         
+        # Call AI service (cache miss)
         result = await ai_triage_service.classify_issue(issue)
+        
+        # Cache the result with 24-hour TTL (86400 seconds)
+        cache_set(cache_key, result, ttl=86400)
+        logger.info(f"Cached triage result: {cache_key}")
+        
+        # Add cache metadata
+        result["_cached"] = False
+        result["_cache_key"] = cache_key
+        
         return result
     except Exception as e:
         logger.error(f"Triage error: {e}")

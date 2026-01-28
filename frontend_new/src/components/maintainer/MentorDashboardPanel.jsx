@@ -172,11 +172,11 @@ const MentorDashboardPanel = () => {
         return (
             <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">
                 <div className="flex items-center gap-3 mb-4">
-                    <Users className="w-6 h-6 text-pink-400" />
+                    <Users className="w-6 h-6 text-[hsl(142,70%,55%)]" />
                     <h2 className="text-lg font-bold text-[hsl(210,11%,90%)]">Mentorship Dashboard</h2>
                 </div>
                 <div className="flex justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin text-pink-400" />
+                    <Loader2 className="w-8 h-8 animate-spin text-[hsl(142,70%,55%)]" />
                 </div>
             </div>
         );
@@ -188,7 +188,7 @@ const MentorDashboardPanel = () => {
             <div className="p-4 border-b border-[hsl(220,13%,15%)]">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Users className="w-6 h-6 text-pink-400" />
+                        <Users className="w-6 h-6 text-[hsl(142,70%,55%)]" />
                         <div>
                             <h2 className="text-lg font-bold text-[hsl(210,11%,90%)]">Mentorship Dashboard</h2>
                             <p className="text-xs text-[hsl(210,11%,50%)]">Manage your mentees and conversations</p>
@@ -214,7 +214,7 @@ const MentorDashboardPanel = () => {
                         key={tab.id}
                         onClick={() => { setActiveTab(tab.id); setSelectedChat(null); }}
                         className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${activeTab === tab.id
-                            ? 'text-pink-400 border-b-2 border-pink-500 bg-pink-500/10'
+                            ? 'text-[hsl(142,70%,55%)] border-b-2 border-[hsl(142,70%,50%)] bg-[hsl(142,70%,50%,0.1)]'
                             : 'text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,80%)]'
                             }`}
                     >
@@ -248,7 +248,7 @@ const MentorDashboardPanel = () => {
                                         <div className="flex items-center justify-between">
                                             <span className="font-medium text-[hsl(210,11%,90%)] truncate">@{conv.username}</span>
                                             {conv.unread_count > 0 && (
-                                                <span className="w-5 h-5 bg-pink-500 text-white text-xs rounded-full flex items-center justify-center">
+                                                <span className="w-5 h-5 bg-[hsl(142,70%,50%)] text-white text-xs rounded-full flex items-center justify-center">
                                                     {conv.unread_count}
                                                 </span>
                                             )}
@@ -322,7 +322,7 @@ const MentorDashboardPanel = () => {
                                     <div className="flex gap-1">
                                         <button
                                             onClick={() => setSelectedChat({ user_id: mentee.user_id, username: mentee.username, avatar_url: mentee.avatar_url })}
-                                            className="p-2 text-pink-400 hover:bg-pink-500/20 rounded transition-colors"
+                                            className="p-2 text-[hsl(142,70%,55%)] hover:bg-[hsl(142,70%,50%,0.2)] rounded transition-colors"
                                         >
                                             <MessageSquare className="w-4 h-4" />
                                         </button>
@@ -363,7 +363,7 @@ const MentorDashboardPanel = () => {
                             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                                 {chatLoading ? (
                                     <div className="flex justify-center py-8">
-                                        <Loader2 className="w-6 h-6 animate-spin text-pink-400" />
+                                        <Loader2 className="w-6 h-6 animate-spin text-[hsl(142,70%,55%)]" />
                                     </div>
                                 ) : chatMessages.length > 0 ? (
                                     chatMessages.map(msg => {
@@ -377,7 +377,7 @@ const MentorDashboardPanel = () => {
                                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button
                                                                 onClick={() => startEditing(msg)}
-                                                                className="p-1.5 bg-[hsl(220,13%,12%)] hover:bg-pink-500/20 text-[hsl(210,11%,50%)] hover:text-pink-400 rounded-md transition-colors border border-[hsl(220,13%,18%)]"
+                                                                className="p-1.5 bg-[hsl(220,13%,12%)] hover:bg-[hsl(142,70%,50%,0.2)] text-[hsl(210,11%,50%)] hover:text-[hsl(142,70%,55%)] rounded-md transition-colors border border-[hsl(220,13%,18%)]"
                                                                 title="Edit message"
                                                             >
                                                                 <Pencil className="w-3 h-3" />
@@ -396,7 +396,7 @@ const MentorDashboardPanel = () => {
                                                         </div>
                                                     )}
                                                     <div className={`max-w-[70%] rounded-xl px-3 py-2 text-sm ${isMe
-                                                        ? 'bg-pink-600 text-white rounded-br-none'
+                                                        ? 'bg-[hsl(142,70%,45%)] text-white rounded-br-none'
                                                         : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,90%)] rounded-bl-none border border-[hsl(220,13%,18%)]'
                                                         }`}>
                                                         {isEditing ? (
@@ -405,7 +405,7 @@ const MentorDashboardPanel = () => {
                                                                     type="text"
                                                                     value={editContent}
                                                                     onChange={(e) => setEditContent(e.target.value)}
-                                                                    className="w-full bg-[hsl(220,13%,15%)] text-white px-2 py-1 rounded text-sm focus:outline-none focus:ring-1 focus:ring-pink-400"
+                                                                    className="w-full bg-[hsl(220,13%,15%)] text-white px-2 py-1 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[hsl(142,70%,50%)]"
                                                                     autoFocus
                                                                     onKeyDown={(e) => {
                                                                         if (e.key === 'Enter') handleEditMessage(msg.id);
@@ -421,7 +421,7 @@ const MentorDashboardPanel = () => {
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleEditMessage(msg.id)}
-                                                                        className="p-1 hover:bg-pink-400/30 rounded text-pink-300"
+                                                                        className="p-1 hover:bg-[hsl(142,70%,45%,0.3)] rounded text-[hsl(142,70%,55%)]"
                                                                     >
                                                                         <Check className="w-3 h-3" />
                                                                     </button>
@@ -430,7 +430,7 @@ const MentorDashboardPanel = () => {
                                                         ) : (
                                                             <>
                                                                 {msg.content}
-                                                                <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-pink-200' : 'text-[hsl(210,11%,40%)]'}`}>
+                                                                <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-green-200' : 'text-[hsl(210,11%,40%)]'}`}>
                                                                     {msg.edited_at && <span className="mr-1">(edited)</span>}
                                                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                                 </p>
@@ -456,12 +456,12 @@ const MentorDashboardPanel = () => {
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     placeholder="Type a message..."
-                                    className="flex-1 bg-[hsl(220,13%,5%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,90%)] placeholder-[hsl(210,11%,40%)] focus:outline-none focus:border-pink-500"
+                                    className="flex-1 bg-[hsl(220,13%,5%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,90%)] placeholder-[hsl(210,11%,40%)] focus:outline-none focus:border-[hsl(142,70%,50%)]"
                                 />
                                 <button
                                     type="submit"
                                     disabled={!newMessage.trim() || sending}
-                                    className="flex-shrink-0 p-2 bg-pink-600 text-white rounded-lg hover:bg-pink-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="flex-shrink-0 p-2 bg-[hsl(142,70%,45%)] text-black rounded-lg hover:bg-[hsl(142,70%,50%)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                                 </button>
