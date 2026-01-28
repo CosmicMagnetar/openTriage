@@ -90,6 +90,7 @@ curl https://yourusername-opentriage-ai-engine.hf.space/health
 ## Troubleshooting
 
 ### Space is stuck building
+
 - Check the "App logs" in your Space
 - Common issues:
   - Missing dependencies in `requirements.txt`
@@ -97,11 +98,13 @@ curl https://yourusername-opentriage-ai-engine.hf.space/health
   - Out of memory (upgrade to better hardware)
 
 ### 503 Error from Backend
+
 - Verify `AI_ENGINE_URL` is correct in backend env vars
 - Check AI engine Space is actually running
 - Ensure Space is Public (not Private)
 
 ### Slow Responses
+
 - AI engine may be on CPU-only hardware
 - Upgrade to GPU in Space settings
 - Optimize model loading in `main.py`
@@ -135,6 +138,7 @@ opentriage-ai-engine/
 ## Dockerfile Considerations
 
 The `Dockerfile` should:
+
 - Expose port 7860 (HuggingFace requirement)
 - Start the service with:
   ```dockerfile
@@ -146,16 +150,19 @@ The `Dockerfile` should:
 You can have multiple AI engine instances:
 
 **Local Development**
+
 ```bash
 AI_ENGINE_URL=http://localhost:7860
 ```
 
 **HuggingFace Deployment**
+
 ```bash
 AI_ENGINE_URL=https://yourusername-opentriage-ai-engine.hf.space
 ```
 
 **On-Premises Deployment**
+
 ```bash
 AI_ENGINE_URL=https://your-domain.com/ai-engine
 ```
@@ -186,6 +193,7 @@ If you want a custom domain for your AI engine:
 5. Update `AI_ENGINE_URL` in backend
 
 Example:
+
 ```bash
 AI_ENGINE_URL=https://ai.yourdomain.com
 ```

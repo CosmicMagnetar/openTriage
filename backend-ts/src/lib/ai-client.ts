@@ -6,6 +6,7 @@
  */
 
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || "http://localhost:7860";
+const AI_ENGINE_API_KEY = process.env.AI_ENGINE_API_KEY || "";
 
 interface AIResponse<T = unknown> {
     success: boolean;
@@ -19,7 +20,7 @@ interface AIResponse<T = unknown> {
 export async function callAIEngine<T = unknown>(
     endpoint: string,
     body: object,
-    options?: { timeout?: number }
+    options?: { timeout?: number; token?: string }
 ): Promise<AIResponse<T>> {
     const url = `${AI_ENGINE_URL}${endpoint}`;
     const timeout = options?.timeout || 30000;
@@ -33,11 +34,18 @@ export async function callAIEngine<T = unknown>(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+        };
+
+        // Add API key authentication if configured
+        if (AI_ENGINE_API_KEY) {
+            headers["X-API-Key"] = AI_ENGINE_API_KEY;
+        }
+
         const response = await fetch(url, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers,
             body: JSON.stringify(body),
             signal: controller.signal,
         });
@@ -48,6 +56,13 @@ export async function callAIEngine<T = unknown>(
             const errorText = await response.text();
             console.error(`AI Engine error [${response.status}]:`, errorText);
             
+            if (response.status === 401) {
+                return {
+                    success: false,
+                    error: "Authentication failed with AI engine. Please ensure AI_ENGINE_URL and authentication are correctly configured."
+                };
+            }
+
             if (response.status === 503 || response.status === 502) {
                 return { 
                     success: false, 
