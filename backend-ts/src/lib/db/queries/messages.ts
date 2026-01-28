@@ -140,7 +140,7 @@ export async function getChatHistory(currentUserId: string, otherUserId: string,
 }
 
 export async function pollNewMessages(currentUserId: string, otherUserId: string, lastMessageId?: string) {
-    let results;
+    let results: (typeof messages.$inferSelect)[];
 
     // If we have a last message ID, only get newer messages
     if (lastMessageId) {
