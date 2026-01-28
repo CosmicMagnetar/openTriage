@@ -58,6 +58,7 @@ class RAGChatbotService:
             RAGAnswer with the response and sources
         """
         from config.database import db
+        import httpx
         
         # Check if we have any indexed content for this repo
         has_indexed_content = False
@@ -65,22 +66,36 @@ class RAGChatbotService:
         
         if repo_name:
             # Check for existing RAG chunks
-            existing_chunks = await db.rag_chunks.count_documents({"sourceRepo": repo_name})
-            has_indexed_content = existing_chunks > 0
+            try:
+                existing_chunks = await db.rag_chunks.count_documents({"sourceRepo": repo_name})
+                has_indexed_content = existing_chunks > 0
+            except:
+                has_indexed_content = False
             
             # If no indexed content, try to fetch README directly from GitHub
             if not has_indexed_content:
-                logger.info(f"No indexed content for {repo_name}, fetching README directly...")
+                logger.info(f"No indexed content for {repo_name}, fetching README directly from GitHub...")
                 try:
-                    from services.github_service import github_service
-                    readme_content = await github_service.fetch_repository_readme(
-                        repo_name, 
-                        github_access_token
-                    )
-                    if readme_content:
-                        logger.info(f"Fetched README for {repo_name} ({len(readme_content)} chars)")
+                    # Direct HTTP request to GitHub API
+                    owner, repo = repo_name.split('/')
+                    url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/README.md"
+                    
+                    async with httpx.AsyncClient(timeout=10) as client:
+                        response = await client.get(url)
+                        if response.status_code == 200:
+                            readme_content = response.text
+                            logger.info(f"Successfully fetched README for {repo_name} ({len(readme_content)} chars)")
+                        else:
+                            # Try master branch instead
+                            url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/README.md"
+                            response = await client.get(url)
+                            if response.status_code == 200:
+                                readme_content = response.text
+                                logger.info(f"Successfully fetched README (master) for {repo_name} ({len(readme_content)} chars)")
+                            else:
+                                logger.warning(f"README not found at {url}")
                 except Exception as e:
-                    logger.warning(f"Could not fetch README for {repo_name}: {e}")
+                    logger.error(f"Error fetching README for {repo_name}: {e}")
         
         # Search for relevant documents (from indexed chunks)
         relevant_docs = await self.search_documents(question, repo_name, top_k)
@@ -90,16 +105,17 @@ class RAGChatbotService:
         
         # If we have a fresh README but no indexed content, prepend it to context
         if readme_content and not has_indexed_content:
-            # Truncate README if too long (keep first 4000 chars)
-            truncated_readme = readme_content[:4000] if len(readme_content) > 4000 else readme_content
+            # Truncate README if too long (keep first 5000 chars for better context)
+            truncated_readme = readme_content[:5000] if len(readme_content) > 5000 else readme_content
             context = f"[PROJECT README]\n{truncated_readme}\n\n---\n\n{context}"
             # Add README to sources
             relevant_docs.insert(0, {
                 "id": f"{repo_name}_readme_live",
-                "title": "Project README (Live)",
+                "title": "Project README (Live from GitHub)",
                 "type": "readme",
                 "relevance": 1.0
             })
+            logger.info(f"Added README to context for {repo_name}")
         
         # Generate answer using AI
         answer, confidence = await self._generate_answer(question, context, repo_name)
@@ -242,55 +258,68 @@ class RAGChatbotService:
         context: str,
         repo_name: Optional[str]
     ) -> tuple[str, float]:
-        """Generate answer using AI with context."""
+        """Generate answer using AI with context and model fallbacks."""
         from openai import OpenAI
+        
+        # Use the same fallback models as chat service
+        models = [
+            "google/gemini-2.0-flash-001",
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "arcee-ai/trinity-large-preview:free",
+            "liquid/lfm-2.5-1.2b-thinking:free",
+        ]
         
         client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=settings.OPENROUTER_API_KEY
         )
         
-        system_prompt = f"""You are a knowledgeable guide for contributors to{f' the {repo_name} project' if repo_name else ' this open source project'}, acting much like a senior developer who has worked on the codebase for years and genuinely enjoys helping newcomers find their footing.
+        system_prompt = f"""You are a knowledgeable guide for contributors to{f' the {repo_name} project' if repo_name else ' this open source project'}, acting much like a senior developer who has worked on the codebase for years.
 
-When answering questions, draw from the provided documentation and issue history, but present your responses as if you're having a helpful conversation rather than reciting from a manual. If the context provides solid information, weave it naturally into your explanation. When the context is limited, acknowledge what you don't know while offering whatever general guidance might still be useful.
+When answering questions, draw from the provided documentation and issue history naturally. Present information as helpful conversation rather than recitation.
 
-Think of yourself as sitting next to the contributor, looking at their screen together. If they need code examples, provide them with clear markdown formatting. When referencing specific issues or documentation sections, mention them naturally so they can explore further.
+If the context provides information, use it to give a solid answer. If context is limited, acknowledge what you don't know while offering general guidance.
 
-Your goal is to help contributors not just solve their immediate problem, but to build their confidence and understanding of how to navigate open source projects effectively."""
+Provide clear, practical answers. Reference specific issues or documentation sections naturally."""
 
-        user_prompt = f"""Context from project documents:
+        user_prompt = f"""Context from project:
 {context}
 
 ---
 Question: {question}
 
-Please provide a helpful answer based on the context above."""
+Provide a helpful answer based on the context above. If context is limited, be honest about it."""
 
-        try:
-            response = client.chat.completions.create(
-                model="google/gemini-2.0-flash-001",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                max_tokens=500,
-                temperature=0.3
-            )
-            
-            answer = response.choices[0].message.content.strip()
-            
-            # Calculate confidence based on context availability
-            confidence = 0.9 if context else 0.5
-            
-            return answer, confidence
-            
-        except Exception as e:
-            logger.error(f"AI answer generation failed: {e}")
-            return (
-                "I'm sorry, I couldn't generate an answer at this time. "
-                "Please check the documentation or ask in the project's discussion forum.",
-                0.0
-            )
+        # Try each model
+        for model in models:
+            try:
+                logger.info(f"RAG: Attempting answer generation with {model}")
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    max_tokens=800,
+                    temperature=0.3
+                )
+                
+                answer = response.choices[0].message.content.strip()
+                confidence = 0.9 if context and len(context) > 500 else 0.5
+                
+                logger.info(f"RAG: Successfully generated answer with {model}")
+                return answer, confidence
+                
+            except Exception as e:
+                logger.warning(f"RAG: Model {model} failed: {e}")
+                continue
+        
+        # All models failed
+        logger.error("RAG: All models failed for answer generation")
+        return (
+            "I apologize, I'm currently unable to generate an answer. Please try again in a moment.",
+            0.0
+        )
     
     async def _find_related_issues(
         self,
