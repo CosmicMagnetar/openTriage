@@ -48,6 +48,7 @@ curl -X POST https://cosmicmagnetar-opentriage-ai.hf.space/chat \
 ## What Changed in Code
 
 Added better error logging that now shows:
+
 - Which models are being tried
 - Exact errors from each model
 - Whether the API key is configured
@@ -57,6 +58,7 @@ This will help debug future issues faster.
 ## Environment Variables Needed on HuggingFace Spaces
 
 ### AI Engine Space (opentriage-ai)
+
 ```
 OPENROUTER_API_KEY=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
 API_KEY=opentriage-secret-key-2024
@@ -64,6 +66,7 @@ JWT_SECRET=fbfd4546y6_y76hdvf_or_htfe5y5gr
 ```
 
 ### Backend API Space (opentriage-api)
+
 ```
 AI_ENGINE_URL=https://cosmicmagnetar-opentriage-ai.hf.space
 AI_ENGINE_API_KEY=opentriage-secret-key-2024
