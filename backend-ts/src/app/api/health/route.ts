@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
             env: {
                 jwt_secret_set: !!process.env.JWT_SECRET,
                 database_url_set: !!process.env.DATABASE_URL,
+                ai_engine_url: process.env.AI_ENGINE_URL || "http://localhost:7860",
             }
         });
     } catch (error) {

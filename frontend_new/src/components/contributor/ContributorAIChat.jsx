@@ -204,7 +204,19 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
 
     } catch (error) {
       console.error('Chat error:', error);
-      toast.error('Failed to get response');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to get response';
+      if (error.response?.status === 503) {
+        errorMessage = 'AI service is temporarily unavailable. Please try again later.';
+      } else if (error.response?.status === 502) {
+        errorMessage = 'AI service connection failed. Please check if the AI engine is running.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
+      toast.error(errorMessage);
+      
       // Publish error as local only? Or broadcast error? Better local.
       setMessages((prev) => [
         ...prev,

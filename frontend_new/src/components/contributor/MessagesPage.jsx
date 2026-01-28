@@ -22,6 +22,7 @@ const MessagesPage = () => {
     // Edit state
     const [editingMessageId, setEditingMessageId] = useState(null);
     const [editContent, setEditContent] = useState('');
+    const [menuOpenId, setMenuOpenId] = useState(null);
 
     useEffect(() => {
         loadConversations();

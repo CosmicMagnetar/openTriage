@@ -32,12 +32,23 @@ export async function POST(request: NextRequest) {
         });
 
         if (!result.success) {
-            return NextResponse.json({ error: result.error }, { status: 502 });
+            console.error("AI Engine error:", result.error);
+            return NextResponse.json({ 
+                error: "AI service unavailable",
+                detail: result.error 
+            }, { status: 503 });
         }
 
         return NextResponse.json(result.data);
     } catch (error) {
         console.error("Chat error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        console.error("Error details:", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        return NextResponse.json({ 
+            error: "Internal server error",
+            detail: error instanceof Error ? error.message : "Unknown error"
+        }, { status: 500 });
     }
 }
