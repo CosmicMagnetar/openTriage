@@ -28,7 +28,6 @@ export async function sendMessage(data: {
         content: data.content,
         read: false,
         timestamp: now,
-        editedAt: null,
     });
 
     // Return snake_case for frontend compatibility (matches getChatHistory format)
@@ -39,6 +38,7 @@ export async function sendMessage(data: {
         content: data.content,
         read: false,
         timestamp: now,
+        edited_at: null,
     };
 }
 
