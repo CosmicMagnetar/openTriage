@@ -28,6 +28,13 @@ export async function GET(
         return NextResponse.json(newMessages);
     } catch (error) {
         console.error("Poll messages error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        console.error("Error details:", {
+            message: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
+        return NextResponse.json({ 
+            error: "Internal server error",
+            detail: error instanceof Error ? error.message : "Unknown error"
+        }, { status: 500 });
     }
 }

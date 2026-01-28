@@ -46,6 +46,10 @@ const MessagesPage = () => {
     useEffect(() => {
         if (!selectedChat || chatLoading) return;
 
+        let pollCount = 0;
+        let consecutiveErrors = 0;
+        const MAX_ERRORS = 3;
+
         const pollInterval = setInterval(async () => {
             try {
                 const lastMsgId = messages[messages.length - 1]?.id;
@@ -55,10 +59,19 @@ const MessagesPage = () => {
                     // Mark new messages as read
                     await messagingApi.markRead(selectedChat.user_id);
                 }
+                // Reset error count on success
+                consecutiveErrors = 0;
             } catch (error) {
-                // Silently handle polling errors to avoid spamming the user
-                console.debug('Message poll error:', error);
+                consecutiveErrors++;
+                console.debug(`Message poll error (${consecutiveErrors}/${MAX_ERRORS}):`, error);
+                
+                // If too many consecutive errors, stop polling and show a warning
+                if (consecutiveErrors >= MAX_ERRORS) {
+                    clearInterval(pollInterval);
+                    toast.error('Lost connection to messaging service. Please refresh the page.');
+                }
             }
+            pollCount++;
         }, 3000);
 
         return () => clearInterval(pollInterval);

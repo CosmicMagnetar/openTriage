@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
                 username: c.partnerUsername,
                 avatar_url: c.partnerAvatar,
                 last_message: c.lastMessage?.content?.substring(0, 50) || "",
-                last_timestamp: c.lastMessage?.timestamp || null,
+                last_message_timestamp: c.lastMessage?.timestamp || null,
                 unread_count: c.unreadCount
             }))
         });

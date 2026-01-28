@@ -135,19 +135,12 @@ export async function getChatHistory(currentUserId: string, otherUserId: string,
         content: msg.content,
         read: msg.read,
         timestamp: msg.timestamp,
+        edited_at: msg.editedAt || null,
     }));
 }
 
 export async function pollNewMessages(currentUserId: string, otherUserId: string, lastMessageId?: string) {
-    let query = db.select()
-        .from(messages)
-        .where(
-            and(
-                eq(messages.senderId, otherUserId),
-                eq(messages.receiverId, currentUserId)
-            )
-        )
-        .orderBy(asc(messages.timestamp));
+    let results;
 
     // If we have a last message ID, only get newer messages
     if (lastMessageId) {
@@ -157,7 +150,7 @@ export async function pollNewMessages(currentUserId: string, otherUserId: string
             .limit(1);
 
         if (lastMessage[0]) {
-            query = db.select()
+            results = await db.select()
                 .from(messages)
                 .where(
                     and(
@@ -167,10 +160,31 @@ export async function pollNewMessages(currentUserId: string, otherUserId: string
                     )
                 )
                 .orderBy(asc(messages.timestamp));
+        } else {
+            results = [];
         }
+    } else {
+        results = await db.select()
+            .from(messages)
+            .where(
+                and(
+                    eq(messages.senderId, otherUserId),
+                    eq(messages.receiverId, currentUserId)
+                )
+            )
+            .orderBy(asc(messages.timestamp));
     }
 
-    return query;
+    // Transform to snake_case for frontend compatibility
+    return results.map(msg => ({
+        id: msg.id,
+        sender_id: msg.senderId,
+        receiver_id: msg.receiverId,
+        content: msg.content,
+        read: msg.read,
+        timestamp: msg.timestamp,
+        edited_at: msg.editedAt || null,
+    }));
 }
 
 // =============================================================================
