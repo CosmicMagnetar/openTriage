@@ -24,6 +24,11 @@ export async function callAIEngine<T = unknown>(
     const url = `${AI_ENGINE_URL}${endpoint}`;
     const timeout = options?.timeout || 30000;
 
+    // Check if AI engine URL is configured
+    if (!AI_ENGINE_URL || AI_ENGINE_URL === "http://localhost:7860") {
+        console.warn("AI_ENGINE_URL not configured or using default. Make sure AI engine is running.");
+    }
+
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -40,8 +45,17 @@ export async function callAIEngine<T = unknown>(
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-            const error = await response.text();
-            return { success: false, error: `AI Engine error: ${response.status} - ${error}` };
+            const errorText = await response.text();
+            console.error(`AI Engine error [${response.status}]:`, errorText);
+            
+            if (response.status === 503 || response.status === 502) {
+                return { 
+                    success: false, 
+                    error: `AI service unavailable (${response.status}). The AI engine may not be running. Check if the service is started.` 
+                };
+            }
+            
+            return { success: false, error: `AI Engine error: ${response.status} - ${errorText}` };
         }
 
         const data = await response.json();
