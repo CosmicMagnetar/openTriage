@@ -33,9 +33,11 @@ export async function POST(request: NextRequest) {
 
         if (!result.success) {
             console.error("AI Engine error:", result.error);
+            // Return 503 with helpful error message
             return NextResponse.json({ 
                 error: "AI service unavailable",
-                detail: result.error 
+                detail: result.error,
+                help: "The AI engine service is not running. Please ensure the AI engine is deployed and the AI_ENGINE_URL environment variable is correctly configured."
             }, { status: 503 });
         }
 

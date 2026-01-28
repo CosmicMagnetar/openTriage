@@ -26,8 +26,17 @@ python -m uvicorn main:app --host 0.0.0.0 --port 7860
 If you deployed the AI engine to Render or HuggingFace, configure it in `backend-ts/.env.local`:
 
 ```bash
-AI_ENGINE_URL=https://your-deployed-ai-engine-url
+# HuggingFace Spaces example
+AI_ENGINE_URL=https://yourusername-opentriage-ai-engine.hf.space
+
+# Render.com example
+AI_ENGINE_URL=https://your-render-service.onrender.com
+
+# Custom domain example
+AI_ENGINE_URL=https://ai.yourdomain.com
 ```
+
+For detailed deployment instructions, see [DEPLOY_AI_ENGINE.md](DEPLOY_AI_ENGINE.md)
 
 ## Configuration
 
