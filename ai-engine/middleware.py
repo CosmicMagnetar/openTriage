@@ -17,15 +17,52 @@ async def require_api_key_or_auth(
     """
     Authenticate request using either JWT token or API key.
     
-    For now, making this optional for testing. Remove the bypass in production!
+    Supports two authentication methods:
+    1. Bearer token in Authorization header: "Authorization: Bearer <jwt_token>"
+    2. API key in X-API-Key header: "X-API-Key: <api_key>"
+    
+    Args:
+        authorization: Authorization header with Bearer token
+        x_api_key: X-API-Key header for API key authentication
+    
+    Returns:
+        dict: Authentication context with user info or api_key
+    
+    Raises:
+        HTTPException: If authentication fails
     """
     
-    # TEMPORARY: Allow all requests for testing
-    if True:
-        return {
-            'type': 'test_bypass',
-            'authenticated': True
-        }
+    # Try JWT token authentication
+    if authorization and authorization.startswith('Bearer '):
+        token = authorization.replace('Bearer ', '')
+        try:
+            payload = verify_jwt_token(token)
+            return {
+                'type': 'jwt',
+                'user_id': payload.get('user_id'),
+                'role': payload.get('role'),
+                'authenticated': True
+            }
+        except HTTPException:
+            raise
+    
+    # Try API key authentication
+    if x_api_key:
+        # Validate API key (can be extended to check against database)
+        api_key = os.environ.get('API_KEY', 'opentriage-secret-key-2024')  # Default fallback
+        if api_key and x_api_key == api_key:
+            return {
+                'type': 'api_key',
+                'api_key': x_api_key,
+                'authenticated': True
+            }
+        raise HTTPException(status_code=401, detail=f"Invalid API key")
+    
+    # No authentication provided
+    raise HTTPException(
+        status_code=401,
+        detail="Missing authentication. Provide either Bearer token or X-API-Key header"
+    )
     
     # Try JWT token authentication
     if authorization and authorization.startswith('Bearer '):
