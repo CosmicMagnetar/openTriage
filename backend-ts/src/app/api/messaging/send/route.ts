@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { sendMessage } from "@/lib/db/queries/messages";
+import { realtimeMessaging } from "@/lib/realtime-messaging";
 
 export async function POST(request: NextRequest) {
     try {
@@ -31,6 +32,9 @@ export async function POST(request: NextRequest) {
             receiverId: receiver_id,
             content,
         });
+
+        // Broadcast message in real-time to both users
+        realtimeMessaging.notifyMessageSent(message);
 
         return NextResponse.json(message);
     } catch (error) {

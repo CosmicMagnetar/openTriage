@@ -115,6 +115,27 @@ export async function deleteMessage(messageId: string, userId: string) {
     return true;
 }
 
+export async function getMessage(messageId: string) {
+    const msg = await db.select()
+        .from(messages)
+        .where(eq(messages.id, messageId))
+        .limit(1);
+
+    if (!msg[0]) {
+        return null;
+    }
+
+    return {
+        id: msg[0].id,
+        sender_id: msg[0].senderId,
+        receiver_id: msg[0].receiverId,
+        content: msg[0].content,
+        read: msg[0].read,
+        timestamp: msg[0].timestamp,
+        edited_at: msg[0].editedAt || null,
+    };
+}
+
 // =============================================================================
 // Chat History
 // =============================================================================

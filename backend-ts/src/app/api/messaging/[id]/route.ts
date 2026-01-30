@@ -7,7 +7,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { editMessage, deleteMessage } from "@/lib/db/queries/messages";
+import { editMessage, deleteMessage, getMessage } from "@/lib/db/queries/messages";
+import { realtimeMessaging } from "@/lib/realtime-messaging";
 
 interface RouteParams {
     params: Promise<{ id: string }>;
@@ -37,6 +38,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             );
         }
 
+        // Broadcast edit notification in real-time
+        realtimeMessaging.notifyMessageEdited({
+            id: result.id,
+            sender_id: result.sender_id,
+            receiver_id: result.receiver_id,
+            content: result.content,
+            edited_at: new Date().toISOString(),
+        });
+
         return NextResponse.json(result);
     } catch (error) {
         console.error("PUT /api/messaging/[id] error:", error);
@@ -61,6 +71,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
         const { id: messageId } = await params;
 
+        // Get message info before deletion for broadcasting
+        const msgInfo = await getMessage(messageId);
+        
         const success = await deleteMessage(messageId, user.id);
 
         if (!success) {
@@ -68,6 +81,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
                 { error: "Message not found or you don't have permission to delete it" },
                 { status: 404 }
             );
+        }
+
+        // Broadcast deletion notification in real-time
+        if (msgInfo) {
+            realtimeMessaging.notifyMessageDeleted(messageId, msgInfo.sender_id, msgInfo.receiver_id);
         }
 
         return NextResponse.json({ success: true });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Send, Loader2, ArrowLeft, Search, Pencil, Trash2, X, Check, Bot } from 'lucide-react';
 import { messagingApi } from '../../services/api';
+import { realtimeMessagingClient } from '../../services/realtimeMessaging';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
@@ -17,7 +18,9 @@ const MessagesPage = () => {
     const [chatLoading, setChatLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [realtimeConnected, setRealtimeConnected] = useState(false);
     const messagesEndRef = useRef(null);
+    const realtimeUnsubscribeRef = useRef(null);
 
     // Edit state
     const [editingMessageId, setEditingMessageId] = useState(null);
@@ -26,6 +29,22 @@ const MessagesPage = () => {
 
     useEffect(() => {
         loadConversations();
+        // Connect to real-time messaging service
+        realtimeMessagingClient.connect()
+            .then(() => {
+                setRealtimeConnected(true);
+                toast.success('Connected to real-time messaging');
+            })
+            .catch(error => {
+                console.error('Failed to connect to real-time messaging:', error);
+                toast.error('Real-time messaging unavailable, using polling');
+            });
+
+        return () => {
+            if (realtimeUnsubscribeRef.current) {
+                realtimeUnsubscribeRef.current();
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -34,20 +53,60 @@ const MessagesPage = () => {
         }
     }, [selectedChat]);
 
-    // Scroll to bottom when messages change or chat finishes loading
+    // Subscribe to real-time events when connected
     useEffect(() => {
-        // Small delay to ensure DOM is fully rendered
-        const timeoutId = setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-        return () => clearTimeout(timeoutId);
-    }, [messages, chatLoading]);
+        if (!realtimeConnected || !selectedChat) return;
 
-    // Real-time message polling - polls every 3 seconds for new messages
+        const unsubscribe = realtimeMessagingClient.subscribe({
+            onMessageReceived: (message) => {
+                // Only add if it's from the current chat
+                if (message.sender_id === selectedChat.user_id || message.receiver_id === selectedChat.user_id) {
+                    setMessages(prev => {
+                        // Avoid duplicates
+                        if (prev.some(m => m.id === message.id)) {
+                            return prev;
+                        }
+                        return [...prev, message];
+                    });
+                }
+            },
+            onMessageEdited: (message) => {
+                if (message.sender_id === selectedChat.user_id || message.receiver_id === selectedChat.user_id) {
+                    setMessages(prev => prev.map(m =>
+                        m.id === message.id ? { ...m, content: message.content, edited_at: message.edited_at } : m
+                    ));
+                    toast.success('Message updated');
+                }
+            },
+            onMessageDeleted: (messageId) => {
+                setMessages(prev => prev.filter(m => m.id !== messageId));
+                toast.success('Message deleted');
+            },
+            onMessageRead: (messageId) => {
+                setMessages(prev => prev.map(m =>
+                    m.id === messageId ? { ...m, read: true } : m
+                ));
+            },
+            onConnectionClose: () => {
+                setRealtimeConnected(false);
+                console.warn('Real-time connection closed, falling back to polling');
+            },
+            onError: (error) => {
+                console.error('Real-time error:', error);
+            },
+        });
+
+        realtimeUnsubscribeRef.current = unsubscribe;
+
+        return () => {
+            unsubscribe();
+        };
+    }, [realtimeConnected, selectedChat]);
+
+    // Fallback polling when real-time is not available
     useEffect(() => {
-        if (!selectedChat || chatLoading) return;
+        if (realtimeConnected || !selectedChat || chatLoading) return;
 
-        let pollCount = 0;
         let consecutiveErrors = 0;
         const MAX_ERRORS = 3;
 
@@ -60,23 +119,28 @@ const MessagesPage = () => {
                     // Mark new messages as read
                     await messagingApi.markRead(selectedChat.user_id);
                 }
-                // Reset error count on success
                 consecutiveErrors = 0;
             } catch (error) {
                 consecutiveErrors++;
                 console.debug(`Message poll error (${consecutiveErrors}/${MAX_ERRORS}):`, error);
-                
-                // If too many consecutive errors, stop polling and show a warning
+
                 if (consecutiveErrors >= MAX_ERRORS) {
                     clearInterval(pollInterval);
                     toast.error('Lost connection to messaging service. Please refresh the page.');
                 }
             }
-            pollCount++;
         }, 3000);
 
         return () => clearInterval(pollInterval);
-    }, [selectedChat, messages, chatLoading]);
+    }, [realtimeConnected, selectedChat, messages, chatLoading]);
+
+    // Scroll to bottom when messages change or chat finishes loading
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+        return () => clearTimeout(timeoutId);
+    }, [messages, chatLoading]);
 
     const loadConversations = async () => {
         try {

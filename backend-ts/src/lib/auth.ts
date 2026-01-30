@@ -34,16 +34,26 @@ export function verifyJwtToken(token: string): { user_id: string; role: string |
 }
 
 /**
- * Extract user from Authorization header.
+ * Extract user from Authorization header or query param (for SSE).
  */
 export async function getCurrentUser(request: NextRequest) {
+    let token: string | null = null;
+    
+    // Try Authorization header first
     const authHeader = request.headers.get("Authorization");
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return null;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+    }
+    
+    // Fallback to query param for SSE connections
+    if (!token) {
+        const url = new URL(request.url);
+        token = url.searchParams.get("token");
     }
 
-    const token = authHeader.substring(7);
+    if (!token) {
+        return null;
+    }
 
     try {
         const payload = verifyJwtToken(token);
