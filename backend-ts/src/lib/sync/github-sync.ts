@@ -189,12 +189,11 @@ async function syncRepository(
             }
         };
 
-        // For Contributors: filter to only their PRs
+        // For Contributors: filter to only their authored items (PRs and issues)
         const shouldIncludeItem = (item: GitHubIssue): boolean => {
             if (options.role === 'CONTRIBUTOR' && options.username) {
-                // Contributors only see their own authored PRs
-                const isPR = !!item.pull_request;
-                return isPR && item.user.login === options.username;
+                // Contributors see their own authored PRs and issues
+                return item.user.login === options.username;
             }
             // Maintainers see everything
             return true;
