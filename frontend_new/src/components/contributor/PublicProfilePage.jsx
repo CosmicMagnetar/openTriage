@@ -27,16 +27,26 @@ const PublicProfilePage = () => {
             setLoading(true);
             setNotFound(false);
             
-            const [profileData, badgesData, featuredData, githubStatsData] = await Promise.all([
-                profileApi.getProfile(username).catch(() => null),
-                gamificationApi.getUserBadges(username).catch(() => ({ all_badges: [] })),
-                profileApi.getFeaturedBadges(username).catch(() => ({ badges: [] })),
-                profileApi.getGitHubStats(username).catch(() => null)
-            ]);
+            // Try to get OpenTriage profile first
+            let profileData = null;
+            let githubStatsData = null;
+            let badgesData = { all_badges: [] };
+            let featuredData = { badges: [] };
+            
+            try {
+                [profileData, badgesData, featuredData, githubStatsData] = await Promise.all([
+                    profileApi.getProfile(username),
+                    gamificationApi.getUserBadges(username).catch(() => ({ all_badges: [] })),
+                    profileApi.getFeaturedBadges(username).catch(() => ({ badges: [] })),
+                    profileApi.getGitHubStats(username).catch(() => null)
+                ]);
+            } catch (e) {
+                // Profile not found in database - that's ok, we'll try GitHub
+                console.log('Profile not in database, trying GitHub fallback');
+            }
 
-            // If no profile exists but we have GitHub stats, show a basic profile
-            if (!profileData && !githubStatsData) {
-                // Try to fetch basic GitHub info as fallback
+            // If no profile in database, fetch from GitHub API directly
+            if (!profileData) {
                 try {
                     const githubRes = await fetch(`https://api.github.com/users/${username}`);
                     if (githubRes.ok) {
@@ -46,20 +56,22 @@ const PublicProfilePage = () => {
                             avatar_url: githubUser.avatar_url,
                             bio: githubUser.bio || '',
                             skills: [],
-                            github_stats: {
+                            github_stats: githubStatsData || {
                                 public_repos: githubUser.public_repos,
                                 followers: githubUser.followers,
                                 following: githubUser.following,
                             }
                         });
-                        setLoading(false);
+                        return;
+                    } else {
+                        setNotFound(true);
                         return;
                     }
                 } catch (e) {
-                    console.log('GitHub API fallback failed');
+                    console.log('GitHub API fallback failed:', e);
+                    setNotFound(true);
+                    return;
                 }
-                setNotFound(true);
-                return;
             }
 
             // Transform badges data
@@ -93,21 +105,15 @@ const PublicProfilePage = () => {
             }));
             setFeaturedBadges(transformedFeatured);
 
-            // Merge GitHub stats into profile (or create minimal profile from GitHub stats)
-            const mergedProfile = profileData ? {
+            // Merge GitHub stats into profile
+            const mergedProfile = {
                 ...profileData,
                 github_stats: githubStatsData || profileData.github_stats || {}
-            } : {
-                username,
-                avatar_url: `https://github.com/${username}.png`,
-                bio: '',
-                skills: [],
-                github_stats: githubStatsData || {}
             };
             setProfile(mergedProfile);
         } catch (error) {
             console.error('Failed to load profile:', error);
-            toast.error('Failed to load profile');
+            setNotFound(true);
         } finally {
             setLoading(false);
         }
