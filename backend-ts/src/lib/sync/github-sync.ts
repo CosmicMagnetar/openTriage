@@ -281,20 +281,18 @@ async function syncRepository(
         }
 
         // =========================================================================
-        // STATE RECONCILIATION: Mark issues as closed if not in GitHub's open list
-        // This is the key fix for the "closed issues showing as open" bug
+        // STATE RECONCILIATION: Delete issues/PRs that are closed on GitHub
+        // If an issue is in our DB but NOT in GitHub's open list, delete it
         // =========================================================================
         for (const dbIssue of dbIssues) {
-            // If issue is marked as 'open' in DB but NOT in GitHub's open list, it must be closed
-            if (dbIssue.state === 'open' && !openGithubIds.has(dbIssue.githubIssueId)) {
-                // Mark as closed instead of deleting
-                await db.update(issues)
-                    .set({ state: 'closed' })
+            // If issue is in DB but NOT in GitHub's open list, it's closed - delete it
+            if (!openGithubIds.has(dbIssue.githubIssueId)) {
+                await db.delete(issues)
                     .where(eq(issues.id, dbIssue.id));
-                updated++;
+                deleted++;
 
                 if (isAblyConfigured()) {
-                    await publishIssueUpdated({
+                    await publishIssueDeleted({
                         id: dbIssue.id,
                         githubIssueId: dbIssue.githubIssueId,
                         number: dbIssue.number,
@@ -303,11 +301,11 @@ async function syncRepository(
                         owner,
                         repo,
                         isPR: dbIssue.isPR,
-                        state: "closed",
+                        state: 'closed',
                     });
                 }
                 
-                console.log(`[Sync] ${repoName}: Marked #${dbIssue.number} as closed (not in open list)`);
+                console.log(`[Sync] ${repoName}: Deleted #${dbIssue.number} (closed on GitHub)`);
             }
         }
 
