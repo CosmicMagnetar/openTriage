@@ -51,25 +51,47 @@ const PublicProfilePage = () => {
                     const githubRes = await fetch(`https://api.github.com/users/${username}`);
                     if (githubRes.ok) {
                         const githubUser = await githubRes.json();
+                        
+                        // Also fetch contribution data from GitHub events
+                        let recentActivity = 0;
+                        try {
+                            const eventsRes = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
+                            if (eventsRes.ok) {
+                                const events = await eventsRes.json();
+                                recentActivity = events.length;
+                            }
+                        } catch (e) {
+                            console.log('Could not fetch events:', e);
+                        }
+                        
                         setProfile({
                             username: githubUser.login,
                             avatar_url: githubUser.avatar_url,
                             bio: githubUser.bio || '',
+                            name: githubUser.name,
+                            location: githubUser.location,
+                            company: githubUser.company,
                             skills: [],
-                            github_stats: githubStatsData || {
-                                public_repos: githubUser.public_repos,
-                                followers: githubUser.followers,
-                                following: githubUser.following,
+                            isGitHubFallback: true,
+                            github_stats: {
+                                public_repos: githubUser.public_repos || 0,
+                                followers: githubUser.followers || 0,
+                                following: githubUser.following || 0,
+                                totalContributions: recentActivity,
+                                public_gists: githubUser.public_gists || 0,
                             }
                         });
+                        setLoading(false);
                         return;
                     } else {
                         setNotFound(true);
+                        setLoading(false);
                         return;
                     }
                 } catch (e) {
                     console.log('GitHub API fallback failed:', e);
                     setNotFound(true);
+                    setLoading(false);
                     return;
                 }
             }
@@ -323,32 +345,68 @@ const PublicProfilePage = () => {
                                     <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)] mb-4 flex items-center gap-2">
                                         <BarChart3 className="w-5 h-5 text-[hsl(142,70%,55%)]" />
                                         GitHub Stats
+                                        {profile.isGitHubFallback && (
+                                            <span className="text-xs px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25 ml-2">
+                                                Public Data
+                                            </span>
+                                        )}
                                     </h2>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                            <div className="text-2xl font-bold text-[hsl(142,70%,55%)]">
-                                                {profile.github_stats.totalContributions?.toLocaleString() || 0}
-                                            </div>
-                                            <div className="text-xs text-[hsl(210,11%,50%)]">Contributions</div>
-                                        </div>
-                                        <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                            <div className="text-2xl font-bold text-[hsl(217,91%,65%)]">
-                                                {profile.github_stats.public_repos || 0}
-                                            </div>
-                                            <div className="text-xs text-[hsl(210,11%,50%)]">Repositories</div>
-                                        </div>
-                                        <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                            <div className="text-2xl font-bold text-purple-400">
-                                                {profile.github_stats.mergedPRs || 0}
-                                            </div>
-                                            <div className="text-xs text-[hsl(210,11%,50%)]">PRs Merged</div>
-                                        </div>
-                                        <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                            <div className="text-2xl font-bold text-orange-400">
-                                                {profile.github_stats.longestStreak || 0}
-                                            </div>
-                                            <div className="text-xs text-[hsl(210,11%,50%)]">Longest Streak</div>
-                                        </div>
+                                        {profile.isGitHubFallback ? (
+                                            <>
+                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
+                                                    <div className="text-2xl font-bold text-[hsl(217,91%,65%)]">
+                                                        {profile.github_stats.public_repos || 0}
+                                                    </div>
+                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Repositories</div>
+                                                </div>
+                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
+                                                    <div className="text-2xl font-bold text-[hsl(142,70%,55%)]">
+                                                        {profile.github_stats.followers || 0}
+                                                    </div>
+                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Followers</div>
+                                                </div>
+                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
+                                                    <div className="text-2xl font-bold text-purple-400">
+                                                        {profile.github_stats.following || 0}
+                                                    </div>
+                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Following</div>
+                                                </div>
+                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
+                                                    <div className="text-2xl font-bold text-orange-400">
+                                                        {profile.github_stats.public_gists || 0}
+                                                    </div>
+                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Public Gists</div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
+                                                    <div className="text-2xl font-bold text-[hsl(142,70%,55%)]">
+                                                        {profile.github_stats.totalContributions?.toLocaleString() || 0}
+                                                    </div>
+                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Contributions</div>
+                                                </div>
+                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
+                                                    <div className="text-2xl font-bold text-[hsl(217,91%,65%)]">
+                                                        {profile.github_stats.public_repos || 0}
+                                                    </div>
+                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Repositories</div>
+                                                </div>
+                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
+                                                    <div className="text-2xl font-bold text-purple-400">
+                                                        {profile.github_stats.mergedPRs || 0}
+                                                    </div>
+                                                    <div className="text-xs text-[hsl(210,11%,50%)]">PRs Merged</div>
+                                                </div>
+                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
+                                                    <div className="text-2xl font-bold text-orange-400">
+                                                        {profile.github_stats.longestStreak || 0}
+                                                    </div>
+                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Longest Streak</div>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}
