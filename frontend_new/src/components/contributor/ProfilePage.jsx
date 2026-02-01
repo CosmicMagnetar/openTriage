@@ -36,12 +36,13 @@ const ProfilePage = () => {
     const loadProfile = async () => {
         try {
             setLoading(true);
-            const [profileData, reposData, connectedData, badgesData, featuredData] = await Promise.all([
+            const [profileData, reposData, connectedData, badgesData, featuredData, githubStatsData] = await Promise.all([
                 profileApi.getProfile(user.username).catch(() => null),
                 profileApi.getUserRepos(user.username).catch(() => ({ repos: [] })),
                 profileApi.getConnectedRepos(user.id).catch(() => ({ repos: [] })),
                 gamificationApi.getUserBadges(user.username).catch(() => ({ all_badges: [] })),
-                profileApi.getFeaturedBadges(user.username).catch(() => ({ badges: [] }))
+                profileApi.getFeaturedBadges(user.username).catch(() => ({ badges: [] })),
+                profileApi.getGitHubStats(user.username).catch(() => null)
             ]);
 
             // Transform badges data to expected format: { badge: {...}, earned: bool }
@@ -76,7 +77,12 @@ const ProfilePage = () => {
             setFeaturedBadges(transformedFeatured);
 
             if (profileData) {
-                setProfile(profileData);
+                // Merge GitHub stats into profile data
+                const mergedProfile = {
+                    ...profileData,
+                    github_stats: githubStatsData || profileData.github_stats || {}
+                };
+                setProfile(mergedProfile);
                 setBio(profileData.bio || '');
                 setSkills(profileData.skills || []);
                 setAvailableForMentoring(profileData.available_for_mentoring || false);
@@ -342,7 +348,10 @@ const ProfilePage = () => {
                     )}
 
                     {activeTab === 'stats' && (
-                        <ContributionStats username={user?.username} />
+                        <ContributionStats 
+                            username={user?.username} 
+                            githubStats={profile?.github_stats}
+                        />
                     )}
 
                     {activeTab === 'repos' && (

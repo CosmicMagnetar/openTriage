@@ -3,6 +3,7 @@ import { X, Send, Loader2, ExternalLink } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
+import PrivateResourceChannel from '../shared/PrivateResourceChannel';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -85,6 +86,16 @@ const IssueReplyModal = ({ issue, onClose, onReplySent }) => {
                 {issue.body && (
                     <div className="px-5 py-3 border-b border-[hsl(220,13%,12%)]">
                         <p className="text-sm text-[hsl(210,11%,60%)] line-clamp-3">{issue.body}</p>
+                    </div>
+                )}
+
+                {/* Private Resource Channel for PRs */}
+                {issue.isPR && issue.id && (
+                    <div className="px-5 py-4 border-b border-[hsl(220,13%,12%)]">
+                        <PrivateResourceChannel 
+                            issueId={issue.id}
+                            issueData={issue}
+                        />
                     </div>
                 )}
 
