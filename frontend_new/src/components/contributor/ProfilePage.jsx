@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Code, GitBranch, Save, Plus, X, RefreshCw, Users, Flame, Trophy, Calendar } from 'lucide-react';
+import { User, Code, GitBranch, Save, Plus, X, RefreshCw, Users, Flame, Trophy, Calendar, BarChart3 } from 'lucide-react';
 import { profileApi, gamificationApi, trophyApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
@@ -7,7 +7,7 @@ import StreakDisplay from './StreakDisplay';
 import TrophyCabinet from './TrophyCabinet';
 import ContributionCalendar from './ContributionCalendar';
 import MentorMatchPanel from './MentorMatchPanel';
-
+import ContributionStats from '../profile/ContributionStats';
 import FeaturedBadges from './FeaturedBadges';
 
 const ProfilePage = () => {
@@ -142,6 +142,7 @@ const ProfilePage = () => {
 
     const tabs = [
         { id: 'overview', label: 'Overview', icon: User },
+        { id: 'stats', label: 'Stats', icon: BarChart3 },
         { id: 'activity', label: 'Activity', icon: Calendar },
         { id: 'repos', label: 'Repositories', icon: GitBranch },
         { id: 'mentorship', label: 'Mentorship', icon: Users },
@@ -338,6 +339,10 @@ const ProfilePage = () => {
                             <StreakDisplay />
                             <ContributionCalendar />
                         </>
+                    )}
+
+                    {activeTab === 'stats' && (
+                        <ContributionStats username={user?.username} />
                     )}
 
                     {activeTab === 'repos' && (

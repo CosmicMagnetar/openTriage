@@ -431,6 +431,24 @@ export const resourceTags = sqliteTable("resource_tags", {
     tag: text("tag").notNull(),
 });
 
+// ---- Private Resources (Mentor-Contributor Tunnel) ----
+// These resources are only visible to the repo owner (mentor) and the specific PR/issue author
+export const privateResources = sqliteTable("private_resources", {
+    id: text("id").primaryKey(),
+    issueId: text("issue_id").notNull().references(() => issues.id, { onDelete: "cascade" }),
+    repoOwner: text("repo_owner").notNull(),  // The repository owner (mentor) who can see this
+    prAuthor: text("pr_author").notNull(),     // The PR/issue author (contributor) who can see this
+    resourceType: text("resource_type").notNull(),  // link, code_snippet, documentation, tutorial, etc.
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    description: text("description"),
+    language: text("language"),  // For code snippets
+    sharedBy: text("shared_by").notNull(),  // Username who shared
+    sharedById: text("shared_by_id").notNull().references(() => users.id),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+});
+
 // =============================================================================
 // RELATIONS (for Drizzle Query API)
 // =============================================================================

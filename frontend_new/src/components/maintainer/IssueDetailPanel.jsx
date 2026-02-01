@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 import { mergePullRequest, closeIssueOrPR } from '../../services/githubService';
+import PrivateResourceChannel from '../shared/PrivateResourceChannel';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -409,6 +410,14 @@ const IssueDetailPanel = () => {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Private Resource Channel - only visible to repo owner and PR author */}
+          {selectedIssue.isPR && selectedIssue.id && (
+            <PrivateResourceChannel 
+              issueId={selectedIssue.id}
+              issueData={selectedIssue}
+            />
           )}
 
           {/* Quick Reply */}
