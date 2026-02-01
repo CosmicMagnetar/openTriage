@@ -34,7 +34,30 @@ const PublicProfilePage = () => {
                 profileApi.getGitHubStats(username).catch(() => null)
             ]);
 
-            if (!profileData) {
+            // If no profile exists but we have GitHub stats, show a basic profile
+            if (!profileData && !githubStatsData) {
+                // Try to fetch basic GitHub info as fallback
+                try {
+                    const githubRes = await fetch(`https://api.github.com/users/${username}`);
+                    if (githubRes.ok) {
+                        const githubUser = await githubRes.json();
+                        setProfile({
+                            username: githubUser.login,
+                            avatar_url: githubUser.avatar_url,
+                            bio: githubUser.bio || '',
+                            skills: [],
+                            github_stats: {
+                                public_repos: githubUser.public_repos,
+                                followers: githubUser.followers,
+                                following: githubUser.following,
+                            }
+                        });
+                        setLoading(false);
+                        return;
+                    }
+                } catch (e) {
+                    console.log('GitHub API fallback failed');
+                }
                 setNotFound(true);
                 return;
             }
@@ -70,10 +93,16 @@ const PublicProfilePage = () => {
             }));
             setFeaturedBadges(transformedFeatured);
 
-            // Merge GitHub stats into profile
-            const mergedProfile = {
+            // Merge GitHub stats into profile (or create minimal profile from GitHub stats)
+            const mergedProfile = profileData ? {
                 ...profileData,
                 github_stats: githubStatsData || profileData.github_stats || {}
+            } : {
+                username,
+                avatar_url: `https://github.com/${username}.png`,
+                bio: '',
+                skills: [],
+                github_stats: githubStatsData || {}
             };
             setProfile(mergedProfile);
         } catch (error) {
