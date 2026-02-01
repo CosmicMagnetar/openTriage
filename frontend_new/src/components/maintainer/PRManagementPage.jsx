@@ -3,10 +3,11 @@ import axios from 'axios';
 import {
     GitPullRequest, RefreshCw, Bot, FileCode, Check, X, AlertTriangle,
     MessageSquare, ChevronRight, ExternalLink, Clock, User,
-    GitBranch, Plus, Minus, Loader2, Lightbulb
+    GitBranch, Plus, Minus, Loader2, Lightbulb, GitMerge, XCircle, GraduationCap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
+import { mergePullRequest, closeIssueOrPR } from '../../services/githubService';
 import Logo from '../Logo';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
@@ -33,6 +34,8 @@ const PRManagementPage = () => {
     const [commentText, setCommentText] = useState('');
     const [selectedTemplate, setSelectedTemplate] = useState('');
     const [commentType, setCommentType] = useState('review');
+    const [showTeaching, setShowTeaching] = useState(false);
+    const [teachingMessage, setTeachingMessage] = useState('');
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -187,6 +190,89 @@ const PRManagementPage = () => {
         } catch (error) {
             console.error('Error posting comment:', error);
             toast.error(error.response?.data?.detail || 'Failed to post comment');
+        } finally {
+            setPosting(false);
+        }
+    };
+
+    const handleMergePR = async () => {
+        if (!selectedPR || !selectedRepo) return;
+
+        if (!window.confirm(`Are you sure you want to merge PR #${selectedPR.number}?`)) return;
+
+        setPosting(true);
+        try {
+            const userRes = await axios.get(`${API}/user/me`);
+            const githubToken = userRes.data.githubAccessToken;
+
+            if (!githubToken) {
+                toast.error('GitHub token not found. Please reconnect your GitHub account.');
+                return;
+            }
+
+            const [owner, repo] = selectedRepo.name.split('/');
+            await mergePullRequest(githubToken, owner, repo, selectedPR.number, 'merge');
+
+            toast.success(`PR #${selectedPR.number} merged successfully!`);
+            setSelectedPR(null);
+            handleSelectRepo(selectedRepo); // Refresh PR list
+        } catch (error) {
+            console.error('Error merging PR:', error);
+            toast.error(error.message || 'Failed to merge PR');
+        } finally {
+            setPosting(false);
+        }
+    };
+
+    const handleClosePR = async () => {
+        if (!selectedPR || !selectedRepo) return;
+
+        if (!window.confirm(`Are you sure you want to close PR #${selectedPR.number}?`)) return;
+
+        setPosting(true);
+        try {
+            const userRes = await axios.get(`${API}/user/me`);
+            const githubToken = userRes.data.githubAccessToken;
+
+            if (!githubToken) {
+                toast.error('GitHub token not found. Please reconnect your GitHub account.');
+                return;
+            }
+
+            const [owner, repo] = selectedRepo.name.split('/');
+            await closeIssueOrPR(githubToken, owner, repo, selectedPR.number, true);
+
+            toast.success(`PR #${selectedPR.number} closed successfully!`);
+            setSelectedPR(null);
+            handleSelectRepo(selectedRepo); // Refresh PR list
+        } catch (error) {
+            console.error('Error closing PR:', error);
+            toast.error(error.message || 'Failed to close PR');
+        } finally {
+            setPosting(false);
+        }
+    };
+
+    const handleSendTeaching = async () => {
+        if (!teachingMessage.trim() || !selectedPR) return;
+
+        setPosting(true);
+        try {
+            const teachingReply = `## 🎓 Learning Moment\n\n${teachingMessage}\n\n---\n*This is a teaching response to help you grow as a contributor!*`;
+
+            await axios.post(`${API}/issues/reply`, {
+                issueId: selectedPR.id,
+                owner: selectedPR.owner,
+                repo: selectedPR.repo,
+                number: selectedPR.number,
+                message: teachingReply
+            });
+            toast.success('Teaching message sent!');
+            setTeachingMessage('');
+            setShowTeaching(false);
+        } catch (error) {
+            console.error('Error sending teaching message:', error);
+            toast.error(error.response?.data?.detail || 'Failed to send teaching message');
         } finally {
             setPosting(false);
         }
@@ -376,15 +462,39 @@ const PRManagementPage = () => {
                                             </span>
                                         </div>
                                     </div>
-                                    <a
-                                        href={selectedPR.htmlUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-1 px-3 py-1.5 bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,15%)] rounded-lg text-sm text-[hsl(210,11%,70%)] transition-all border border-[hsl(220,13%,18%)]"
-                                    >
-                                        <ExternalLink className="w-4 h-4" />
-                                        View on GitHub
-                                    </a>
+                                    <div className="flex items-center gap-2">
+                                        {selectedPR.state === 'open' && (
+                                            <>
+                                                <button
+                                                    onClick={handleMergePR}
+                                                    disabled={posting}
+                                                    className="flex items-center gap-1 px-3 py-1.5 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-black rounded-lg text-sm font-medium transition-colors"
+                                                    title="Merge PR"
+                                                >
+                                                    <GitMerge className="w-4 h-4" />
+                                                    Merge
+                                                </button>
+                                                <button
+                                                    onClick={handleClosePR}
+                                                    disabled={posting}
+                                                    className="flex items-center gap-1 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-red-400 rounded-lg text-sm font-medium transition-colors border border-red-500/30"
+                                                    title="Close PR"
+                                                >
+                                                    <XCircle className="w-4 h-4" />
+                                                    Close
+                                                </button>
+                                            </>
+                                        )}
+                                        <a
+                                            href={selectedPR.htmlUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1 px-3 py-1.5 bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,15%)] rounded-lg text-sm text-[hsl(210,11%,70%)] transition-all border border-[hsl(220,13%,18%)]"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />
+                                            View on GitHub
+                                        </a>
+                                    </div>
                                 </div>
 
                                 {selectedPR.body && (
@@ -592,67 +702,131 @@ const PRManagementPage = () => {
                                     Write Comment
                                 </h3>
 
-                                {/* Comment Type & Template */}
-                                <div className="flex gap-3 mb-4">
-                                    <select
-                                        value={commentType}
-                                        onChange={(e) => setCommentType(e.target.value)}
-                                        className="bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
-                                    >
-                                        <option value="review">General Review</option>
-                                        <option value="approval">Approval</option>
-                                        <option value="request_changes">Request Changes</option>
-                                        <option value="question">Question</option>
-                                    </select>
-                                    <select
-                                        value={selectedTemplate}
-                                        onChange={handleTemplateChange}
-                                        className="flex-1 bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
-                                    >
-                                        <option value="">Use Template...</option>
-                                        {templates.map(t => (
-                                            <option key={t.id} value={t.id}>{t.name}</option>
-                                        ))}
-                                    </select>
+                                {/* Teaching Mode Toggle */}
+                                <div className="mb-4 flex gap-2">
                                     <button
-                                        onClick={handleSuggestComment}
-                                        disabled={suggesting}
-                                        className="flex items-center gap-2 px-4 py-2 bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,55%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] rounded-lg text-sm font-medium text-white transition-colors"
+                                        onClick={() => { setShowTeaching(false); setTeachingMessage(''); }}
+                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                            !showTeaching
+                                                ? 'bg-[hsl(217,91%,50%)] text-white'
+                                                : 'bg-[hsl(220,13%,10%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,12%)]'
+                                        }`}
                                     >
-                                        {suggesting ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <Lightbulb className="w-4 h-4" />
-                                        )}
-                                        AI Suggest
+                                        <MessageSquare className="w-4 h-4" />
+                                        Regular Comment
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowTeaching(true); setCommentText(''); setSelectedTemplate(''); }}
+                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                            showTeaching
+                                                ? 'bg-[hsl(142,70%,45%)] text-black'
+                                                : 'bg-[hsl(220,13%,10%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,12%)]'
+                                        }`}
+                                    >
+                                        <GraduationCap className="w-4 h-4" />
+                                        Teaching Mode
                                     </button>
                                 </div>
 
-                                {/* Comment Text */}
-                                <AISuggestTextarea
-                                    value={commentText}
-                                    onChange={setCommentText}
-                                    contextType="pr_comment"
-                                    rows={6}
-                                    placeholder="Write your comment here... (AI suggestions appear after a pause)"
-                                    className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-4 py-3 text-[hsl(210,11%,80%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(220,13%,28%)]"
-                                />
+                                {showTeaching ? (
+                                    /* Teaching Mode */
+                                    <>
+                                        <div className="mb-4 p-3 bg-[hsl(142,70%,45%,0.1)] border border-[hsl(142,70%,45%,0.3)] rounded-lg">
+                                            <p className="text-xs text-[hsl(142,70%,55%)] flex items-center gap-2">
+                                                <GraduationCap className="w-4 h-4" />
+                                                <span>
+                                                    <strong>Teaching Mode:</strong> Share knowledge, explain concepts, and help the contributor learn!
+                                                </span>
+                                            </p>
+                                        </div>
+                                        <textarea
+                                            value={teachingMessage}
+                                            onChange={(e) => setTeachingMessage(e.target.value)}
+                                            placeholder="Explain code patterns, best practices, or provide learning resources..."
+                                            className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-4 py-3 text-[hsl(210,11%,80%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(142,70%,45%)] transition-colors resize-none"
+                                            rows={6}
+                                        />
+                                        <div className="flex justify-end mt-4">
+                                            <button
+                                                onClick={handleSendTeaching}
+                                                disabled={!teachingMessage.trim() || posting}
+                                                className="flex items-center gap-2 px-5 py-2 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] rounded-lg text-sm font-medium text-black transition-colors"
+                                            >
+                                                {posting ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <GraduationCap className="w-4 h-4" />
+                                                )}
+                                                {posting ? 'Sending...' : 'Send Teaching Message'}
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    /* Regular Comment Mode */
+                                    <>
+                                        {/* Comment Type & Template */}
+                                        <div className="flex gap-3 mb-4">
+                                            <select
+                                                value={commentType}
+                                                onChange={(e) => setCommentType(e.target.value)}
+                                                className="bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
+                                            >
+                                                <option value="review">General Review</option>
+                                                <option value="approval">Approval</option>
+                                                <option value="request_changes">Request Changes</option>
+                                                <option value="question">Question</option>
+                                            </select>
+                                            <select
+                                                value={selectedTemplate}
+                                                onChange={handleTemplateChange}
+                                                className="flex-1 bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
+                                            >
+                                                <option value="">Use Template...</option>
+                                                {templates.map(t => (
+                                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                onClick={handleSuggestComment}
+                                                disabled={suggesting}
+                                                className="flex items-center gap-2 px-4 py-2 bg-[hsl(217,91%,50%)] hover:bg-[hsl(217,91%,55%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] rounded-lg text-sm font-medium text-white transition-colors"
+                                            >
+                                                {suggesting ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <Lightbulb className="w-4 h-4" />
+                                                )}
+                                                AI Suggest
+                                            </button>
+                                        </div>
 
-                                {/* Post Button */}
-                                <div className="flex justify-end mt-4">
-                                    <button
-                                        onClick={handlePostComment}
-                                        disabled={!commentText.trim() || posting}
-                                        className="flex items-center gap-2 px-5 py-2 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] rounded-lg text-sm font-medium text-black transition-colors"
-                                    >
-                                        {posting ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <MessageSquare className="w-4 h-4" />
-                                        )}
-                                        {posting ? 'Posting...' : 'Post Comment'}
-                                    </button>
-                                </div>
+                                        {/* Comment Text */}
+                                        <AISuggestTextarea
+                                            value={commentText}
+                                            onChange={setCommentText}
+                                            contextType="pr_comment"
+                                            rows={6}
+                                            placeholder="Write your comment here... (AI suggestions appear after a pause)"
+                                            className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-4 py-3 text-[hsl(210,11%,80%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(220,13%,28%)]"
+                                        />
+
+                                        {/* Post Button */}
+                                        <div className="flex justify-end mt-4">
+                                            <button
+                                                onClick={handlePostComment}
+                                                disabled={!commentText.trim() || posting}
+                                                className="flex items-center gap-2 px-5 py-2 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] rounded-lg text-sm font-medium text-black transition-colors"
+                                            >
+                                                {posting ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <MessageSquare className="w-4 h-4" />
+                                                )}
+                                                {posting ? 'Posting...' : 'Post Comment'}
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     )}

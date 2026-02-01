@@ -1,14 +1,14 @@
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import useAuthStore from './stores/authStore';
-import SplashScreen from './components/SplashScreen';
-import AuthPage from './components/AuthPage';
-import LandingPage from './components/LandingPage';
-import RoleSelection from './components/RoleSelection';
-import MaintainerLayout from './components/maintainer/MaintainerLayout';
-import ContributorLayout from './components/contributor/ContributorLayout';
-import { Toaster } from './components/ui/sonner';
-import './App.css';
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import useAuthStore from "./stores/authStore";
+import SplashScreen from "./components/SplashScreen";
+import AuthPage from "./components/AuthPage";
+import LandingPage from "./components/LandingPage";
+import RoleSelection from "./components/RoleSelection";
+import MaintainerLayout from "./components/maintainer/MaintainerLayout";
+import ContributorLayout from "./components/contributor/ContributorLayout";
+import { Toaster } from "./components/ui/sonner";
+import "./App.css";
 
 function App() {
   const { user, role, isLoading, loadUser } = useAuthStore();
@@ -16,11 +16,11 @@ function App() {
   useEffect(() => {
     // Check for token in URL (from OAuth callback) FIRST before loading user
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+    const token = urlParams.get("token");
     if (token) {
-      localStorage.setItem('token', token);
+      localStorage.setItem("token", token);
       // Clean URL immediately - redirect to dashboard
-      window.history.replaceState({}, document.title, '/dashboard');
+      window.history.replaceState({}, document.title, "/dashboard");
     }
     // Now load user (will use token from localStorage if present)
     loadUser();
@@ -70,13 +70,15 @@ function App() {
           <Route
             path="/dashboard/*"
             element={
-              role === 'MAINTAINER' ? (
+              role === "MAINTAINER" ? (
                 <MaintainerLayout />
               ) : (
                 <ContributorLayout />
               )
             }
           />
+          {/* Catch all unauthorized routes - redirect to home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
       <Toaster />

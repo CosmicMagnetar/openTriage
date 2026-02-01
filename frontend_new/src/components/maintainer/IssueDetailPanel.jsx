@@ -1,20 +1,26 @@
-import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, ExternalLink, Bot } from 'lucide-react';
+import { X, Tag, ThumbsUp, ThumbsDown, MessageSquare, RefreshCw, ExternalLink, Bot, GitMerge, XCircle, GraduationCap } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import useIssueStore from '../../stores/issueStore';
+import useAuthStore from '../../stores/authStore';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
+import { mergePullRequest, closeIssueOrPR } from '../../services/githubService';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
 const IssueDetailPanel = () => {
   const { selectedIssue, clearSelectedIssue } = useIssueStore();
+  const { user } = useAuthStore();
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [showTeaching, setShowTeaching] = useState(false);
+  const [teachingMessage, setTeachingMessage] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
@@ -111,6 +117,104 @@ const IssueDetailPanel = () => {
     }
   };
 
+  const handleMergePR = async () => {
+    if (!selectedIssue?.isPR || !selectedIssue?.owner || !selectedIssue?.repo) return;
+    
+    if (!window.confirm(`Are you sure you want to merge PR #${selectedIssue.number}?`)) return;
+
+    setProcessing(true);
+    try {
+      // Get user's GitHub token
+      const userRes = await axios.get(`${API}/user/me`);
+      const githubToken = userRes.data.githubAccessToken;
+      
+      if (!githubToken) {
+        toast.error('GitHub token not found. Please reconnect your GitHub account.');
+        return;
+      }
+
+      await mergePullRequest(
+        githubToken,
+        selectedIssue.owner,
+        selectedIssue.repo,
+        selectedIssue.number,
+        'merge'
+      );
+
+      toast.success(`PR #${selectedIssue.number} merged successfully!`);
+      clearSelectedIssue();
+      window.location.reload(); // Refresh to update the list
+    } catch (error) {
+      console.error('Error merging PR:', error);
+      toast.error(error.message || 'Failed to merge PR');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleClose = async () => {
+    if (!selectedIssue?.owner || !selectedIssue?.repo) return;
+    
+    const itemType = selectedIssue.isPR ? 'PR' : 'issue';
+    if (!window.confirm(`Are you sure you want to close this ${itemType} #${selectedIssue.number}?`)) return;
+
+    setProcessing(true);
+    try {
+      // Get user's GitHub token
+      const userRes = await axios.get(`${API}/user/me`);
+      const githubToken = userRes.data.githubAccessToken;
+      
+      if (!githubToken) {
+        toast.error('GitHub token not found. Please reconnect your GitHub account.');
+        return;
+      }
+
+      await closeIssueOrPR(
+        githubToken,
+        selectedIssue.owner,
+        selectedIssue.repo,
+        selectedIssue.number,
+        selectedIssue.isPR
+      );
+
+      toast.success(`${itemType} #${selectedIssue.number} closed successfully!`);
+      clearSelectedIssue();
+      window.location.reload(); // Refresh to update the list
+    } catch (error) {
+      console.error(`Error closing ${itemType}:`, error);
+      toast.error(error.message || `Failed to close ${itemType}`);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleSendTeaching = async () => {
+    if (!teachingMessage.trim()) return;
+
+    setSending(true);
+    try {
+      const teachingReply = `## 🎓 Learning Moment\n\n${teachingMessage}\n\n---\n*This is a teaching response to help you grow as a contributor!*`;
+      
+      await axios.post(`${API}/issues/reply`, {
+        issueId: selectedIssue.id,
+        owner: selectedIssue.owner,
+        repo: selectedIssue.repo,
+        number: selectedIssue.number,
+        message: teachingReply
+      });
+
+      toast.success('Teaching message sent!');
+      setTeachingMessage('');
+      setShowTeaching(false);
+      fetchComments();
+    } catch (error) {
+      console.error('Error sending teaching message:', error);
+      toast.error(error.response?.data?.detail || 'Failed to send teaching message');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const sentimentColors = {
     POSITIVE: 'text-[hsl(142,70%,55%)]',
     NEUTRAL: 'text-[hsl(217,91%,65%)]',
@@ -133,7 +237,7 @@ const IssueDetailPanel = () => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-1">
               <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">
-                Issue #{selectedIssue.number}
+                {selectedIssue.isPR ? 'PR' : 'Issue'} #{selectedIssue.number}
               </h2>
               {selectedIssue.htmlUrl && (
                 <a
@@ -148,13 +252,40 @@ const IssueDetailPanel = () => {
             </div>
             <p className="text-sm text-[hsl(210,11%,50%)]">{selectedIssue.repoName}</p>
           </div>
-          <button
-            data-testid="close-panel-button"
-            onClick={clearSelectedIssue}
-            className="p-2 text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,12%)] rounded-md transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Action Buttons */}
+            {selectedIssue.state === 'open' && selectedIssue.owner && selectedIssue.repo && (
+              <>
+                {selectedIssue.isPR && (
+                  <button
+                    onClick={handleMergePR}
+                    disabled={processing}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-black rounded-md text-sm font-medium transition-colors"
+                    title="Merge PR"
+                  >
+                    <GitMerge className="w-4 h-4" />
+                    Merge
+                  </button>
+                )}
+                <button
+                  onClick={handleClose}
+                  disabled={processing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-red-400 rounded-md text-sm font-medium transition-colors border border-red-500/30"
+                  title={`Close ${selectedIssue.isPR ? 'PR' : 'Issue'}`}
+                >
+                  <XCircle className="w-4 h-4" />
+                  Close
+                </button>
+              </>
+            )}
+            <button
+              data-testid="close-panel-button"
+              onClick={clearSelectedIssue}
+              className="p-2 text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,12%)] rounded-md transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -287,45 +418,107 @@ const IssueDetailPanel = () => {
               Quick Reply
             </h3>
 
-            {templates.length > 0 && (
-              <div className="mb-3">
-                <select
-                  value={selectedTemplate}
-                  onChange={handleTemplateSelect}
-                  className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(217,91%,60%)] transition-colors"
-                >
-                  <option value="">Select template (optional)</option>
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <div className="relative">
-              <AISuggestTextarea
-                data-testid="reply-textarea"
-                value={reply}
-                onChange={setReply}
-                placeholder="Type your reply..."
-                contextType="issue_reply"
-                conversationHistory={comments.map(c => ({ sender: 'other', content: c.body }))}
-                issueContext={{ title: selectedIssue.title, body: selectedIssue.body, repoName: selectedIssue.repoName }}
-                className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg p-3 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(217,91%,60%)] transition-colors resize-none"
-                rows={4}
-              />
+            {/* Teaching Mode Toggle */}
+            <div className="mb-3 flex gap-2">
+              <button
+                onClick={() => { setShowTeaching(false); setTeachingMessage(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  !showTeaching
+                    ? 'bg-[hsl(217,91%,50%)] text-white'
+                    : 'bg-[hsl(220,13%,10%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,12%)]'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Regular Reply
+              </button>
+              <button
+                onClick={() => { setShowTeaching(true); setReply(''); setSelectedTemplate(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  showTeaching
+                    ? 'bg-[hsl(142,70%,45%)] text-black'
+                    : 'bg-[hsl(220,13%,10%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,12%)]'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />
+                Teaching Mode
+              </button>
             </div>
 
-            <button
-              data-testid="send-reply-button"
-              onClick={handleReply}
-              disabled={!reply.trim() || sending}
-              className="mt-3 w-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-black px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
-            >
-              {sending ? 'Sending...' : 'Send Reply'}
-            </button>
+            {showTeaching ? (
+              /* Teaching Mode */
+              <>
+                <div className="mb-3 p-3 bg-[hsl(142,70%,45%,0.1)] border border-[hsl(142,70%,45%,0.3)] rounded-lg">
+                  <p className="text-xs text-[hsl(142,70%,55%)] flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4" />
+                    <span>
+                      <strong>Teaching Mode:</strong> Share knowledge and guide the contributor to learn and improve!
+                    </span>
+                  </p>
+                </div>
+                <textarea
+                  value={teachingMessage}
+                  onChange={(e) => setTeachingMessage(e.target.value)}
+                  placeholder="Explain concepts, best practices, or provide learning resources..."
+                  className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg p-3 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(142,70%,45%)] transition-colors resize-none"
+                  rows={4}
+                />
+                <button
+                  onClick={handleSendTeaching}
+                  disabled={!teachingMessage.trim() || sending}
+                  className="mt-3 w-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-black px-4 py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  {sending ? 'Sending...' : (
+                    <>
+                      <GraduationCap className="w-4 h-4" />
+                      Send Teaching Message
+                    </>
+                  )}
+                </button>
+              </>
+            ) : (
+              /* Regular Reply Mode */
+              <>
+                {templates.length > 0 && (
+                  <div className="mb-3">
+                    <select
+                      value={selectedTemplate}
+                      onChange={handleTemplateSelect}
+                      className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(217,91%,60%)] transition-colors"
+                    >
+                      <option value="">Select template (optional)</option>
+                      {templates.map((template) => (
+                        <option key={template.id} value={template.id}>
+                          {template.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="relative">
+                  <AISuggestTextarea
+                    data-testid="reply-textarea"
+                    value={reply}
+                    onChange={setReply}
+                    placeholder="Type your reply..."
+                    contextType="issue_reply"
+                    conversationHistory={comments.map(c => ({ sender: 'other', content: c.body }))}
+                    issueContext={{ title: selectedIssue.title, body: selectedIssue.body, repoName: selectedIssue.repoName }}
+                    className="w-full bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-lg p-3 text-sm text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(217,91%,60%)] transition-colors resize-none"
+                    rows={4}
+                  />
+                </div>
+
+                <button
+                  data-testid="send-reply-button"
+                  onClick={handleReply}
+                  disabled={!reply.trim() || sending}
+                  className="mt-3 w-full bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] disabled:bg-[hsl(220,13%,18%)] disabled:text-[hsl(210,11%,40%)] text-black px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  {sending ? 'Sending...' : 'Send Reply'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

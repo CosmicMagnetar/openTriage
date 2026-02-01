@@ -49,6 +49,15 @@ dump.rdb
 .DS_Store
 *.pem
 
+# Temporary documentation files (keep only README.md)
+*.md
+!README.md
+!**/README.md
+
+# Temporary plan files and session data
+.opentriage_plan_*.tmp
+.opentriage/
+
 # Python
 __pycache__/
 *pyc*
