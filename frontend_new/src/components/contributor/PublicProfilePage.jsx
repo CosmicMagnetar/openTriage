@@ -1,18 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Code, ArrowLeft, Flame, Trophy, Calendar, BarChart3, ExternalLink, Users } from 'lucide-react';
+import { User, ArrowLeft, ExternalLink } from 'lucide-react';
 import { profileApi, gamificationApi } from '../../services/api';
-import { toast } from 'sonner';
 import ContributionStats from '../profile/ContributionStats';
 import FeaturedBadges from './FeaturedBadges';
 
 const PublicProfilePage = () => {
     const { username } = useParams();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('overview');
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [allBadges, setAllBadges] = useState([]);
     const [featuredBadges, setFeaturedBadges] = useState([]);
     const [notFound, setNotFound] = useState(false);
 
@@ -30,13 +27,11 @@ const PublicProfilePage = () => {
             // Try to get OpenTriage profile first
             let profileData = null;
             let githubStatsData = null;
-            let badgesData = { all_badges: [] };
             let featuredData = { badges: [] };
             
             try {
-                [profileData, badgesData, featuredData, githubStatsData] = await Promise.all([
+                [profileData, featuredData, githubStatsData] = await Promise.all([
                     profileApi.getProfile(username),
-                    gamificationApi.getUserBadges(username).catch(() => ({ all_badges: [] })),
                     profileApi.getFeaturedBadges(username).catch(() => ({ badges: [] })),
                     profileApi.getGitHubStats(username).catch(() => null)
                 ]);
@@ -96,22 +91,6 @@ const PublicProfilePage = () => {
                 }
             }
 
-            // Transform badges data
-            const transformedBadges = (badgesData.all_badges || []).map(b => ({
-                badge: {
-                    id: b.id,
-                    name: b.name,
-                    description: b.description,
-                    image_url: b.image_url,
-                    icon: b.icon,
-                    category: b.category,
-                    rarity: b.rarity
-                },
-                earned: b.earned,
-                awardedAt: b.awardedAt
-            }));
-            setAllBadges(transformedBadges);
-
             // Transform featured badges
             const transformedFeatured = (featuredData.badges || []).map(b => ({
                 badge: b.badge || {
@@ -140,11 +119,6 @@ const PublicProfilePage = () => {
             setLoading(false);
         }
     };
-
-    const tabs = [
-        { id: 'overview', label: 'Overview', icon: User },
-        { id: 'stats', label: 'Stats', icon: BarChart3 },
-    ];
 
     if (loading) {
         return (
@@ -223,6 +197,11 @@ const PublicProfilePage = () => {
                                         {profile.role}
                                     </span>
                                 )}
+                                {profile?.isGitHubFallback && (
+                                    <span className="text-xs px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                                        Not on OpenTriage
+                                    </span>
+                                )}
                             </div>
                             <p className="text-[hsl(210,11%,50%)] mt-1">{profile?.bio || 'No bio yet'}</p>
 
@@ -249,24 +228,6 @@ const PublicProfilePage = () => {
                                 </div>
                             )}
 
-                            {/* Quick Stats */}
-                            <div className="flex items-center gap-6 mt-4">
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Flame className="w-4 h-4 text-orange-400" />
-                                    <span className="text-[hsl(210,11%,75%)]">{profile?.github_stats?.current_streak || 0} day streak</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Code className="w-4 h-4 text-[hsl(217,91%,65%)]" />
-                                    <span className="text-[hsl(210,11%,75%)]">{profile?.skills?.length || 0} skills</span>
-                                </div>
-                                {profile?.available_for_mentoring && (
-                                    <div className="flex items-center gap-2 text-sm">
-                                        <Users className="w-4 h-4 text-[hsl(142,70%,55%)]" />
-                                        <span className="text-[hsl(142,70%,55%)]">Available for mentoring</span>
-                                    </div>
-                                )}
-                            </div>
-
                             {/* Skills */}
                             {profile?.skills?.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-4">
@@ -286,140 +247,12 @@ const PublicProfilePage = () => {
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-2 border-b border-[hsl(220,13%,15%)] pb-2">
-                    {tabs.map((tab) => {
-                        const Icon = tab.icon;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors
-                                    ${activeTab === tab.id
-                                        ? 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,90%)]'
-                                        : 'text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)]'}`}
-                            >
-                                <Icon className="w-4 h-4" />
-                                {tab.label}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* Tab Content */}
-                <div className="space-y-6">
-                    {activeTab === 'overview' && (
-                        <>
-                            {/* Earned Badges */}
-                            {allBadges.filter(b => b.earned).length > 0 && (
-                                <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">
-                                    <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)] mb-4 flex items-center gap-2">
-                                        <Trophy className="w-5 h-5 text-yellow-500" />
-                                        Earned Badges ({allBadges.filter(b => b.earned).length})
-                                    </h2>
-                                    <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3">
-                                        {allBadges.filter(b => b.earned).map((item, i) => (
-                                            <div
-                                                key={item.badge?.id || i}
-                                                className="aspect-square rounded-lg bg-[hsl(220,13%,12%)] border border-[hsl(220,13%,20%)] p-2 flex items-center justify-center"
-                                                title={item.badge?.name}
-                                            >
-                                                {item.badge?.image_url ? (
-                                                    <img
-                                                        src={item.badge.image_url}
-                                                        alt={item.badge.name}
-                                                        className="w-full h-full object-contain rounded"
-                                                    />
-                                                ) : (
-                                                    <span className="text-2xl">{item.badge?.icon || '🏆'}</span>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* GitHub Stats Summary */}
-                            {profile?.github_stats && (
-                                <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">
-                                    <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)] mb-4 flex items-center gap-2">
-                                        <BarChart3 className="w-5 h-5 text-[hsl(142,70%,55%)]" />
-                                        GitHub Stats
-                                        {profile.isGitHubFallback && (
-                                            <span className="text-xs px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25 ml-2">
-                                                Public Data
-                                            </span>
-                                        )}
-                                    </h2>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        {profile.isGitHubFallback ? (
-                                            <>
-                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                                    <div className="text-2xl font-bold text-[hsl(217,91%,65%)]">
-                                                        {profile.github_stats.public_repos || 0}
-                                                    </div>
-                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Repositories</div>
-                                                </div>
-                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                                    <div className="text-2xl font-bold text-[hsl(142,70%,55%)]">
-                                                        {profile.github_stats.followers || 0}
-                                                    </div>
-                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Followers</div>
-                                                </div>
-                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                                    <div className="text-2xl font-bold text-purple-400">
-                                                        {profile.github_stats.following || 0}
-                                                    </div>
-                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Following</div>
-                                                </div>
-                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                                    <div className="text-2xl font-bold text-orange-400">
-                                                        {profile.github_stats.public_gists || 0}
-                                                    </div>
-                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Public Gists</div>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                                    <div className="text-2xl font-bold text-[hsl(142,70%,55%)]">
-                                                        {profile.github_stats.totalContributions?.toLocaleString() || 0}
-                                                    </div>
-                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Contributions</div>
-                                                </div>
-                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                                    <div className="text-2xl font-bold text-[hsl(217,91%,65%)]">
-                                                        {profile.github_stats.public_repos || 0}
-                                                    </div>
-                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Repositories</div>
-                                                </div>
-                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                                    <div className="text-2xl font-bold text-purple-400">
-                                                        {profile.github_stats.mergedPRs || 0}
-                                                    </div>
-                                                    <div className="text-xs text-[hsl(210,11%,50%)]">PRs Merged</div>
-                                                </div>
-                                                <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4 text-center">
-                                                    <div className="text-2xl font-bold text-orange-400">
-                                                        {profile.github_stats.longestStreak || 0}
-                                                    </div>
-                                                    <div className="text-xs text-[hsl(210,11%,50%)]">Longest Streak</div>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                    {activeTab === 'stats' && (
-                        <ContributionStats 
-                            username={username} 
-                            githubStats={profile?.github_stats}
-                        />
-                    )}
-                </div>
+                {/* Contribution Stats with Heatmap */}
+                <ContributionStats 
+                    username={username} 
+                    githubStats={profile?.github_stats}
+                    isGitHubFallback={profile?.isGitHubFallback}
+                />
             </div>
         </div>
     );
