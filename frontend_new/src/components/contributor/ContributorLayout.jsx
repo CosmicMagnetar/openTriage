@@ -67,12 +67,13 @@ const ContributorLayout = () => {
         <ContributorSidebar />
         <div className="flex-1 overflow-hidden">
           <Routes>
-            <Route path="" element={<MyIssuesDashboard />} />
+            <Route index element={<MyIssuesDashboard />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="user/:username" element={<PublicProfilePage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="metrics" element={<ContributorMetrics />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="*" element={<MyIssuesDashboard />} />
           </Routes>
         </div>
 
