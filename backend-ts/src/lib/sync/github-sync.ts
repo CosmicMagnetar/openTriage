@@ -469,6 +469,42 @@ export async function runContributorSync(
             .where(eq(issues.authorName, username));
         const existingByGithubId = new Map(existingIssues.map(i => [i.githubIssueId, i]));
 
+        // Cache for repo lookups/creates
+        const repoCache = new Map<string, string>();
+
+        // Helper to get or create a repository entry
+        const getOrCreateRepo = async (owner: string, repo: string, repoName: string): Promise<string> => {
+            const cacheKey = repoName;
+            if (repoCache.has(cacheKey)) {
+                return repoCache.get(cacheKey)!;
+            }
+
+            // Check if repo exists in DB
+            const existingRepo = await db.select({ id: repositories.id })
+                .from(repositories)
+                .where(eq(repositories.name, repoName))
+                .limit(1);
+
+            if (existingRepo[0]) {
+                repoCache.set(cacheKey, existingRepo[0].id);
+                return existingRepo[0].id;
+            }
+
+            // Create a new repository entry for contributor tracking
+            const newRepoId = uuidv4();
+            await db.insert(repositories).values({
+                id: newRepoId,
+                githubRepoId: 0, // Placeholder - we don't have the actual GitHub repo ID from search
+                name: repoName,
+                owner: owner,
+                userId: userId, // Associate with the contributor
+                createdAt: new Date().toISOString(),
+            }).onConflictDoNothing();
+
+            repoCache.set(cacheKey, newRepoId);
+            return newRepoId;
+        };
+
         // Process each GitHub item
         for (const item of allGitHubItems) {
             githubItemIds.add(item.id);
@@ -495,7 +531,10 @@ export async function runContributorSync(
                     stats.issuesUpdated++;
                 }
             } else {
-                // Create new issue - need a repoId, use a placeholder or find/create repo
+                // Get or create the repository entry
+                const repoId = await getOrCreateRepo(owner, repo, repoName);
+                
+                // Create new issue
                 const newId = uuidv4();
                 await db.insert(issues).values({
                     id: newId,
@@ -504,7 +543,7 @@ export async function runContributorSync(
                     title: item.title,
                     body: item.body || null,
                     authorName: item.user?.login || username,
-                    repoId: `contributor-${userId}`, // Placeholder repoId for contributor-synced issues
+                    repoId: repoId,
                     repoName,
                     owner,
                     repo,
