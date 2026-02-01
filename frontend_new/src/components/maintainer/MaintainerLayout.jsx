@@ -24,13 +24,12 @@ const MaintainerLayout = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="" element={<DashboardPage />} />
           <Route path="prs" element={<PRManagementPage />} />
           <Route path="hub" element={<MaintainerPortal />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="user/:username" element={<PublicProfilePage />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="*" element={<DashboardPage />} />
         </Routes>
       </div>
 
