@@ -1,8 +1,9 @@
-import { FileText, LogOut, BarChart3, Settings, Menu, X, User, MessageSquare, TrendingUp, Building2 } from 'lucide-react';
+import { FileText, LogOut, BarChart3, Settings, Menu, X, User, MessageSquare, TrendingUp, Building2, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import useAuthStore from '../../stores/authStore';
 import Logo from '../Logo';
+import UserSearch from '../shared/UserSearch';
 
 const ContributorSidebar = () => {
   const { user, logout } = useAuthStore();
@@ -101,6 +102,11 @@ const ContributorSidebar = () => {
               <p className="text-[10px] text-[hsl(210,11%,50%)]">Open Source Contributor</p>
             </div>
           </div>
+        </div>
+
+        {/* User Search */}
+        <div className="px-4 py-3 border-b border-[hsl(220,13%,14%)]">
+          <UserSearch />
         </div>
 
         {/* Menu - Better spacing */}

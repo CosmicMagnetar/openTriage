@@ -6,6 +6,7 @@ import DashboardPage from './DashboardPage';
 import PRManagementPage from './PRManagementPage';
 import MaintainerPortal from './MaintainerPortal';
 import ProfilePage from '../contributor/ProfilePage';
+import PublicProfilePage from '../contributor/PublicProfilePage';
 import Settings from '../Settings';
 import IssueDetailPanel from './IssueDetailPanel';
 import AIChat from './AIChat';
@@ -27,6 +28,7 @@ const MaintainerLayout = () => {
           <Route path="prs" element={<PRManagementPage />} />
           <Route path="hub" element={<MaintainerPortal />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="user/:username" element={<PublicProfilePage />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>

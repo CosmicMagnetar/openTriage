@@ -5,6 +5,7 @@ import ContributorSidebar from './ContributorSidebar';
 import MyIssuesDashboard from './MyIssuesDashboard';
 import ContributorMetrics from './ContributorMetrics';
 import ProfilePage from './ProfilePage';
+import PublicProfilePage from './PublicProfilePage';
 import MessagesPage from './MessagesPage';
 import Settings from '../Settings';
 import ContributorAIChat from './ContributorAIChat';
@@ -68,6 +69,7 @@ const ContributorLayout = () => {
           <Routes>
             <Route path="/" element={<MyIssuesDashboard />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="user/:username" element={<PublicProfilePage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="metrics" element={<ContributorMetrics />} />
             <Route path="settings" element={<Settings />} />
