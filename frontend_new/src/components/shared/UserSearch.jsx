@@ -70,7 +70,7 @@ const UserSearch = ({ onClose }) => {
         setResults([]);
         setShowResults(false);
         if (onClose) onClose();
-        navigate(`/user/${username}`);
+        navigate(`/dashboard/user/${username}`);
     };
 
     const handleKeyDown = (e) => {
