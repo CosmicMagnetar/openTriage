@@ -49,6 +49,8 @@ export const repositories = sqliteTable("repositories", {
     name: text("name").notNull(),
     owner: text("owner").notNull(),
     userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    etag: text("etag"),  // GitHub ETag for conditional requests
+    lastSyncedAt: text("last_synced_at"),  // When the repo was last synced
     createdAt: text("created_at").notNull(),
 });
 

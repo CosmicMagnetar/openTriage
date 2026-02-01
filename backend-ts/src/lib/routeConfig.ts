@@ -16,7 +16,6 @@ export const publicRoutes: string[] = [
 export const maintainerOnlyRoutes: string[] = [
     '/api/maintainer',
     '/api/repositories',
-    '/api/sync',
 ];
 
 // Routes that require CONTRIBUTOR role
@@ -37,6 +36,7 @@ export const authenticatedRoutes: string[] = [
     '/api/mentor',
     '/api/badges',
     '/api/user',
+    '/api/sync',  // Both maintainers and contributors can sync
 ];
 
 /**

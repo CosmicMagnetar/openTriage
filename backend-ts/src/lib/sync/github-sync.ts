@@ -2,6 +2,7 @@
  * GitHub Sync Service
  * 
  * Handles synchronization of issues and PRs from GitHub to the database.
+ * Uses ETag caching for efficient API usage (5,000 req/hr limit).
  * Uses Promise.allSettled for resilient parallel fetching.
  */
 
@@ -27,14 +28,21 @@ interface SyncResult {
     created: number;
     updated: number;
     deleted: number;
+    skipped: boolean;  // True if 304 Not Modified
     error?: string;
 }
 
 interface SyncStats {
     reposProcessed: number;
+    reposSkipped: number;  // Repos that returned 304 Not Modified
     issuesUpdated: number;
     issuesDeleted: number;
     errors: string[];
+}
+
+interface SyncOptions {
+    role?: 'MAINTAINER' | 'CONTRIBUTOR';
+    username?: string;  // For contributor-specific filtering
 }
 
 // =============================================================================
@@ -67,43 +75,103 @@ export async function getIssuesByRepoId(repoId: string) {
 }
 
 // =============================================================================
-// Single Repository Sync
+// Update Repository ETag
+// =============================================================================
+
+async function updateRepositoryEtag(repoId: string, etag: string | null): Promise<void> {
+    await db.update(repositories)
+        .set({ 
+            etag: etag,
+            lastSyncedAt: new Date().toISOString()
+        })
+        .where(eq(repositories.id, repoId));
+}
+
+async function getRepositoryEtag(repoId: string): Promise<string | null> {
+    const repo = await db.select({ etag: repositories.etag })
+        .from(repositories)
+        .where(eq(repositories.id, repoId))
+        .limit(1);
+    return repo[0]?.etag || null;
+}
+
+// =============================================================================
+// Single Repository Sync (with ETag Caching)
 // =============================================================================
 
 async function syncRepository(
     octokit: Octokit,
     repoId: string,
     owner: string,
-    repo: string
+    repo: string,
+    options: SyncOptions = {}
 ): Promise<SyncResult> {
     const repoName = `${owner}/${repo}`;
 
     try {
-        // Fetch all open issues from GitHub (paginated)
-        const openItems = await octokit.paginate(octokit.issues.listForRepo, {
-            owner,
-            repo,
-            state: "open",
-            per_page: 100,
-        });
+        // Get stored ETag for conditional request
+        const storedEtag = await getRepositoryEtag(repoId);
+        
+        // Build headers for conditional request
+        const headers: Record<string, string> = {};
+        if (storedEtag) {
+            headers['If-None-Match'] = storedEtag;
+        }
 
-        // Fetch recent closed issues
-        const closedResponse = await octokit.issues.listForRepo({
-            owner,
-            repo,
-            state: "closed",
-            per_page: 50,
-            sort: "updated",
-            direction: "desc",
-        });
-        const closedItems = closedResponse.data;
+        // Fetch open issues with conditional request
+        let openItems: GitHubIssue[] = [];
+        let newEtag: string | null = null;
+        
+        try {
+            const response = await octokit.issues.listForRepo({
+                owner,
+                repo,
+                state: "open",
+                per_page: 100,
+                headers,
+            });
+            
+            // Get ETag from response headers
+            newEtag = response.headers.etag || null;
+            
+            // If we got data, paginate for the rest
+            openItems = response.data as GitHubIssue[];
+            
+            // Paginate if there are more items
+            if (response.data.length === 100) {
+                const remainingItems = await octokit.paginate(octokit.issues.listForRepo, {
+                    owner,
+                    repo,
+                    state: "open",
+                    per_page: 100,
+                    page: 2,  // Start from page 2
+                });
+                openItems = [...openItems, ...(remainingItems as GitHubIssue[])];
+            }
+        } catch (error: any) {
+            // Check for 304 Not Modified
+            if (error.status === 304) {
+                console.log(`[Sync] ${repoName}: No changes (304 Not Modified)`);
+                // Update last synced timestamp even for 304
+                await db.update(repositories)
+                    .set({ lastSyncedAt: new Date().toISOString() })
+                    .where(eq(repositories.id, repoId));
+                return { repoId, repoName, success: true, created: 0, updated: 0, deleted: 0, skipped: true };
+            }
+            throw error;
+        }
+
+        // Update stored ETag if we got a new one
+        if (newEtag) {
+            await updateRepositoryEtag(repoId, newEtag);
+        }
 
         // Get current issues in DB for this repo
         const dbIssues = await getIssuesByRepoId(repoId);
         const dbIssuesByGithubId = new Map(dbIssues.map(i => [i.githubIssueId, i]));
 
-        // Track GitHub IDs we've seen in this sync
-        const seenGithubIds = new Set<number>();
+        // Track GitHub IDs we've seen from the open list
+        const openGithubIds = new Set<number>();
         // Track potential mentors to update roles
         const potentialMentors = new Set<string>();
 
@@ -121,10 +189,27 @@ async function syncRepository(
             }
         };
 
+        // For Contributors: filter to only their PRs
+        const shouldIncludeItem = (item: GitHubIssue): boolean => {
+            if (options.role === 'CONTRIBUTOR' && options.username) {
+                // Contributors only see their own authored PRs
+                const isPR = !!item.pull_request;
+                return isPR && item.user.login === options.username;
+            }
+            // Maintainers see everything
+            return true;
+        };
+
         // Process open items
-        for (const ghItem of openItems as GitHubIssue[]) {
-            seenGithubIds.add(ghItem.id);
+        for (const ghItem of openItems) {
+            openGithubIds.add(ghItem.id);
             checkMentorStatus(ghItem);
+            
+            // Skip items that don't match role filter
+            if (!shouldIncludeItem(ghItem)) {
+                continue;
+            }
+            
             const isPR = !!ghItem.pull_request;
             const existingIssue = dbIssuesByGithubId.get(ghItem.id);
 
@@ -195,47 +280,21 @@ async function syncRepository(
             }
         }
 
-        // Process closed items - explicitly delete them
-        for (const ghItem of closedItems as GitHubIssue[]) {
-            seenGithubIds.add(ghItem.id);
-            checkMentorStatus(ghItem); // Also check closed items for mentor activity
-            const existingIssue = dbIssuesByGithubId.get(ghItem.id);
-
-            if (existingIssue) {
-                const isPR = !!ghItem.pull_request;
-                const isMerged = ghItem.pull_request?.merged_at !== null;
-
-                await deleteIssue(existingIssue.id);
-                deleted++;
-
-                if (isAblyConfigured()) {
-                    await publishIssueDeleted({
-                        id: existingIssue.id,
-                        githubIssueId: ghItem.id,
-                        number: ghItem.number,
-                        title: ghItem.title,
-                        repoName,
-                        owner,
-                        repo,
-                        isPR,
-                        state: isMerged ? "merged" : "closed",
-                    });
-                }
-            }
-        }
-
-        // Cleanup: Delete any DB issue that is marked 'open' but was NOT found in the full GitHub open list
-        // This ensures strict synchronization - if it's not in GitHub's open list, it shouldn't be open in our DB
+        // =========================================================================
+        // STATE RECONCILIATION: Mark issues as closed if not in GitHub's open list
+        // This is the key fix for the "closed issues showing as open" bug
+        // =========================================================================
         for (const dbIssue of dbIssues) {
-            // Only strictly clean up things we think are open
-            if (dbIssue.state === 'open' && !seenGithubIds.has(dbIssue.githubIssueId)) {
-                // We double check: if it's open in DB, but missing from Open pagination -> it must be closed/deleted
-                // verification is implied by the comprehensive open fetch
-                await deleteIssue(dbIssue.id);
-                deleted++;
+            // If issue is marked as 'open' in DB but NOT in GitHub's open list, it must be closed
+            if (dbIssue.state === 'open' && !openGithubIds.has(dbIssue.githubIssueId)) {
+                // Mark as closed instead of deleting
+                await db.update(issues)
+                    .set({ state: 'closed' })
+                    .where(eq(issues.id, dbIssue.id));
+                updated++;
 
                 if (isAblyConfigured()) {
-                    await publishIssueDeleted({
+                    await publishIssueUpdated({
                         id: dbIssue.id,
                         githubIssueId: dbIssue.githubIssueId,
                         number: dbIssue.number,
@@ -244,9 +303,11 @@ async function syncRepository(
                         owner,
                         repo,
                         isPR: dbIssue.isPR,
-                        state: "closed", // Assumed closed since missing from open
+                        state: "closed",
                     });
                 }
+                
+                console.log(`[Sync] ${repoName}: Marked #${dbIssue.number} as closed (not in open list)`);
             }
         }
 
@@ -267,11 +328,11 @@ async function syncRepository(
             }
         }
 
-        return { repoId, repoName, success: true, created, updated, deleted };
+        return { repoId, repoName, success: true, created, updated, deleted, skipped: false };
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`Sync error for ${repoName}:`, errorMessage);
-        return { repoId, repoName, success: false, created: 0, updated: 0, deleted: 0, error: errorMessage };
+        return { repoId, repoName, success: false, created: 0, updated: 0, deleted: 0, skipped: false, error: errorMessage };
     }
 }
 
@@ -279,7 +340,11 @@ async function syncRepository(
 // Full Sync (All Repositories)
 // =============================================================================
 
-export async function runFullSync(userId: string, accessToken: string): Promise<SyncStats> {
+export async function runFullSync(
+    userId: string, 
+    accessToken: string,
+    options: SyncOptions = {}
+): Promise<SyncStats> {
     const octokit = new Octokit({ auth: accessToken });
 
     // Get all repositories for this user
@@ -288,12 +353,12 @@ export async function runFullSync(userId: string, accessToken: string): Promise<
         .where(eq(repositories.userId, userId));
 
     if (userRepos.length === 0) {
-        return { reposProcessed: 0, issuesUpdated: 0, issuesDeleted: 0, errors: [] };
+        return { reposProcessed: 0, reposSkipped: 0, issuesUpdated: 0, issuesDeleted: 0, errors: [] };
     }
 
     // Sync all repos in parallel using Promise.allSettled
     const syncPromises = userRepos.map(repo =>
-        syncRepository(octokit, repo.id, repo.owner, repo.name)
+        syncRepository(octokit, repo.id, repo.owner, repo.name, options)
     );
 
     const results = await Promise.allSettled(syncPromises);
@@ -301,6 +366,7 @@ export async function runFullSync(userId: string, accessToken: string): Promise<
     // Aggregate results
     const stats: SyncStats = {
         reposProcessed: 0,
+        reposSkipped: 0,
         issuesUpdated: 0,
         issuesDeleted: 0,
         errors: [],
@@ -310,8 +376,14 @@ export async function runFullSync(userId: string, accessToken: string): Promise<
         if (result.status === "fulfilled") {
             const syncResult = result.value;
             stats.reposProcessed++;
-            stats.issuesUpdated += syncResult.created + syncResult.updated;
-            stats.issuesDeleted += syncResult.deleted;
+            
+            if (syncResult.skipped) {
+                stats.reposSkipped++;
+            } else {
+                stats.issuesUpdated += syncResult.created + syncResult.updated;
+                stats.issuesDeleted += syncResult.deleted;
+            }
+            
             if (!syncResult.success && syncResult.error) {
                 stats.errors.push(`${syncResult.repoName}: ${syncResult.error}`);
             }
@@ -333,6 +405,8 @@ export async function runFullSync(userId: string, accessToken: string): Promise<
         }
     }
 
+    console.log(`[Sync] Complete: ${stats.reposProcessed} repos, ${stats.reposSkipped} skipped (304), ${stats.issuesUpdated} updated, ${stats.issuesDeleted} deleted`);
+
     return stats;
 }
 
@@ -344,8 +418,37 @@ export async function syncSingleRepository(
     accessToken: string,
     repoId: string,
     owner: string,
-    repo: string
+    repo: string,
+    options: SyncOptions = {}
 ): Promise<SyncResult> {
     const octokit = new Octokit({ auth: accessToken });
-    return syncRepository(octokit, repoId, owner, repo);
+    return syncRepository(octokit, repoId, owner, repo, options);
+}
+
+// =============================================================================
+// Contributor Sync (Only their authored PRs)
+// =============================================================================
+
+export async function runContributorSync(
+    userId: string,
+    username: string,
+    accessToken: string
+): Promise<SyncStats> {
+    return runFullSync(userId, accessToken, {
+        role: 'CONTRIBUTOR',
+        username,
+    });
+}
+
+// =============================================================================
+// Maintainer Sync (All open issues/PRs)
+// =============================================================================
+
+export async function runMaintainerSync(
+    userId: string,
+    accessToken: string
+): Promise<SyncStats> {
+    return runFullSync(userId, accessToken, {
+        role: 'MAINTAINER',
+    });
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { AlertCircle, CheckCircle2, Clock, TrendingUp, Plus, FolderGit2, RefreshCw, ChevronLeft, ChevronRight, X, GitPullRequest } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, TrendingUp, Plus, FolderGit2, RefreshCw, ChevronLeft, ChevronRight, X, GitPullRequest, Loader2 } from 'lucide-react';
 import IssueCard from './IssueCard';
 import { toast } from 'sonner';
 
@@ -32,6 +32,8 @@ const DashboardPage = () => {
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
   const [totalItems, setTotalItems] = useState(0);
   const [fetchError, setFetchError] = useState(null);
+  const [isGitHubSyncing, setIsGitHubSyncing] = useState(false);
+  const [lastSyncStats, setLastSyncStats] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -122,6 +124,50 @@ const DashboardPage = () => {
     }
   };
 
+  // Manual GitHub Sync - triggers immediate sync with ETag-based conditional fetching
+  const triggerGitHubSync = async () => {
+    if (isGitHubSyncing) return;
+    
+    setIsGitHubSyncing(true);
+    setLastSyncStats(null);
+    
+    try {
+      const response = await axios.post(`${API}/sync/run`);
+      const { stats } = response.data;
+      
+      setLastSyncStats(stats);
+      
+      // Show appropriate toast based on sync results
+      if (stats.reposSkipped === stats.reposSynced + stats.reposSkipped) {
+        toast.success('Already up to date! No changes from GitHub.');
+      } else {
+        const added = stats.issuesAdded + stats.prsAdded;
+        const updated = stats.issuesUpdated + stats.prsUpdated;
+        const closed = stats.issuesClosed + stats.prsClosed;
+        
+        let message = 'GitHub sync complete!';
+        const changes = [];
+        if (added > 0) changes.push(`${added} added`);
+        if (updated > 0) changes.push(`${updated} updated`);
+        if (closed > 0) changes.push(`${closed} state changes`);
+        if (changes.length > 0) {
+          message += ` ${changes.join(', ')}.`;
+        }
+        
+        toast.success(message);
+      }
+      
+      // Reload dashboard data to reflect changes
+      await loadData();
+    } catch (error) {
+      console.error('GitHub sync failed:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to sync with GitHub';
+      toast.error(errorMessage);
+    } finally {
+      setIsGitHubSyncing(false);
+    }
+  };
+
   // Filter by selected repo (client-side filtering on already-paginated data)
   const filteredIssues = useMemo(() => {
     if (!Array.isArray(issues)) return [];
@@ -185,8 +231,28 @@ const DashboardPage = () => {
               data-testid="refresh-button"
               onClick={() => loadData()}
               className="bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,18%)] text-[hsl(210,11%,70%)] p-3 rounded-lg transition-colors border border-[hsl(220,13%,18%)]"
+              title="Refresh dashboard"
             >
               <RefreshCw className="w-5 h-5" />
+            </button>
+            <button
+              data-testid="github-sync-button"
+              onClick={triggerGitHubSync}
+              disabled={isGitHubSyncing}
+              className={`bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,18%)] text-[hsl(210,11%,70%)] px-4 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors border border-[hsl(220,13%,18%)] ${isGitHubSyncing ? 'opacity-70 cursor-not-allowed' : ''}`}
+              title="Sync with GitHub (uses smart caching)"
+            >
+              {isGitHubSyncing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  Sync GitHub
+                </>
+              )}
             </button>
             <button
               data-testid="add-repo-button"
