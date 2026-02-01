@@ -250,11 +250,67 @@ const LanguageDonut = ({ languages }) => {
 };
 
 // Main Component
-const ContributionStats = ({ username, githubStats, onSaveStats }) => {
+const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallback }) => {
     const statCardRef = useRef(null);
     const [saving, setSaving] = useState(false);
     const [cachedImage, setCachedImage] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [publicContributions, setPublicContributions] = useState(null);
+    const [publicLanguages, setPublicLanguages] = useState(null);
+    
+    // Fetch public GitHub data for non-OpenTriage users
+    useEffect(() => {
+        const fetchPublicData = async () => {
+            if (!isGitHubFallback || !username) return;
+            
+            try {
+                // Fetch public events to estimate activity
+                const eventsRes = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
+                if (eventsRes.ok) {
+                    const events = await eventsRes.json();
+                    
+                    // Count different event types
+                    const eventCounts = events.reduce((acc, event) => {
+                        acc[event.type] = (acc[event.type] || 0) + 1;
+                        return acc;
+                    }, {});
+                    
+                    // Build contribution data from events
+                    const contributionMap = {};
+                    events.forEach(event => {
+                        const date = event.created_at.split('T')[0];
+                        contributionMap[date] = (contributionMap[date] || 0) + 1;
+                    });
+                    
+                    setPublicContributions({
+                        events: events.length,
+                        pushEvents: eventCounts.PushEvent || 0,
+                        prEvents: eventCounts.PullRequestEvent || 0,
+                        issueEvents: eventCounts.IssuesEvent || 0,
+                        createEvents: eventCounts.CreateEvent || 0,
+                        contributionMap
+                    });
+                }
+                
+                // Fetch repos to get language data
+                const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`);
+                if (reposRes.ok) {
+                    const repos = await reposRes.json();
+                    const langCounts = {};
+                    repos.forEach(repo => {
+                        if (repo.language) {
+                            langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
+                        }
+                    });
+                    setPublicLanguages(langCounts);
+                }
+            } catch (err) {
+                console.log('Failed to fetch public GitHub data:', err);
+            }
+        };
+        
+        fetchPublicData();
+    }, [username, isGitHubFallback]);
     
     // Load cached stats on mount (offline-first)
     useEffect(() => {
@@ -276,11 +332,23 @@ const ContributionStats = ({ username, githubStats, onSaveStats }) => {
     // Generate contribution data for isometric grid
     const contributionData = (() => {
         const data = new Array(371).fill(0); // 53 weeks * 7 days
-        // Simulate contribution pattern from stats
-        if (githubStats?.totalContributions) {
+        
+        // Use real public contribution data if available
+        if (isGitHubFallback && publicContributions?.contributionMap) {
+            const today = new Date();
+            const oneYearAgo = new Date(today);
+            oneYearAgo.setFullYear(today.getFullYear() - 1);
+            
+            for (let i = 0; i < 371; i++) {
+                const date = new Date(oneYearAgo);
+                date.setDate(date.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                data[i] = publicContributions.contributionMap[dateStr] || 0;
+            }
+        } else if (githubStats?.totalContributions) {
+            // Simulate contribution pattern from stats for OpenTriage users
             const total = githubStats.totalContributions;
             for (let i = 0; i < 371; i++) {
-                // Create a realistic-looking contribution pattern
                 const weekFactor = Math.sin(i / 30) * 0.5 + 0.5;
                 const randomFactor = Math.random();
                 if (randomFactor > 0.3) {
@@ -294,7 +362,13 @@ const ContributionStats = ({ username, githubStats, onSaveStats }) => {
     const maxContribution = Math.max(...contributionData, 1);
     
     // Activity data for radar chart
-    const activityData = {
+    const activityData = isGitHubFallback && publicContributions ? {
+        commits: Math.min(100, (publicContributions.pushEvents || 0) * 2),
+        issues: Math.min(100, (publicContributions.issueEvents || 0) * 10),
+        pullRequests: Math.min(100, (publicContributions.prEvents || 0) * 5),
+        reviews: Math.min(100, 10), // Can't get from public API
+        repos: Math.min(100, (githubStats?.public_repos || 0) * 2),
+    } : {
         commits: Math.min(100, (githubStats?.commits || 0) / 10),
         issues: Math.min(100, (githubStats?.issues || 0) * 5),
         pullRequests: Math.min(100, (githubStats?.pullRequests || 0) * 3),
@@ -302,13 +376,18 @@ const ContributionStats = ({ username, githubStats, onSaveStats }) => {
         repos: Math.min(100, (githubStats?.repos || 0) * 2),
     };
     
-    // Language data
-    const languages = githubStats?.languages || {
+    // Language data - use public data if available
+    const languages = publicLanguages || githubStats?.languages || {
         TypeScript: 45,
         Python: 30,
         Rust: 15,
         Other: 10,
     };
+    
+    // Calculate total contributions for display
+    const totalContributions = isGitHubFallback && publicContributions
+        ? publicContributions.events
+        : (githubStats?.totalContributions || 0);
     
     const saveStatsImage = async () => {
         if (!statCardRef.current) return;
@@ -407,9 +486,16 @@ const ContributionStats = ({ username, githubStats, onSaveStats }) => {
                 {/* Total Contributions */}
                 <div className="mt-6 text-center">
                     <span className="text-3xl font-bold text-[hsl(142,70%,55%)]">
-                        {githubStats?.totalContributions?.toLocaleString() || '0'}
+                        {totalContributions?.toLocaleString() || '0'}
                     </span>
-                    <span className="text-[hsl(210,11%,50%)] ml-2">contributions</span>
+                    <span className="text-[hsl(210,11%,50%)] ml-2">
+                        {isGitHubFallback ? 'recent activities' : 'contributions'}
+                    </span>
+                    {isGitHubFallback && (
+                        <p className="text-xs text-[hsl(210,11%,40%)] mt-1">
+                            Based on public GitHub activity (last 100 events)
+                        </p>
+                    )}
                 </div>
             </div>
             
