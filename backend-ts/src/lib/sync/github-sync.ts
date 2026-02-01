@@ -354,9 +354,11 @@ export async function runFullSync(
     }
 
     // Sync all repos in parallel using Promise.allSettled
-    const syncPromises = userRepos.map(repo =>
-        syncRepository(octokit, repo.id, repo.owner, repo.name, options)
-    );
+    const syncPromises = userRepos.map(repo => {
+        // repo.name may contain full path like "owner/repo", extract just the repo name
+        const repoNameOnly = repo.name.includes('/') ? repo.name.split('/')[1] : repo.name;
+        return syncRepository(octokit, repo.id, repo.owner, repoNameOnly, options);
+    });
 
     const results = await Promise.allSettled(syncPromises);
 
@@ -423,7 +425,7 @@ export async function syncSingleRepository(
 }
 
 // =============================================================================
-// Contributor Sync (Only their authored PRs)
+// Contributor Sync - Fetch all issues/PRs authored by this user from GitHub
 // =============================================================================
 
 export async function runContributorSync(
@@ -431,10 +433,108 @@ export async function runContributorSync(
     username: string,
     accessToken: string
 ): Promise<SyncStats> {
-    return runFullSync(userId, accessToken, {
-        role: 'CONTRIBUTOR',
-        username,
-    });
+    const octokit = new Octokit({ auth: accessToken });
+    
+    const stats: SyncStats = {
+        reposProcessed: 0,
+        reposSkipped: 0,
+        issuesUpdated: 0,
+        issuesDeleted: 0,
+        errors: [],
+    };
+
+    try {
+        // Search for all open issues and PRs authored by this user
+        const [prsResponse, issuesResponse] = await Promise.all([
+            octokit.search.issuesAndPullRequests({
+                q: `author:${username} is:pr is:open`,
+                per_page: 100,
+                sort: "updated",
+                order: "desc",
+            }),
+            octokit.search.issuesAndPullRequests({
+                q: `author:${username} is:issue is:open`,
+                per_page: 100,
+                sort: "updated",
+                order: "desc",
+            })
+        ]);
+
+        const allGitHubItems = [...prsResponse.data.items, ...issuesResponse.data.items];
+        const githubItemIds = new Set<number>();
+
+        // Get existing issues for this contributor from DB
+        const existingIssues = await db.select()
+            .from(issues)
+            .where(eq(issues.authorName, username));
+        const existingByGithubId = new Map(existingIssues.map(i => [i.githubIssueId, i]));
+
+        // Process each GitHub item
+        for (const item of allGitHubItems) {
+            githubItemIds.add(item.id);
+            
+            const repoUrl = item.repository_url || "";
+            const repoMatch = repoUrl.match(/repos\/([^/]+)\/([^/]+)/);
+            const owner = repoMatch?.[1] || "";
+            const repo = repoMatch?.[2] || "";
+            const repoName = `${owner}/${repo}`;
+            const isPR = !!item.pull_request;
+
+            const existing = existingByGithubId.get(item.id);
+
+            if (existing) {
+                // Update if changed
+                if (existing.state !== item.state || existing.title !== item.title) {
+                    await db.update(issues)
+                        .set({
+                            state: item.state,
+                            title: item.title,
+                            body: item.body || null,
+                        })
+                        .where(eq(issues.id, existing.id));
+                    stats.issuesUpdated++;
+                }
+            } else {
+                // Create new issue - need a repoId, use a placeholder or find/create repo
+                const newId = uuidv4();
+                await db.insert(issues).values({
+                    id: newId,
+                    githubIssueId: item.id,
+                    number: item.number,
+                    title: item.title,
+                    body: item.body || null,
+                    authorName: item.user?.login || username,
+                    repoId: `contributor-${userId}`, // Placeholder repoId for contributor-synced issues
+                    repoName,
+                    owner,
+                    repo,
+                    htmlUrl: item.html_url,
+                    state: item.state || "open",
+                    isPR,
+                    authorAssociation: item.author_association,
+                    createdAt: new Date().toISOString(),
+                }).onConflictDoNothing();
+                stats.issuesUpdated++;
+            }
+        }
+
+        // Delete issues that are no longer open on GitHub
+        for (const existing of existingIssues) {
+            if (!githubItemIds.has(existing.githubIssueId)) {
+                await db.delete(issues).where(eq(issues.id, existing.id));
+                stats.issuesDeleted++;
+            }
+        }
+
+        console.log(`[ContributorSync] ${username}: ${stats.issuesUpdated} updated, ${stats.issuesDeleted} deleted`);
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[ContributorSync] Error for ${username}:`, errorMessage);
+        stats.errors.push(errorMessage);
+    }
+
+    return stats;
 }
 
 // =============================================================================
