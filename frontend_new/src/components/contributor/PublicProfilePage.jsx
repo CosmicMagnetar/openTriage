@@ -4,14 +4,17 @@ import { User, ArrowLeft, ExternalLink, Users } from 'lucide-react';
 import { profileApi, gamificationApi } from '../../services/api';
 import ContributionStats from '../profile/ContributionStats';
 import FeaturedBadges from './FeaturedBadges';
+import useAuthStore from '../../stores/authStore';
 
 const PublicProfilePage = () => {
     const { username } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuthStore();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [featuredBadges, setFeaturedBadges] = useState([]);
     const [notFound, setNotFound] = useState(false);
+    const [rateLimited, setRateLimited] = useState(false);
 
     useEffect(() => {
         if (username) {
@@ -23,6 +26,7 @@ const PublicProfilePage = () => {
         try {
             setLoading(true);
             setNotFound(false);
+            setRateLimited(false);
             
             // Try to get OpenTriage profile first
             let profileData = null;
@@ -50,23 +54,50 @@ const PublicProfilePage = () => {
             }
 
             // If no profile in database, fetch from GitHub API directly
+            // Use authenticated request if we have a token to avoid rate limits
             if (!profileData) {
                 try {
+                    const token = localStorage.getItem('token');
+                    const headers = token ? {
+                        'Authorization': `Bearer ${token}`,
+                    } : {};
+                    
+                    // First try to get the user via our backend (which has the GitHub token)
+                    try {
+                        const backendRes = await fetch(
+                            `${import.meta.env.VITE_BACKEND_URL}/api/user/github/${username}`,
+                            { headers: { 'Authorization': `Bearer ${token}` } }
+                        );
+                        if (backendRes.ok) {
+                            const githubUser = await backendRes.json();
+                            setProfile({
+                                username: githubUser.login || githubUser.username,
+                                avatar_url: githubUser.avatar_url || githubUser.avatarUrl,
+                                bio: githubUser.bio || '',
+                                name: githubUser.name,
+                                location: githubUser.location,
+                                company: githubUser.company,
+                                skills: [],
+                                isGitHubFallback: true,
+                                github_stats: {
+                                    public_repos: githubUser.public_repos || 0,
+                                    followers: githubUser.followers || 0,
+                                    following: githubUser.following || 0,
+                                    totalContributions: 0,
+                                    public_gists: githubUser.public_gists || 0,
+                                }
+                            });
+                            setLoading(false);
+                            return;
+                        }
+                    } catch (backendErr) {
+                        console.log('Backend GitHub lookup failed, trying direct API');
+                    }
+                    
+                    // Fallback: Direct GitHub API call (may be rate limited)
                     const githubRes = await fetch(`https://api.github.com/users/${username}`);
                     if (githubRes.ok) {
                         const githubUser = await githubRes.json();
-                        
-                        // Also fetch contribution data from GitHub events
-                        let recentActivity = 0;
-                        try {
-                            const eventsRes = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
-                            if (eventsRes.ok) {
-                                const events = await eventsRes.json();
-                                recentActivity = events.length;
-                            }
-                        } catch (e) {
-                            console.log('Could not fetch events:', e);
-                        }
                         
                         setProfile({
                             username: githubUser.login,
@@ -81,10 +112,20 @@ const PublicProfilePage = () => {
                                 public_repos: githubUser.public_repos || 0,
                                 followers: githubUser.followers || 0,
                                 following: githubUser.following || 0,
-                                totalContributions: recentActivity,
+                                totalContributions: 0,
                                 public_gists: githubUser.public_gists || 0,
                             }
                         });
+                        setLoading(false);
+                        return;
+                    } else if (githubRes.status === 403) {
+                        // Rate limited - show a helpful message
+                        console.log('GitHub API rate limited');
+                        setRateLimited(true);
+                        setLoading(false);
+                        return;
+                    } else if (githubRes.status === 404) {
+                        setNotFound(true);
                         setLoading(false);
                         return;
                     } else {
@@ -157,8 +198,40 @@ const PublicProfilePage = () => {
                         <User className="w-16 h-16 text-[hsl(220,13%,25%)] mx-auto mb-4" />
                         <h2 className="text-xl font-semibold text-[hsl(210,11%,90%)] mb-2">User Not Found</h2>
                         <p className="text-[hsl(210,11%,50%)]">
-                            The user "@{username}" doesn't exist or hasn't created a profile yet.
+                            The user "@{username}" doesn't exist on GitHub.
                         </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (rateLimited) {
+        return (
+            <div className="h-full overflow-y-auto p-6">
+                <div className="max-w-4xl mx-auto">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="flex items-center gap-2 text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] mb-6 transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Go Back
+                    </button>
+                    <div className="bg-[hsl(220,13%,8%)] rounded-xl p-12 border border-[hsl(220,13%,15%)] text-center">
+                        <User className="w-16 h-16 text-[hsl(220,13%,25%)] mx-auto mb-4" />
+                        <h2 className="text-xl font-semibold text-[hsl(210,11%,90%)] mb-2">@{username}</h2>
+                        <p className="text-[hsl(210,11%,50%)] mb-4">
+                            This user hasn't joined OpenTriage yet.
+                        </p>
+                        <a 
+                            href={`https://github.com/${username}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-[hsl(220,13%,15%)] text-[hsl(210,11%,75%)] rounded-lg hover:bg-[hsl(220,13%,20%)] transition-colors"
+                        >
+                            <ExternalLink className="w-4 h-4" />
+                            View on GitHub
+                        </a>
                     </div>
                 </div>
             </div>
