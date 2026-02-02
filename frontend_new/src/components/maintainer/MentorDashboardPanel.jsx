@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users, MessageSquare, Check, X, UserMinus, Send, Loader2, Sparkles, Bell, Pencil, Trash2, GraduationCap, Clock, Heart } from 'lucide-react';
+import { Users, MessageSquare, Check, X, UserMinus, Send, Loader2, Sparkles, Bell, Pencil, Trash2, GraduationCap, Clock } from 'lucide-react';
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
@@ -177,54 +177,50 @@ const MentorDashboardPanel = () => {
 
     if (loading) {
         return (
-            <div className="bg-gradient-to-br from-[hsl(220,13%,8%)] to-[hsl(220,13%,6%)] rounded-2xl border border-[hsl(220,13%,15%)] overflow-hidden">
-                <div className="p-6 border-b border-[hsl(220,13%,15%)]">
+            <div className="bg-[hsl(220,13%,9%)] rounded-xl border border-[hsl(220,13%,18%)]">
+                <div className="p-5 border-b border-[hsl(220,13%,18%)]">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl">
-                            <Heart className="w-6 h-6 text-pink-400" />
+                        <div className="p-2 bg-emerald-500/10 rounded-lg">
+                            <Users className="w-5 h-5 text-emerald-400" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-[hsl(210,11%,95%)]">Mentorship Dashboard</h2>
-                            <p className="text-sm text-[hsl(210,11%,50%)]">Guide and connect with your mentees</p>
+                            <h2 className="text-lg font-semibold text-[hsl(210,11%,93%)]">Mentorship Dashboard</h2>
+                            <p className="text-xs text-[hsl(210,11%,50%)]">Guide and connect with your mentees</p>
                         </div>
                     </div>
                 </div>
-                <div className="flex justify-center py-16">
-                    <div className="flex flex-col items-center gap-3">
-                        <Loader2 className="w-10 h-10 animate-spin text-pink-400" />
-                        <p className="text-sm text-[hsl(210,11%,50%)]">Loading dashboard...</p>
-                    </div>
+                <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="bg-gradient-to-br from-[hsl(220,13%,8%)] to-[hsl(220,13%,6%)] rounded-2xl border border-[hsl(220,13%,15%)] overflow-hidden shadow-2xl">
+        <div className="bg-[hsl(220,13%,9%)] rounded-xl border border-[hsl(220,13%,18%)] overflow-hidden">
             {/* Header */}
-            <div className="p-6 border-b border-[hsl(220,13%,15%)] bg-gradient-to-r from-pink-500/5 to-purple-500/5">
+            <div className="p-5 border-b border-[hsl(220,13%,18%)]">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl border border-pink-500/20">
-                            <Heart className="w-6 h-6 text-pink-400" />
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                            <Users className="w-5 h-5 text-emerald-400" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-[hsl(210,11%,95%)]">Mentorship Dashboard</h2>
-                            <p className="text-sm text-[hsl(210,11%,50%)]">Guide and connect with your mentees</p>
+                            <h2 className="text-lg font-semibold text-[hsl(210,11%,93%)]">Mentorship Dashboard</h2>
+                            <p className="text-xs text-[hsl(210,11%,50%)]">Guide and connect with your mentees</p>
                         </div>
                     </div>
                     
                     {/* Stats Summary */}
-                    <div className="flex items-center gap-6">
-                        <div className="text-center">
-                            <p className="text-2xl font-bold text-pink-400">{mentees.length}</p>
-                            <p className="text-xs text-[hsl(210,11%,50%)]">Active Mentees</p>
+                    <div className="flex items-center gap-4">
+                        <div className="text-center px-3">
+                            <p className="text-xl font-bold text-emerald-400">{mentees.length}</p>
+                            <p className="text-[10px] text-[hsl(210,11%,50%)] uppercase tracking-wide">Mentees</p>
                         </div>
                         {requests.length > 0 && (
-                            <div className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                                <Bell className="w-4 h-4 text-amber-400 animate-pulse" />
-                                <span className="text-amber-400 font-semibold">{requests.length}</span>
-                                <span className="text-amber-400/70 text-sm">pending</span>
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                                <Bell className="w-3.5 h-3.5 text-amber-400" />
+                                <span className="text-amber-400 font-medium text-sm">{requests.length} pending</span>
                             </div>
                         )}
                     </div>
@@ -232,21 +228,21 @@ const MentorDashboardPanel = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-[hsl(220,13%,15%)] bg-[hsl(220,13%,7%)]">
+            <div className="flex border-b border-[hsl(220,13%,18%)]">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => { setActiveTab(tab.id); setSelectedChat(null); }}
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-medium transition-all duration-200 relative ${
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-all relative ${
                             activeTab === tab.id
-                                ? 'text-pink-400 bg-pink-500/5'
-                                : 'text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,80%)] hover:bg-[hsl(220,13%,10%)]'
+                                ? 'text-emerald-400 bg-emerald-500/5'
+                                : 'text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,12%)]'
                         }`}
                     >
                         <tab.icon className="w-4 h-4" />
                         <span>{tab.label}</span>
                         {tab.count > 0 && (
-                            <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                                 tab.highlight 
                                     ? 'bg-amber-500/20 text-amber-400' 
                                     : 'bg-[hsl(220,13%,15%)] text-[hsl(210,11%,60%)]'
@@ -255,147 +251,143 @@ const MentorDashboardPanel = () => {
                             </span>
                         )}
                         {activeTab === tab.id && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-pink-500 to-purple-500" />
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />
                         )}
                     </button>
                 ))}
             </div>
 
-            <div className="flex h-[450px]">
+            <div className="flex h-[420px]">
                 {/* Left Panel - List */}
-                <div className="w-80 border-r border-[hsl(220,13%,15%)] overflow-y-auto bg-[hsl(220,13%,6%)]">
+                <div className="w-72 border-r border-[hsl(220,13%,18%)] overflow-y-auto">
                     {activeTab === 'conversations' && (
                         conversations.length > 0 ? (
-                            <div className="divide-y divide-[hsl(220,13%,12%)]">
+                            <div className="divide-y divide-[hsl(220,13%,15%)]">
                                 {conversations.map(conv => (
                                     <button
                                         key={conv.user_id}
                                         onClick={() => setSelectedChat(conv)}
-                                        className={`w-full p-4 flex items-center gap-3 transition-all duration-150 ${
+                                        className={`w-full p-3 flex items-center gap-3 transition-colors ${
                                             selectedChat?.user_id === conv.user_id 
-                                                ? 'bg-gradient-to-r from-pink-500/10 to-transparent border-l-2 border-pink-500' 
-                                                : 'hover:bg-[hsl(220,13%,10%)]'
+                                                ? 'bg-emerald-500/10 border-l-2 border-emerald-500' 
+                                                : 'hover:bg-[hsl(220,13%,12%)] border-l-2 border-transparent'
                                         }`}
                                     >
-                                        <div className="relative">
+                                        <div className="relative flex-shrink-0">
                                             <img
                                                 src={conv.avatar_url || `https://github.com/${conv.username}.png`}
                                                 alt={conv.username}
-                                                className="w-12 h-12 rounded-full ring-2 ring-[hsl(220,13%,15%)]"
+                                                className="w-10 h-10 rounded-full"
                                                 onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                                             />
                                             {conv.unread_count > 0 && (
-                                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
+                                                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                                                     {conv.unread_count}
                                                 </span>
                                             )}
                                         </div>
                                         <div className="flex-1 text-left min-w-0">
-                                            <span className="font-semibold text-[hsl(210,11%,90%)] truncate block">@{conv.username}</span>
-                                            <p className="text-xs text-[hsl(210,11%,45%)] truncate mt-0.5">{conv.last_message || 'No messages yet'}</p>
+                                            <span className="font-medium text-sm text-[hsl(210,11%,90%)] truncate block">@{conv.username}</span>
+                                            <p className="text-xs text-[hsl(210,11%,45%)] truncate">{conv.last_message || 'No messages yet'}</p>
                                         </div>
                                     </button>
                                 ))}
                             </div>
                         ) : (
-                            <div className="p-8 text-center">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(220,13%,10%)] flex items-center justify-center">
-                                    <MessageSquare className="w-8 h-8 text-[hsl(210,11%,25%)]" />
-                                </div>
-                                <p className="text-[hsl(210,11%,50%)] font-medium">No conversations yet</p>
-                                <p className="text-xs text-[hsl(210,11%,40%)] mt-1">Messages with mentees will appear here</p>
+                            <div className="p-6 text-center">
+                                <MessageSquare className="w-10 h-10 mx-auto mb-3 text-[hsl(210,11%,25%)]" />
+                                <p className="text-sm text-[hsl(210,11%,50%)]">No conversations yet</p>
+                                <p className="text-xs text-[hsl(210,11%,40%)] mt-1">Messages will appear here</p>
                             </div>
                         )
                     )}
 
                     {activeTab === 'requests' && (
                         requests.length > 0 ? (
-                            <div className="p-3 space-y-3">
+                            <div className="p-2 space-y-2">
                                 {requests.map(req => (
-                                    <div key={req.id} className="bg-[hsl(220,13%,10%)] rounded-xl p-4 border border-[hsl(220,13%,18%)] hover:border-amber-500/30 transition-colors">
-                                        <div className="flex items-center gap-3 mb-3">
+                                    <div key={req.id} className="bg-[hsl(220,13%,11%)] rounded-lg p-3 border border-[hsl(220,13%,18%)]">
+                                        <div className="flex items-center gap-2.5 mb-2">
                                             <img
                                                 src={req.mentee_avatar || `https://github.com/${req.mentee_username}.png`}
                                                 alt={req.mentee_username}
-                                                className="w-12 h-12 rounded-full ring-2 ring-amber-500/20"
+                                                className="w-9 h-9 rounded-full"
                                                 onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                                             />
                                             <div className="flex-1 min-w-0">
-                                                <span className="font-semibold text-[hsl(210,11%,90%)] block">@{req.mentee_username}</span>
-                                                <div className="flex items-center gap-1 text-xs text-[hsl(210,11%,45%)] mt-0.5">
-                                                    <Clock className="w-3 h-3" />
+                                                <span className="font-medium text-sm text-[hsl(210,11%,90%)] block truncate">@{req.mentee_username}</span>
+                                                <div className="flex items-center gap-1 text-[10px] text-[hsl(210,11%,45%)]">
+                                                    <Clock className="w-2.5 h-2.5" />
                                                     <span>{new Date(req.created_at).toLocaleDateString()}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         {req.message && (
-                                            <p className="text-sm text-[hsl(210,11%,60%)] bg-[hsl(220,13%,8%)] rounded-lg p-3 mb-3 italic">
-                                                "{req.message}"
+                                            <p className="text-xs text-[hsl(210,11%,55%)] bg-[hsl(220,13%,7%)] rounded p-2 mb-2 line-clamp-2">
+                                                {req.message}
                                             </p>
                                         )}
                                         
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-1.5">
                                             <button
                                                 onClick={() => handleAcceptRequest(req.id)}
-                                                className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-400 rounded-lg text-sm font-semibold hover:from-emerald-500/30 hover:to-emerald-600/30 flex items-center justify-center gap-2 transition-all border border-emerald-500/20"
+                                                className="flex-1 py-1.5 bg-emerald-500/15 text-emerald-400 rounded text-xs font-medium hover:bg-emerald-500/25 flex items-center justify-center gap-1 transition-colors"
                                             >
-                                                <Check className="w-4 h-4" /> Accept
+                                                <Check className="w-3 h-3" /> Accept
                                             </button>
                                             <button
                                                 onClick={() => handleDeclineRequest(req.id)}
-                                                className="flex-1 py-2.5 bg-red-500/10 text-red-400 rounded-lg text-sm font-semibold hover:bg-red-500/20 flex items-center justify-center gap-2 transition-all border border-red-500/20"
+                                                className="flex-1 py-1.5 bg-red-500/10 text-red-400 rounded text-xs font-medium hover:bg-red-500/20 flex items-center justify-center gap-1 transition-colors"
                                             >
-                                                <X className="w-4 h-4" /> Decline
+                                                <X className="w-3 h-3" /> Decline
                                             </button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="p-8 text-center">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(220,13%,10%)] flex items-center justify-center">
-                                    <Bell className="w-8 h-8 text-[hsl(210,11%,25%)]" />
-                                </div>
-                                <p className="text-[hsl(210,11%,50%)] font-medium">No pending requests</p>
-                                <p className="text-xs text-[hsl(210,11%,40%)] mt-1">New mentorship requests will appear here</p>
+                            <div className="p-6 text-center">
+                                <Bell className="w-10 h-10 mx-auto mb-3 text-[hsl(210,11%,25%)]" />
+                                <p className="text-sm text-[hsl(210,11%,50%)]">No pending requests</p>
+                                <p className="text-xs text-[hsl(210,11%,40%)] mt-1">Requests will appear here</p>
                             </div>
                         )
                     )}
 
                     {activeTab === 'mentees' && (
                         mentees.length > 0 ? (
-                            <div className="p-3 space-y-2">
+                            <div className="p-2 space-y-1.5">
                                 {mentees.map(mentee => (
-                                    <div key={mentee.user_id} className="bg-[hsl(220,13%,10%)] rounded-xl p-4 border border-[hsl(220,13%,18%)] hover:border-pink-500/30 transition-colors">
-                                        <div className="flex items-center gap-3">
+                                    <div key={mentee.user_id} className="bg-[hsl(220,13%,11%)] rounded-lg p-3 border border-[hsl(220,13%,18%)] hover:border-emerald-500/30 transition-colors">
+                                        <div className="flex items-center gap-2.5">
                                             <img
                                                 src={mentee.avatar_url || `https://github.com/${mentee.username}.png`}
                                                 alt={mentee.username}
-                                                className="w-12 h-12 rounded-full ring-2 ring-pink-500/20"
+                                                className="w-9 h-9 rounded-full"
                                                 onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                                             />
                                             <div className="flex-1 min-w-0">
-                                                <span className="font-semibold text-[hsl(210,11%,90%)] block">@{mentee.username}</span>
-                                                <div className="flex items-center gap-1 text-xs text-[hsl(210,11%,45%)] mt-0.5">
-                                                    <GraduationCap className="w-3 h-3" />
+                                                <span className="font-medium text-sm text-[hsl(210,11%,90%)] block truncate">@{mentee.username}</span>
+                                                <div className="flex items-center gap-1 text-[10px] text-[hsl(210,11%,45%)]">
+                                                    <GraduationCap className="w-2.5 h-2.5" />
                                                     <span>Since {new Date(mentee.since).toLocaleDateString()}</span>
                                                 </div>
                                             </div>
-                                            <div className="flex gap-1">
+                                            <div className="flex gap-0.5">
                                                 <button
                                                     onClick={() => setSelectedChat({ user_id: mentee.user_id, username: mentee.username, avatar_url: mentee.avatar_url })}
-                                                    className="p-2.5 text-pink-400 hover:bg-pink-500/20 rounded-lg transition-colors"
+                                                    className="p-1.5 text-emerald-400 hover:bg-emerald-500/15 rounded transition-colors"
                                                     title="Send message"
                                                 >
-                                                    <MessageSquare className="w-4 h-4" />
+                                                    <MessageSquare className="w-3.5 h-3.5" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleRemoveMentee(mentee.user_id)}
-                                                    className="p-2.5 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                                                    className="p-1.5 text-red-400 hover:bg-red-500/15 rounded transition-colors"
                                                     title="End mentorship"
                                                 >
-                                                    <UserMinus className="w-4 h-4" />
+                                                    <UserMinus className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
                                         </div>
@@ -403,42 +395,40 @@ const MentorDashboardPanel = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="p-8 text-center">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(220,13%,10%)] flex items-center justify-center">
-                                    <GraduationCap className="w-8 h-8 text-[hsl(210,11%,25%)]" />
-                                </div>
-                                <p className="text-[hsl(210,11%,50%)] font-medium">No active mentees</p>
-                                <p className="text-xs text-[hsl(210,11%,40%)] mt-1">Accept requests to start mentoring</p>
+                            <div className="p-6 text-center">
+                                <GraduationCap className="w-10 h-10 mx-auto mb-3 text-[hsl(210,11%,25%)]" />
+                                <p className="text-sm text-[hsl(210,11%,50%)]">No active mentees</p>
+                                <p className="text-xs text-[hsl(210,11%,40%)] mt-1">Accept requests to start</p>
                             </div>
                         )
                     )}
                 </div>
 
                 {/* Right Panel - Chat */}
-                <div className="flex-1 flex flex-col bg-[hsl(220,13%,5%)]">
+                <div className="flex-1 flex flex-col bg-[hsl(220,13%,6%)]">
                     {selectedChat ? (
                         <>
                             {/* Chat Header */}
-                            <div className="p-4 border-b border-[hsl(220,13%,15%)] flex items-center gap-4 bg-gradient-to-r from-[hsl(220,13%,8%)] to-transparent">
+                            <div className="p-3 border-b border-[hsl(220,13%,18%)] flex items-center gap-3 bg-[hsl(220,13%,9%)]">
                                 <img
                                     src={selectedChat.avatar_url || `https://github.com/${selectedChat.username}.png`}
                                     alt={selectedChat.username}
-                                    className="w-10 h-10 rounded-full ring-2 ring-pink-500/30"
+                                    className="w-8 h-8 rounded-full"
                                     onError={(e) => e.target.src = 'https://github.com/ghost.png'}
                                 />
                                 <div>
-                                    <span className="font-semibold text-[hsl(210,11%,90%)] block">@{selectedChat.username}</span>
-                                    <span className="text-xs text-[hsl(210,11%,45%)]">Mentee</span>
+                                    <span className="font-medium text-sm text-[hsl(210,11%,90%)]">@{selectedChat.username}</span>
+                                    <span className="text-[10px] text-[hsl(210,11%,45%)] ml-2">Mentee</span>
                                 </div>
                             </div>
 
                             {/* Messages */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
                                 {chatLoading ? (
                                     <div className="flex justify-center items-center h-full">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <Loader2 className="w-8 h-8 animate-spin text-pink-400" />
-                                            <p className="text-sm text-[hsl(210,11%,45%)]">Loading messages...</p>
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+                                            <p className="text-xs text-[hsl(210,11%,45%)]">Loading messages...</p>
                                         </div>
                                     </div>
                                 ) : chatMessages.length > 0 ? (
@@ -447,16 +437,16 @@ const MentorDashboardPanel = () => {
                                         const isEditing = editingMessageId === msg.id;
                                         return (
                                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
-                                                <div className={`relative flex items-end gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                                <div className={`relative flex items-end gap-1.5 ${isMe ? 'flex-row-reverse' : ''}`}>
                                                     {/* Edit/Delete buttons for own messages */}
                                                     {isMe && !isEditing && (
-                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mb-1">
+                                                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity mb-1">
                                                             <button
                                                                 onClick={() => startEditing(msg)}
-                                                                className="p-1.5 bg-[hsl(220,13%,15%)] hover:bg-pink-500/20 text-[hsl(210,11%,50%)] hover:text-pink-400 rounded-lg transition-colors"
+                                                                className="p-1 bg-[hsl(220,13%,15%)] hover:bg-emerald-500/20 text-[hsl(210,11%,50%)] hover:text-emerald-400 rounded transition-colors"
                                                                 title="Edit message"
                                                             >
-                                                                <Pencil className="w-3 h-3" />
+                                                                <Pencil className="w-2.5 h-2.5" />
                                                             </button>
                                                             <button
                                                                 onClick={() => {
@@ -464,49 +454,52 @@ const MentorDashboardPanel = () => {
                                                                         handleDeleteMessage(msg.id);
                                                                     }
                                                                 }}
-                                                                className="p-1.5 bg-[hsl(220,13%,15%)] hover:bg-red-500/20 text-[hsl(210,11%,50%)] hover:text-red-400 rounded-lg transition-colors"
+                                                                className="p-1 bg-[hsl(220,13%,15%)] hover:bg-red-500/20 text-[hsl(210,11%,50%)] hover:text-red-400 rounded transition-colors"
                                                                 title="Delete message"
                                                             >
-                                                                <Trash2 className="w-3 h-3" />
+                                                                <Trash2 className="w-2.5 h-2.5" />
                                                             </button>
                                                         </div>
                                                     )}
-                                                    <div className={`max-w-[65%] rounded-2xl px-4 py-2.5 text-sm shadow-lg ${isMe
-                                                        ? 'bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-br-md'
-                                                        : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,90%)] rounded-bl-md border border-[hsl(220,13%,18%)]'
+                                                    <div className={`max-w-[70%] rounded-xl px-3 py-2 text-sm ${isMe
+                                                        ? 'bg-emerald-600 text-white rounded-br-sm'
+                                                        : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,90%)] rounded-bl-sm border border-[hsl(220,13%,18%)]'
                                                         }`}>
                                                         {isEditing ? (
-                                                            <div className="space-y-2">
-                                                                <input
-                                                                    type="text"
+                                                            <div className="space-y-1.5">
+                                                                <textarea
                                                                     value={editContent}
                                                                     onChange={(e) => setEditContent(e.target.value)}
-                                                                    className="w-full bg-white/10 text-white px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                                                                    className="w-full bg-white/15 text-white px-2 py-1.5 rounded text-sm focus:outline-none focus:ring-1 focus:ring-white/30 resize-none min-w-[180px]"
+                                                                    rows={2}
                                                                     autoFocus
                                                                     onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') handleEditMessage(msg.id);
+                                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                                            e.preventDefault();
+                                                                            handleEditMessage(msg.id);
+                                                                        }
                                                                         if (e.key === 'Escape') cancelEditing();
                                                                     }}
                                                                 />
                                                                 <div className="flex gap-1 justify-end">
                                                                     <button
                                                                         onClick={cancelEditing}
-                                                                        className="p-1 hover:bg-white/20 rounded"
+                                                                        className="px-2 py-0.5 text-xs bg-white/10 hover:bg-white/20 rounded flex items-center gap-1"
                                                                     >
-                                                                        <X className="w-4 h-4" />
+                                                                        <X className="w-3 h-3" /> Cancel
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleEditMessage(msg.id)}
-                                                                        className="p-1 hover:bg-white/20 rounded"
+                                                                        className="px-2 py-0.5 text-xs bg-white/20 hover:bg-white/30 rounded flex items-center gap-1"
                                                                     >
-                                                                        <Check className="w-4 h-4" />
+                                                                        <Check className="w-3 h-3" /> Save
                                                                     </button>
                                                                 </div>
                                                             </div>
                                                         ) : (
                                                             <>
                                                                 <p>{msg.content}</p>
-                                                                <p className={`text-[10px] mt-1.5 text-right ${isMe ? 'text-pink-200' : 'text-[hsl(210,11%,40%)]'}`}>
+                                                                <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-emerald-200' : 'text-[hsl(210,11%,40%)]'}`}>
                                                                     {msg.edited_at && <span className="mr-1">(edited)</span>}
                                                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                                 </p>
@@ -519,32 +512,32 @@ const MentorDashboardPanel = () => {
                                     })
                                 ) : (
                                     <div className="flex flex-col items-center justify-center h-full text-center">
-                                        <div className="w-16 h-16 mb-4 rounded-full bg-pink-500/10 flex items-center justify-center">
-                                            <Sparkles className="w-8 h-8 text-pink-400" />
+                                        <div className="w-12 h-12 mb-3 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                            <Sparkles className="w-6 h-6 text-emerald-400" />
                                         </div>
-                                        <p className="text-[hsl(210,11%,60%)] font-medium">Start the conversation!</p>
-                                        <p className="text-xs text-[hsl(210,11%,45%)] mt-1">Send a message to begin mentoring</p>
+                                        <p className="text-sm text-[hsl(210,11%,60%)]">Start the conversation!</p>
+                                        <p className="text-xs text-[hsl(210,11%,45%)] mt-1">Send a message to begin</p>
                                     </div>
                                 )}
                                 <div ref={messagesEndRef} />
                             </div>
 
                             {/* Input */}
-                            <form onSubmit={handleSendMessage} className="p-4 border-t border-[hsl(220,13%,15%)] bg-[hsl(220,13%,7%)]">
-                                <div className="flex gap-3">
+                            <form onSubmit={handleSendMessage} className="p-3 border-t border-[hsl(220,13%,18%)] bg-[hsl(220,13%,8%)]">
+                                <div className="flex gap-2">
                                     <input
                                         type="text"
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
                                         placeholder="Type a message..."
-                                        className="flex-1 bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-xl px-4 py-3 text-sm text-[hsl(210,11%,90%)] placeholder-[hsl(210,11%,40%)] focus:outline-none focus:border-pink-500/50 focus:ring-2 focus:ring-pink-500/20 transition-all"
+                                        className="flex-1 bg-[hsl(220,13%,11%)] border border-[hsl(220,13%,18%)] rounded-lg px-3 py-2 text-sm text-[hsl(210,11%,90%)] placeholder-[hsl(210,11%,40%)] focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all"
                                     />
                                     <button
                                         type="submit"
                                         disabled={!newMessage.trim() || sending}
-                                        className="flex-shrink-0 px-5 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-xl hover:from-pink-600 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-pink-500/20 disabled:shadow-none"
+                                        className="flex-shrink-0 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                     >
-                                        {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                                        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                     </button>
                                 </div>
                             </form>
@@ -552,11 +545,11 @@ const MentorDashboardPanel = () => {
                     ) : (
                         <div className="flex-1 flex items-center justify-center">
                             <div className="text-center">
-                                <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-purple-500/10 flex items-center justify-center">
-                                    <MessageSquare className="w-10 h-10 text-pink-400/50" />
+                                <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                    <MessageSquare className="w-7 h-7 text-emerald-400/50" />
                                 </div>
-                                <p className="text-[hsl(210,11%,60%)] font-medium">Select a conversation</p>
-                                <p className="text-sm text-[hsl(210,11%,45%)] mt-1">Choose someone from the list to chat</p>
+                                <p className="text-sm text-[hsl(210,11%,60%)]">Select a conversation</p>
+                                <p className="text-xs text-[hsl(210,11%,45%)] mt-1">Choose someone to chat</p>
                             </div>
                         </div>
                     )}
