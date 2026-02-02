@@ -2,55 +2,23 @@ import { useMemo } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 /**
- * GitHubHeatmap - A 2D SVG-based contribution heatmap similar to GitHub's
- * Enhanced with better colors and visual effects
+ * GitHubHeatmap - Clean GitHub-style contribution graph
  */
 const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
-    const CELL_SIZE = 12;
+    const CELL_SIZE = 10;
     const CELL_GAP = 3;
     const WEEKS = 53;
     const DAYS = 7;
-    const MONTH_LABELS_HEIGHT = 22;
-    const DAY_LABELS_WIDTH = 32;
+    const MONTH_LABELS_HEIGHT = 18;
+    const DAY_LABELS_WIDTH = 28;
 
-    // Generate dates for the past year
-    const dateMap = useMemo(() => {
-        const map = new Map();
-        const today = new Date();
-        const oneYearAgo = new Date(today);
-        oneYearAgo.setFullYear(today.getFullYear() - 1);
-        oneYearAgo.setDate(oneYearAgo.getDate() - oneYearAgo.getDay()); // Start from Sunday
-
-        // Map data array to dates
-        for (let i = 0; i < WEEKS * DAYS; i++) {
-            const date = new Date(oneYearAgo);
-            date.setDate(date.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0];
-            map.set(dateStr, {
-                date,
-                value: data[i] || 0,
-                dateStr
-            });
-        }
-        return map;
-    }, [data]);
-
-    // Get color based on contribution level - Enhanced gradient
+    // GitHub's actual contribution colors
     const getColor = (value) => {
-        if (value === 0) return 'hsl(220, 13%, 14%)';
-        if (value <= 2) return 'hsl(142, 55%, 25%)';
-        if (value <= 5) return 'hsl(142, 60%, 35%)';
-        if (value <= 10) return 'hsl(142, 65%, 45%)';
-        return 'hsl(142, 70%, 55%)'; // Bright green for high activity
-    };
-    
-    // Get glow effect intensity based on value
-    const getGlowOpacity = (value) => {
-        if (value === 0) return 0;
-        if (value <= 2) return 0.1;
-        if (value <= 5) return 0.2;
-        if (value <= 10) return 0.3;
-        return 0.4;
+        if (value === 0) return '#161b22';
+        if (value <= 3) return '#0e4429';
+        if (value <= 6) return '#006d32';
+        if (value <= 9) return '#26a641';
+        return '#39d353';
     };
 
     // Generate month labels
@@ -95,14 +63,12 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                 const date = new Date(oneYearAgo);
                 date.setDate(date.getDate() + idx);
 
-                // Skip future dates
                 if (date > today) continue;
 
                 const value = data[idx] || 0;
-                const dateStr = date.toISOString().split('T')[0];
 
                 result.push({
-                    key: dateStr,
+                    key: `${week}-${day}`,
                     x: DAY_LABELS_WIDTH + week * (CELL_SIZE + CELL_GAP),
                     y: MONTH_LABELS_HEIGHT + day * (CELL_SIZE + CELL_GAP),
                     value,
@@ -119,7 +85,7 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
     }, [data]);
 
     const svgWidth = DAY_LABELS_WIDTH + WEEKS * (CELL_SIZE + CELL_GAP);
-    const svgHeight = MONTH_LABELS_HEIGHT + DAYS * (CELL_SIZE + CELL_GAP) + 10;
+    const svgHeight = MONTH_LABELS_HEIGHT + DAYS * (CELL_SIZE + CELL_GAP) + 5;
 
     return (
         <div className="w-full">
@@ -129,25 +95,14 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                     viewBox={`0 0 ${svgWidth} ${svgHeight}`}
                     className="overflow-visible"
                 >
-                    {/* Subtle glow filter for high activity cells */}
-                    <defs>
-                        <filter id="cellGlow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
-                    
                     {/* Month Labels */}
                     {monthLabels.map((label, i) => (
                         <text
                             key={i}
                             x={label.x}
-                            y={14}
-                            className="fill-[hsl(210,11%,55%)] font-medium"
-                            style={{ fontSize: '10px' }}
+                            y={12}
+                            fill="#7d8590"
+                            fontSize="10"
                         >
                             {label.month}
                         </text>
@@ -159,8 +114,8 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                             key={i}
                             x={0}
                             y={MONTH_LABELS_HEIGHT + i * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 2}
-                            className="fill-[hsl(210,11%,55%)] font-medium"
-                            style={{ fontSize: '10px' }}
+                            fill="#7d8590"
+                            fontSize="9"
                         >
                             {label}
                         </text>
@@ -175,50 +130,44 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                                     y={cell.y}
                                     width={CELL_SIZE}
                                     height={CELL_SIZE}
-                                    rx={3}
+                                    rx={2}
                                     fill={getColor(cell.value)}
-                                    className="cursor-pointer transition-all duration-200 hover:brightness-125"
+                                    className="cursor-pointer outline-none"
                                     style={{
-                                        filter: cell.value > 5 ? 'url(#cellGlow)' : 'none',
+                                        outline: '1px solid rgba(27, 31, 35, 0.06)'
                                     }}
                                 />
                             </TooltipTrigger>
                             <TooltipContent
                                 side="top"
-                                className="bg-[hsl(220,13%,8%)] border-[hsl(220,13%,20%)] text-[hsl(210,11%,95%)] shadow-xl"
+                                className="bg-[#1f2937] border-[#30363d] text-[#e6edf3]"
                             >
-                                <p className="text-sm font-semibold">
-                                    {cell.value === 0 ? 'No' : cell.value} contribution{cell.value !== 1 ? 's' : ''}
+                                <p className="text-xs font-medium">
+                                    {cell.value === 0 ? 'No' : cell.value} contribution{cell.value !== 1 ? 's' : ''} on {cell.date}
                                 </p>
-                                <p className="text-xs text-[hsl(210,11%,50%)]">{cell.date}</p>
                             </TooltipContent>
                         </Tooltip>
                     ))}
                 </svg>
             </TooltipProvider>
 
-            {/* Legend - Enhanced */}
-            <div className="flex items-center justify-between mt-4 px-1">
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-emerald-400">
-                        🔥 {totalContributions.toLocaleString()}
-                    </span>
-                    <span className="text-xs text-[hsl(210,11%,50%)]">
-                        contributions this year
-                    </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-[hsl(210,11%,50%)]">
-                    <span className="font-medium">Less</span>
-                    <div className="flex gap-1">
-                        {[0, 2, 5, 10, 15].map((level) => (
+            {/* Legend */}
+            <div className="flex items-center justify-between mt-2">
+                <span className="text-xs text-[#7d8590]">
+                    {totalContributions.toLocaleString()} contributions in the last year
+                </span>
+                <div className="flex items-center gap-1 text-xs text-[#7d8590]">
+                    <span>Less</span>
+                    <div className="flex gap-[2px]">
+                        {[0, 3, 6, 9, 12].map((level) => (
                             <div
                                 key={level}
-                                className="w-[11px] h-[11px] rounded-sm transition-transform hover:scale-110"
+                                className="w-[10px] h-[10px] rounded-sm"
                                 style={{ backgroundColor: getColor(level) }}
                             />
                         ))}
                     </div>
-                    <span className="font-medium">More</span>
+                    <span>More</span>
                 </div>
             </div>
         </div>
