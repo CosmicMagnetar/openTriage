@@ -745,3 +745,155 @@ export async function reconcileSingleIssue(
 export async function reconcileOpenTriageIssue1(accessToken: string): Promise<IssueReconcileResult> {
     return reconcileSingleIssue(accessToken, 'cosmicMagnetar', 'openTriage', 1);
 }
+
+/**
+ * Fetch user's PRs directly from repos they've contributed to using the Pulls API.
+ * This bypasses the GitHub Search API indexing delay.
+ * 
+ * We check repos where the user already has PRs tracked, plus repos from recent activity.
+ */
+export async function syncContributorPRsDirect(
+    userId: string,
+    username: string,
+    accessToken: string
+): Promise<{ added: number; updated: number; repos: string[] }> {
+    const octokit = new Octokit({ auth: accessToken });
+    const result = { added: 0, updated: 0, repos: [] as string[] };
+    
+    try {
+        // Get unique repos where this user already has tracked issues
+        const existingIssues = await db.select({
+            owner: issues.owner,
+            repo: issues.repo,
+            repoId: issues.repoId,
+        })
+            .from(issues)
+            .where(eq(issues.authorName, username));
+
+        const uniqueRepos = new Map<string, { owner: string; repo: string; repoId: string | null }>();
+        for (const issue of existingIssues) {
+            const key = `${issue.owner}/${issue.repo}`;
+            if (!uniqueRepos.has(key) && issue.owner && issue.repo) {
+                uniqueRepos.set(key, {
+                    owner: issue.owner,
+                    repo: issue.repo,
+                    repoId: issue.repoId,
+                });
+            }
+        }
+
+        // Also fetch recent activity to find new repos where user has PRs
+        try {
+            const events = await octokit.activity.listPublicEventsForUser({
+                username,
+                per_page: 50,
+            });
+            
+            for (const event of events.data) {
+                if (event.type === 'PullRequestEvent' && event.repo?.name) {
+                    const [owner, repo] = event.repo.name.split('/');
+                    const key = event.repo.name;
+                    if (!uniqueRepos.has(key) && owner && repo) {
+                        uniqueRepos.set(key, { owner, repo, repoId: null });
+                    }
+                }
+            }
+        } catch (eventError) {
+            // Ignore event fetch errors - just use existing repos
+            console.log(`[DirectSync] Could not fetch events for ${username}`);
+        }
+
+        // Helper to get or create repo
+        const getOrCreateRepo = async (owner: string, repo: string, repoName: string): Promise<string> => {
+            const existingRepo = await db.select({ id: repositories.id })
+                .from(repositories)
+                .where(eq(repositories.name, repoName))
+                .limit(1);
+
+            if (existingRepo[0]) {
+                return existingRepo[0].id;
+            }
+
+            const newRepoId = uuidv4();
+            await db.insert(repositories).values({
+                id: newRepoId,
+                githubRepoId: 0,
+                name: repoName,
+                owner: owner,
+                userId: userId,
+                createdAt: new Date().toISOString(),
+            }).onConflictDoNothing();
+            return newRepoId;
+        };
+
+        // For each repo, fetch open PRs by this author directly from Pulls API
+        for (const [repoName, repoInfo] of uniqueRepos) {
+            try {
+                const prs = await octokit.pulls.list({
+                    owner: repoInfo.owner,
+                    repo: repoInfo.repo,
+                    state: 'open',
+                    per_page: 30,
+                });
+
+                // Filter to only this user's PRs
+                const userPRs = prs.data.filter(pr => pr.user?.login === username);
+                
+                for (const pr of userPRs) {
+                    // Check if PR already exists in DB
+                    const existing = await db.select({ id: issues.id, state: issues.state })
+                        .from(issues)
+                        .where(eq(issues.githubIssueId, pr.id))
+                        .limit(1);
+
+                    if (existing[0]) {
+                        // Update state if needed
+                        if (existing[0].state !== pr.state) {
+                            await db.update(issues)
+                                .set({ state: pr.state, title: pr.title, body: pr.body || null })
+                                .where(eq(issues.id, existing[0].id));
+                            result.updated++;
+                        }
+                    } else {
+                        // Get or create the repository entry
+                        const repoId = repoInfo.repoId || await getOrCreateRepo(repoInfo.owner, repoInfo.repo, repoName);
+                        
+                        // Create new PR entry
+                        const newId = uuidv4();
+                        await db.insert(issues).values({
+                            id: newId,
+                            githubIssueId: pr.id,
+                            number: pr.number,
+                            title: pr.title,
+                            body: pr.body || null,
+                            authorName: username,
+                            repoId: repoId,
+                            repoName,
+                            owner: repoInfo.owner,
+                            repo: repoInfo.repo,
+                            htmlUrl: pr.html_url,
+                            state: pr.state || 'open',
+                            isPR: true,
+                            authorAssociation: pr.author_association as AuthorAssociation,
+                            createdAt: new Date().toISOString(),
+                        }).onConflictDoNothing();
+                        result.added++;
+                    }
+                }
+
+                if (userPRs.length > 0) {
+                    result.repos.push(repoName);
+                }
+            } catch (repoError) {
+                // Skip repos we can't access (private, deleted, etc.)
+                console.log(`[DirectSync] Skipping ${repoName}: ${repoError instanceof Error ? repoError.message : String(repoError)}`);
+            }
+        }
+
+        console.log(`[DirectSync] ${username}: ${result.added} added, ${result.updated} updated from ${result.repos.length} repos`);
+    } catch (error) {
+        console.error(`[DirectSync] Error for ${username}:`, error);
+    }
+
+    return result;
+}
