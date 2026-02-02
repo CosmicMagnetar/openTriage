@@ -276,3 +276,138 @@ export async function closeIssueOrPR(
     throw new Error(`Failed to close: ${error.message}`);
   }
 }
+
+/**
+ * Fetch the raw diff for a pull request
+ * @param {string} githubAccessToken - GitHub OAuth token
+ * @param {string} owner - Repository owner
+ * @param {string} repo - Repository name
+ * @param {number} prNumber - Pull request number
+ * @returns {Promise<string>} Raw diff content
+ */
+export async function fetchPullRequestDiff(
+  githubAccessToken,
+  owner,
+  repo,
+  prNumber,
+) {
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}`,
+      {
+        headers: {
+          Authorization: `Bearer ${githubAccessToken}`,
+          Accept: "application/vnd.github.v3.diff",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch diff: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.text();
+  } catch (error) {
+    console.error(
+      `Failed to fetch diff for PR #${prNumber} in ${owner}/${repo}:`,
+      error,
+    );
+    throw new Error(`Failed to fetch diff: ${error.message}`);
+  }
+}
+
+/**
+ * Fetch changed files for a pull request
+ * @param {string} githubAccessToken - GitHub OAuth token
+ * @param {string} owner - Repository owner
+ * @param {string} repo - Repository name
+ * @param {number} prNumber - Pull request number
+ * @returns {Promise<Array>} List of changed files with patches
+ */
+export async function fetchPullRequestFiles(
+  githubAccessToken,
+  owner,
+  repo,
+  prNumber,
+) {
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/files`,
+      {
+        headers: {
+          Authorization: `Bearer ${githubAccessToken}`,
+          Accept: "application/vnd.github+json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch files: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(
+      `Failed to fetch files for PR #${prNumber} in ${owner}/${repo}:`,
+      error,
+    );
+    throw new Error(`Failed to fetch files: ${error.message}`);
+  }
+}
+
+/**
+ * Submit a review on a pull request
+ * @param {string} githubAccessToken - GitHub OAuth token
+ * @param {string} owner - Repository owner
+ * @param {string} repo - Repository name
+ * @param {number} prNumber - Pull request number
+ * @param {string} event - Review event: 'APPROVE', 'REQUEST_CHANGES', or 'COMMENT'
+ * @param {string} body - Review comment body
+ * @returns {Promise<Object>} GitHub API response
+ */
+export async function submitPullRequestReview(
+  githubAccessToken,
+  owner,
+  repo,
+  prNumber,
+  event,
+  body = "",
+) {
+  try {
+    const response = await fetch(
+      `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${githubAccessToken}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          body,
+          event, // APPROVE, REQUEST_CHANGES, or COMMENT
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.message ||
+          `Failed to submit review: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(
+      `Failed to submit review for PR #${prNumber} in ${owner}/${repo}:`,
+      error,
+    );
+    throw new Error(`Failed to submit review: ${error.message}`);
+  }
+}

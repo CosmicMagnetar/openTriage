@@ -588,3 +588,160 @@ export async function runMaintainerSync(
         role: 'MAINTAINER',
     });
 }
+
+// =============================================================================
+// Reconcile Single Issue - Check specific issue state on GitHub
+// =============================================================================
+
+interface IssueReconcileResult {
+    success: boolean;
+    owner: string;
+    repo: string;
+    issueNumber: number;
+    githubState: 'open' | 'closed' | 'not_found';
+    dbState: 'open' | 'closed' | 'not_found';
+    action: 'none' | 'deleted' | 'updated' | 'created';
+    message: string;
+}
+
+/**
+ * Reconcile a specific issue by checking its state on GitHub
+ * and updating the database accordingly.
+ * 
+ * This is useful for immediately syncing a specific issue
+ * (e.g., cosmicMagnetar/openTriage#1) without waiting for full sync.
+ */
+export async function reconcileSingleIssue(
+    accessToken: string,
+    owner: string,
+    repo: string,
+    issueNumber: number
+): Promise<IssueReconcileResult> {
+    const octokit = new Octokit({ auth: accessToken });
+    const repoName = `${owner}/${repo}`;
+    
+    try {
+        // 1. Check issue state on GitHub
+        let githubIssue: GitHubIssue | null = null;
+        let githubState: 'open' | 'closed' | 'not_found' = 'not_found';
+        
+        try {
+            const response = await octokit.issues.get({
+                owner,
+                repo,
+                issue_number: issueNumber,
+            });
+            githubIssue = response.data as GitHubIssue;
+            githubState = githubIssue.state as 'open' | 'closed';
+        } catch (error: any) {
+            if (error.status === 404) {
+                githubState = 'not_found';
+            } else {
+                throw error;
+            }
+        }
+
+        // 2. Check current state in database
+        const dbIssue = await db.select()
+            .from(issues)
+            .where(
+                and(
+                    eq(issues.owner, owner),
+                    eq(issues.repo, repo),
+                    eq(issues.number, issueNumber)
+                )
+            )
+            .limit(1);
+
+        const existingIssue = dbIssue[0];
+        const dbState: 'open' | 'closed' | 'not_found' = existingIssue 
+            ? (existingIssue.state as 'open' | 'closed') 
+            : 'not_found';
+
+        // 3. Reconcile based on states
+        let action: 'none' | 'deleted' | 'updated' | 'created' = 'none';
+        let message = '';
+
+        if (githubState === 'closed' || githubState === 'not_found') {
+            // Issue is closed or doesn't exist on GitHub - delete from DB
+            if (existingIssue) {
+                await db.delete(issues).where(eq(issues.id, existingIssue.id));
+                action = 'deleted';
+                message = `Issue #${issueNumber} is ${githubState} on GitHub - removed from database`;
+                
+                // Publish deletion event
+                if (isAblyConfigured()) {
+                    await publishIssueDeleted({
+                        id: existingIssue.id,
+                        githubIssueId: existingIssue.githubIssueId,
+                        number: issueNumber,
+                        title: existingIssue.title,
+                        repoName,
+                        owner,
+                        repo,
+                        isPR: existingIssue.isPR,
+                        state: 'closed',
+                    });
+                }
+                
+                console.log(`[Reconcile] ${repoName}#${issueNumber}: Deleted (${githubState} on GitHub)`);
+            } else {
+                message = `Issue #${issueNumber} is ${githubState} on GitHub and not in database - no action needed`;
+            }
+        } else if (githubState === 'open' && githubIssue) {
+            // Issue is open on GitHub
+            if (existingIssue) {
+                // Update existing issue
+                if (existingIssue.state !== 'open' || existingIssue.title !== githubIssue.title) {
+                    await db.update(issues)
+                        .set({
+                            state: 'open',
+                            title: githubIssue.title,
+                            body: githubIssue.body || null,
+                        })
+                        .where(eq(issues.id, existingIssue.id));
+                    action = 'updated';
+                    message = `Issue #${issueNumber} updated to match GitHub state`;
+                } else {
+                    message = `Issue #${issueNumber} is already in sync`;
+                }
+            } else {
+                // Issue is open on GitHub but not in DB - would need repo context to create
+                message = `Issue #${issueNumber} is open on GitHub but not tracked. Run full sync to add it.`;
+            }
+        }
+
+        return {
+            success: true,
+            owner,
+            repo,
+            issueNumber,
+            githubState,
+            dbState,
+            action,
+            message,
+        };
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[Reconcile] Error for ${repoName}#${issueNumber}:`, errorMessage);
+        return {
+            success: false,
+            owner,
+            repo,
+            issueNumber,
+            githubState: 'not_found',
+            dbState: 'not_found',
+            action: 'none',
+            message: `Error reconciling issue: ${errorMessage}`,
+        };
+    }
+}
+
+/**
+ * Reconcile the critical tracked issue: cosmicMagnetar/openTriage#1
+ * This ensures the issue state is immediately synced from GitHub.
+ */
+export async function reconcileOpenTriageIssue1(accessToken: string): Promise<IssueReconcileResult> {
+    return reconcileSingleIssue(accessToken, 'cosmicMagnetar', 'openTriage', 1);
+}

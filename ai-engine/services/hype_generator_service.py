@@ -357,6 +357,105 @@ Grateful for this amazing community! 🌟"""
         
         return svg.encode('utf-8')
 
+    async def generate_impact_summary(
+        self, 
+        pr_title: str, 
+        pr_body: str,
+        repo_name: str,
+        files_changed: int = 0,
+        additions: int = 0,
+        deletions: int = 0
+    ) -> str:
+        """
+        Generate a short, motivating impact summary for a merged PR.
+        
+        Args:
+            pr_title: Title of the merged PR
+            pr_body: Description/body of the PR
+            repo_name: Repository name (owner/repo)
+            files_changed: Number of files changed
+            additions: Lines added
+            deletions: Lines deleted
+            
+        Returns:
+            A short, motivating impact summary string
+        """
+        try:
+            from openai import OpenAI
+            
+            client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=settings.OPENROUTER_API_KEY
+            )
+            
+            prompt = f"""Generate a SHORT, punchy impact summary for a merged pull request. 
+This will be shown in a celebration popup. Make it feel impactful and motivating!
+
+PR Title: {pr_title}
+PR Description: {pr_body[:500] if pr_body else 'No description'}
+Repository: {repo_name}
+Stats: {files_changed} files changed, +{additions} additions, -{deletions} deletions
+
+Guidelines:
+- Keep it to ONE sentence, max 100 characters
+- Start with an emoji
+- Use specific, quantifiable impact when possible
+- Be creative with metaphors (e.g., "saved 5 hours of manual work", "improved speed by 2x")
+- Make the contributor feel like a hero
+- If unclear what the PR does, estimate impact based on scope
+
+Examples:
+"🚀 You just made the app 30% faster for 10,000 users!"
+"💡 Your fix will save developers 5 hours of debugging!"
+"🔒 You patched a security gap protecting 50k users!"
+"✨ Your feature unlocks new possibilities for creators!"
+
+Generate ONE impact summary:"""
+
+            response = client.chat.completions.create(
+                model="google/gemini-2.0-flash-001",
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=60,
+                temperature=0.9
+            )
+            
+            summary = response.choices[0].message.content.strip()
+            
+            # Clean up any quotes
+            summary = summary.strip('"\'')
+            
+            # Ensure reasonable length
+            if len(summary) > 150:
+                summary = summary[:147] + "..."
+            
+            return summary
+            
+        except Exception as e:
+            logger.error(f"AI impact summary generation failed: {e}")
+            return self._get_fallback_impact_summary(files_changed, additions, deletions)
+    
+    def _get_fallback_impact_summary(
+        self,
+        files_changed: int = 0,
+        additions: int = 0,
+        deletions: int = 0
+    ) -> str:
+        """Fallback impact summary when AI fails."""
+        total_changes = additions + deletions
+        
+        if total_changes > 500:
+            return "🚀 You just shipped a massive improvement to the codebase!"
+        elif total_changes > 100:
+            return "💪 Your contribution makes a real difference!"
+        elif deletions > additions:
+            return "🧹 You cleaned up the codebase - less is more!"
+        elif files_changed > 5:
+            return "🌟 Your changes touch multiple parts of the project!"
+        else:
+            return "✨ Every contribution counts - you're making an impact!"
+
 
 # Singleton instance
 hype_generator_service = HypeGeneratorService()

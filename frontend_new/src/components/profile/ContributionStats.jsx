@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { Download, RefreshCw, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import GitHubHeatmap from './GitHubHeatmap';
 
 // IndexedDB helper for offline-first caching
 const DB_NAME = 'OpenTriageStats';
@@ -41,103 +42,6 @@ const loadFromIndexedDB = async (username) => {
         request.onerror = () => reject(request.error);
         request.onsuccess = () => resolve(request.result);
     });
-};
-
-// 3D Isometric Grid Component
-const IsometricGrid = ({ data, maxValue }) => {
-    const canvasRef = useRef(null);
-    
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas || !data) return;
-        
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, width, height);
-        
-        // Isometric projection settings
-        const cellWidth = 12;
-        const cellHeight = 6;
-        const maxHeight = 40;
-        const cols = 53; // weeks in a year
-        const rows = 7; // days in a week
-        
-        const offsetX = width / 2 - (cols * cellWidth) / 2;
-        const offsetY = 60;
-        
-        // Draw isometric grid
-        for (let week = 0; week < cols; week++) {
-            for (let day = 0; day < rows; day++) {
-                const idx = week * 7 + day;
-                const value = data[idx] || 0;
-                const heightFactor = maxValue > 0 ? value / maxValue : 0;
-                const cellHeight3D = heightFactor * maxHeight;
-                
-                // Calculate isometric position
-                const isoX = offsetX + (week - day) * cellWidth * 0.866;
-                const isoY = offsetY + (week + day) * cellHeight * 0.5;
-                
-                // Color based on contribution level
-                let color;
-                if (value === 0) {
-                    color = 'hsl(220, 13%, 15%)';
-                } else if (value <= 2) {
-                    color = 'hsl(142, 70%, 25%)';
-                } else if (value <= 5) {
-                    color = 'hsl(142, 70%, 35%)';
-                } else if (value <= 10) {
-                    color = 'hsl(142, 70%, 45%)';
-                } else {
-                    color = 'hsl(142, 70%, 55%)';
-                }
-                
-                // Draw 3D cell (top face)
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.moveTo(isoX, isoY - cellHeight3D);
-                ctx.lineTo(isoX + cellWidth * 0.866, isoY - cellHeight * 0.5 - cellHeight3D);
-                ctx.lineTo(isoX, isoY - cellHeight - cellHeight3D);
-                ctx.lineTo(isoX - cellWidth * 0.866, isoY - cellHeight * 0.5 - cellHeight3D);
-                ctx.closePath();
-                ctx.fill();
-                
-                // Draw right face (darker)
-                if (cellHeight3D > 0) {
-                    ctx.fillStyle = color.replace(')', ', 0.7)').replace('hsl', 'hsla');
-                    ctx.beginPath();
-                    ctx.moveTo(isoX, isoY - cellHeight3D);
-                    ctx.lineTo(isoX + cellWidth * 0.866, isoY - cellHeight * 0.5 - cellHeight3D);
-                    ctx.lineTo(isoX + cellWidth * 0.866, isoY - cellHeight * 0.5);
-                    ctx.lineTo(isoX, isoY);
-                    ctx.closePath();
-                    ctx.fill();
-                    
-                    // Draw left face (even darker)
-                    ctx.fillStyle = color.replace(')', ', 0.5)').replace('hsl', 'hsla');
-                    ctx.beginPath();
-                    ctx.moveTo(isoX, isoY - cellHeight3D);
-                    ctx.lineTo(isoX - cellWidth * 0.866, isoY - cellHeight * 0.5 - cellHeight3D);
-                    ctx.lineTo(isoX - cellWidth * 0.866, isoY - cellHeight * 0.5);
-                    ctx.lineTo(isoX, isoY);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-            }
-        }
-    }, [data, maxValue]);
-    
-    return (
-        <canvas 
-            ref={canvasRef} 
-            width={700} 
-            height={200} 
-            className="w-full h-auto"
-            style={{ imageRendering: 'pixelated' }}
-        />
-    );
 };
 
 // Activity Radar Chart
@@ -359,8 +263,6 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         return data;
     })();
     
-    const maxContribution = Math.max(...contributionData, 1);
-    
     // Activity data for radar chart
     const activityData = isGitHubFallback && publicContributions ? {
         commits: Math.min(100, (publicContributions.pushEvents || 0) * 2),
@@ -454,13 +356,16 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                     </button>
                 </div>
                 
-                {/* 3D Isometric Contribution Graph */}
+                {/* GitHub-style 2D Contribution Heatmap */}
                 <div className="mb-6">
                     <h3 className="text-sm font-medium text-[hsl(210,11%,60%)] mb-3">
-                        Activity Overview
+                        Contribution Activity
                     </h3>
-                    <div className="bg-[hsl(220,13%,6%)] rounded-lg p-4 overflow-hidden">
-                        <IsometricGrid data={contributionData} maxValue={maxContribution} />
+                    <div className="bg-[hsl(220,13%,6%)] rounded-lg p-4 overflow-x-auto">
+                        <GitHubHeatmap 
+                            data={contributionData} 
+                            totalContributions={totalContributions}
+                        />
                     </div>
                 </div>
                 

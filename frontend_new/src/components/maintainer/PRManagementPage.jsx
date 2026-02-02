@@ -3,12 +3,14 @@ import axios from 'axios';
 import {
     GitPullRequest, RefreshCw, Bot, FileCode, Check, X, AlertTriangle,
     MessageSquare, ChevronRight, ExternalLink, Clock, User,
-    GitBranch, Plus, Minus, Loader2, Lightbulb, GitMerge, XCircle, GraduationCap
+    GitBranch, Plus, Minus, Loader2, Lightbulb, GitMerge, XCircle, GraduationCap,
+    Code
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 import { mergePullRequest, closeIssueOrPR } from '../../services/githubService';
 import Logo from '../Logo';
+import PRReviewPanel from './PRReviewPanel';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 const ITEMS_PER_PAGE = 15; // Pagination limit
@@ -36,6 +38,9 @@ const PRManagementPage = () => {
     const [commentType, setCommentType] = useState('review');
     const [showTeaching, setShowTeaching] = useState(false);
     const [teachingMessage, setTeachingMessage] = useState('');
+
+    // PR Detail view tab
+    const [prDetailTab, setPrDetailTab] = useState('overview');
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -96,6 +101,7 @@ const PRManagementPage = () => {
         setPrAnalysis(null);
         setPrSummary(null);
         setCommentText('');
+        setPrDetailTab('overview');
     };
 
     const handleAnalyzePR = async () => {
@@ -506,6 +512,56 @@ const PRManagementPage = () => {
                                 )}
                             </div>
 
+                            {/* Tab Navigation */}
+                            <div className="flex gap-1 border-b border-[hsl(220,13%,15%)]">
+                                <button
+                                    onClick={() => setPrDetailTab('overview')}
+                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                                        prDetailTab === 'overview'
+                                            ? 'border-[hsl(142,70%,55%)] text-[hsl(210,11%,90%)]'
+                                            : 'border-transparent text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,70%)]'
+                                    }`}
+                                >
+                                    <FileCode className="w-4 h-4" />
+                                    Overview
+                                </button>
+                                <button
+                                    onClick={() => setPrDetailTab('review')}
+                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                                        prDetailTab === 'review'
+                                            ? 'border-[hsl(142,70%,55%)] text-[hsl(210,11%,90%)]'
+                                            : 'border-transparent text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,70%)]'
+                                    }`}
+                                >
+                                    <Code className="w-4 h-4" />
+                                    Review Code
+                                </button>
+                                <button
+                                    onClick={() => setPrDetailTab('comment')}
+                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                                        prDetailTab === 'comment'
+                                            ? 'border-[hsl(142,70%,55%)] text-[hsl(210,11%,90%)]'
+                                            : 'border-transparent text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,70%)]'
+                                    }`}
+                                >
+                                    <MessageSquare className="w-4 h-4" />
+                                    Comment
+                                </button>
+                            </div>
+
+                            {/* Review Tab Content */}
+                            {prDetailTab === 'review' && (
+                                <div className="bg-[hsl(220,13%,8%)] rounded-lg border border-[hsl(220,13%,15%)] overflow-hidden">
+                                    <PRReviewPanel 
+                                        pr={selectedPR} 
+                                        repoName={selectedRepo?.name} 
+                                    />
+                                </div>
+                            )}
+
+                            {/* Overview Tab Content */}
+                            {prDetailTab === 'overview' && (
+                                <>
                             {/* AI Actions */}
                             <div className="flex gap-3">
                                 <button
@@ -694,8 +750,12 @@ const PRManagementPage = () => {
                                     </div>
                                 </div>
                             )}
+                            {/* End of Overview Tab */}
+                            </>
+                            )}
 
-                            {/* Comment Section */}
+                            {/* Comment Tab Content */}
+                            {prDetailTab === 'comment' && (
                             <div className="bg-[hsl(220,13%,8%)] rounded-lg p-6 border border-[hsl(220,13%,15%)]">
                                 <h3 className="text-lg font-semibold text-[hsl(210,11%,90%)] flex items-center gap-2 mb-4">
                                     <MessageSquare className="w-5 h-5 text-[hsl(217,91%,65%)]" />
@@ -828,6 +888,7 @@ const PRManagementPage = () => {
                                     </>
                                 )}
                             </div>
+                            )}
                         </div>
                     )}
                 </div>

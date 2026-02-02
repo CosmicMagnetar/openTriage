@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { runFullSync, runMaintainerSync, runContributorSync, SYNC_INTERVAL_MS } from "@/lib/sync/github-sync";
+import { runFullSync, runMaintainerSync, runContributorSync, reconcileOpenTriageIssue1, SYNC_INTERVAL_MS } from "@/lib/sync/github-sync";
 
 export async function POST(request: NextRequest) {
     try {
@@ -32,11 +32,17 @@ export async function POST(request: NextRequest) {
             stats = await runContributorSync(user.id, user.username, user.githubAccessToken);
         }
 
+        // Always reconcile the critical openTriage#1 issue to ensure immediate state sync
+        const reconcileResult = await reconcileOpenTriageIssue1(user.githubAccessToken);
+
         return NextResponse.json({
             success: true,
             message: "Sync completed",
             role: userRole,
             stats,
+            reconcile: {
+                openTriageIssue1: reconcileResult,
+            },
             nextSyncIntervalMs: SYNC_INTERVAL_MS,
         });
     } catch (error) {

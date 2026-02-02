@@ -9,6 +9,7 @@ import PublicProfilePage from './PublicProfilePage';
 import MessagesPage from './MessagesPage';
 import Settings from '../Settings';
 import ContributorAIChat from './ContributorAIChat';
+import DiscoveryPage from './DiscoveryPage';
 
 // Context for managing chat states globally
 const ChatContext = createContext();
@@ -72,6 +73,7 @@ const ContributorLayout = () => {
             <Route path="user/:username" element={<PublicProfilePage />} />
             <Route path="messages" element={<MessagesPage />} />
             <Route path="metrics" element={<ContributorMetrics />} />
+            <Route path="discover" element={<DiscoveryPage />} />
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<MyIssuesDashboard />} />
           </Routes>

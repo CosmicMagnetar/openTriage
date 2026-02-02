@@ -118,6 +118,16 @@ class HypeRequest(BaseModel):
     repo_name: Optional[str] = None
 
 
+class ImpactSummaryRequest(BaseModel):
+    """Request for impact summary generation"""
+    pr_title: str
+    pr_body: Optional[str] = ""
+    repo_name: str
+    files_changed: int = 0
+    additions: int = 0
+    deletions: int = 0
+
+
 class RAGIndexRequest(BaseModel):
     """Request for RAG indexing - matches rag_chatbot_service.index_repository()"""
     repo_name: str
@@ -415,6 +425,29 @@ async def generate_hype(request: HypeRequest, auth: dict = Depends(require_api_k
         return result
     except Exception as e:
         logger.error(f"Hype generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/hype/impact-summary")
+async def generate_impact_summary(request: ImpactSummaryRequest, auth: dict = Depends(require_api_key_or_auth)):
+    """
+    Generate a short impact summary for a merged PR.
+    
+    Returns a motivating one-liner to show in the celebration popup.
+    Requires authentication.
+    """
+    try:
+        summary = await hype_generator_service.generate_impact_summary(
+            pr_title=request.pr_title,
+            pr_body=request.pr_body or "",
+            repo_name=request.repo_name,
+            files_changed=request.files_changed,
+            additions=request.additions,
+            deletions=request.deletions
+        )
+        return {"impact_summary": summary}
+    except Exception as e:
+        logger.error(f"Impact summary generation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

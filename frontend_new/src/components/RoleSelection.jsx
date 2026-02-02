@@ -11,10 +11,17 @@ const RoleSelection = ({ user, onRoleSelected }) => {
   const selectRole = async (role) => {
     setSelecting(true);
     try {
-      await axios.post(`${API}/user/select-role`, { role });
+      const response = await axios.post(`${API}/auth/select-role`, { role });
+      // Store the new token with the role embedded
+      const { token } = response.data;
+      if (token) {
+        localStorage.setItem('token', token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
       toast.success(`You are now a ${role.toLowerCase()}!`);
       onRoleSelected();
     } catch (error) {
+      console.error('Role selection error:', error);
       toast.error('Failed to set role');
     } finally {
       setSelecting(false);
