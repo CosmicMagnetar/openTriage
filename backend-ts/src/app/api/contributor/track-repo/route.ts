@@ -3,11 +3,18 @@
  * 
  * POST /api/contributor/track-repo
  * Allow contributors to track a repository by URL or name
+ * Also immediately fetches their PRs from the repo (no search indexing delay)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { addUserRepository, getUserRepositories } from "@/lib/db/queries/users";
+import { Octokit } from "@octokit/rest";
+import { db } from "@/db";
+import { issues, repositories } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
+import { AuthorAssociation } from "@/lib/types/github";
 
 export async function POST(request: NextRequest) {
     try {
@@ -77,9 +84,91 @@ export async function POST(request: NextRequest) {
         // Add to user's tracked repos
         await addUserRepository(user.id, repoFullName);
 
+        // Immediately fetch user's PRs from this repo (bypasses search indexing delay)
+        let prsFound = 0;
+        let prsAdded = 0;
+
+        if (user.githubAccessToken) {
+            try {
+                const [owner, repo] = repoFullName.split('/');
+                const octokit = new Octokit({ auth: user.githubAccessToken });
+
+                // Get or create repository entry
+                let repoId: string;
+                const existingRepoEntry = await db.select({ id: repositories.id })
+                    .from(repositories)
+                    .where(eq(repositories.name, repoFullName))
+                    .limit(1);
+
+                if (existingRepoEntry[0]) {
+                    repoId = existingRepoEntry[0].id;
+                } else {
+                    repoId = uuidv4();
+                    await db.insert(repositories).values({
+                        id: repoId,
+                        githubRepoId: 0,
+                        name: repoFullName,
+                        owner: owner,
+                        userId: user.id,
+                        createdAt: new Date().toISOString(),
+                    }).onConflictDoNothing();
+                }
+
+                // Fetch open PRs from this repo
+                const prs = await octokit.pulls.list({
+                    owner,
+                    repo,
+                    state: 'open',
+                    per_page: 100,
+                });
+
+                // Filter to user's PRs and add them
+                const userPRs = prs.data.filter(pr => pr.user?.login === user.username);
+                prsFound = userPRs.length;
+
+                for (const pr of userPRs) {
+                    const existing = await db.select({ id: issues.id })
+                        .from(issues)
+                        .where(eq(issues.githubIssueId, pr.id))
+                        .limit(1);
+
+                    if (!existing[0]) {
+                        const newId = uuidv4();
+                        await db.insert(issues).values({
+                            id: newId,
+                            githubIssueId: pr.id,
+                            number: pr.number,
+                            title: pr.title,
+                            body: pr.body || null,
+                            authorName: user.username,
+                            repoId: repoId,
+                            repoName: repoFullName,
+                            owner,
+                            repo,
+                            htmlUrl: pr.html_url,
+                            state: pr.state || 'open',
+                            isPR: true,
+                            authorAssociation: pr.author_association as AuthorAssociation,
+                            createdAt: new Date().toISOString(),
+                        }).onConflictDoNothing();
+                        prsAdded++;
+                    }
+                }
+
+                console.log(`[TrackRepo] ${user.username} tracked ${repoFullName}: ${prsFound} PRs found, ${prsAdded} added`);
+            } catch (prError) {
+                console.error("Error fetching PRs for tracked repo:", prError);
+                // Don't fail the request - repo is still tracked
+            }
+        }
+
         return NextResponse.json({
-            message: "Repository tracked successfully!",
+            message: prsFound > 0 
+                ? `Repository tracked! Found ${prsFound} open PR(s).`
+                : "Repository tracked successfully!",
             repoFullName,
+            prsFound,
+            prsAdded,
         }, { status: 201 });
     } catch (error) {
         console.error("POST /api/contributor/track-repo error:", error);

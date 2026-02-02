@@ -615,8 +615,14 @@ const TrackRepoModal = ({ onClose, onSuccess }) => {
 
     setLoading(true);
     try {
-      await axios.post(`${API}/contributor/track-repo`, { repoUrl: repoUrl, repoFullName: parsedRepo });
-      toast.success(`Now tracking ${parsedRepo}! PRs will appear after next sync.`);
+      const response = await axios.post(`${API}/contributor/track-repo`, { repoUrl: repoUrl, repoFullName: parsedRepo });
+      const { prsFound, prsAdded } = response.data;
+      
+      if (prsFound > 0) {
+        toast.success(`Found ${prsFound} open PR(s) in ${parsedRepo}! ${prsAdded > 0 ? `${prsAdded} added.` : ''}`);
+      } else {
+        toast.success(`Now tracking ${parsedRepo}. No open PRs found yet.`);
+      }
       onSuccess();
     } catch (error) {
       const status = error.response?.status;
