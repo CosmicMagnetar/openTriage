@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
-import { Download, RefreshCw, Save } from 'lucide-react';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis } from 'recharts';
+import { Download, RefreshCw, Save, TrendingUp, Flame, Trophy, Code, GitPullRequest, GitCommit, Star, Zap, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import GitHubHeatmap from './GitHubHeatmap';
 
@@ -44,20 +44,71 @@ const loadFromIndexedDB = async (username) => {
     });
 };
 
-// Activity Radar Chart
+// Activity Radar Chart with glow effect
 const ActivityRadar = ({ data }) => {
     const radarData = [
-        { subject: 'Commit', value: data?.commits || 0, fullMark: 100 },
-        { subject: 'Issue', value: data?.issues || 0, fullMark: 100 },
-        { subject: 'PullReq', value: data?.pullRequests || 0, fullMark: 100 },
-        { subject: 'Review', value: data?.reviews || 0, fullMark: 100 },
-        { subject: 'Repo', value: data?.repos || 0, fullMark: 100 },
+        { subject: 'Commits', value: data?.commits || 0, fullMark: 100, icon: '💻' },
+        { subject: 'Issues', value: data?.issues || 0, fullMark: 100, icon: '🐛' },
+        { subject: 'PRs', value: data?.pullRequests || 0, fullMark: 100, icon: '🔀' },
+        { subject: 'Reviews', value: data?.reviews || 0, fullMark: 100, icon: '👀' },
+        { subject: 'Repos', value: data?.repos || 0, fullMark: 100, icon: '📁' },
     ];
     
     return (
-        <ResponsiveContainer width="100%" height={250}>
-            <RadarChart data={radarData}>
-                <PolarGrid stroke="hsl(220, 13%, 20%)" />
+        <ResponsiveContainer width="100%" height={280}>
+            <RadarChart data={radarData} outerRadius="70%">
+                <defs>
+                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+                    <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(142, 70%, 55%)" stopOpacity={0.8}/>
+                        <stop offset="100%" stopColor="hsl(142, 70%, 35%)" stopOpacity={0.3}/>
+                    </linearGradient>
+                </defs>
+                <PolarGrid stroke="hsl(220, 13%, 20%)" strokeDasharray="3 3" />
+                <PolarAngleAxis 
+                    dataKey="subject" 
+                    tick={({ x, y, payload }) => (
+                        <g transform={`translate(${x},${y})`}>
+                            <text 
+                                x={0} 
+                                y={0} 
+                                dy={4}
+                                textAnchor="middle" 
+                                fill="hsl(210, 11%, 70%)" 
+                                fontSize={11}
+                                fontWeight={500}
+                            >
+                                {payload.value}
+                            </text>
+                        </g>
+                    )}
+                />
+                <PolarRadiusAxis 
+                    angle={90} 
+                    domain={[0, 100]} 
+                    tick={false}
+                    axisLine={false}
+                />
+                <Radar
+                    name="Activity"
+                    dataKey="value"
+                    stroke="hsl(142, 70%, 50%)"
+                    fill="url(#radarGradient)"
+                    strokeWidth={2}
+                    filter="url(#glow)"
+                    animationDuration={1000}
+                    animationEasing="ease-out"
+                />
+            </RadarChart>
+        </ResponsiveContainer>
+    );
+};
                 <PolarAngleAxis 
                     dataKey="subject" 
                     tick={{ fill: 'hsl(210, 11%, 60%)', fontSize: 12 }}
@@ -81,14 +132,15 @@ const ActivityRadar = ({ data }) => {
     );
 };
 
-// Language Donut Chart
+// Language Donut Chart with improved aesthetics
 const LanguageDonut = ({ languages }) => {
     const COLORS = [
-        'hsl(142, 70%, 45%)',  // Green (main)
-        'hsl(217, 91%, 60%)',  // Blue
-        'hsl(280, 65%, 55%)',  // Purple
-        'hsl(45, 100%, 50%)',  // Yellow
-        'hsl(210, 11%, 50%)',  // Gray
+        'hsl(142, 70%, 50%)',  // Bright Green
+        'hsl(217, 91%, 60%)',  // Bright Blue
+        'hsl(280, 65%, 60%)',  // Purple
+        'hsl(45, 100%, 55%)',  // Gold
+        'hsl(340, 75%, 55%)',  // Pink
+        'hsl(180, 70%, 45%)',  // Cyan
     ];
     
     const data = Object.entries(languages || {})
@@ -102,53 +154,107 @@ const LanguageDonut = ({ languages }) => {
         data.push({ name: 'No data', value: 1 });
     }
     
+    const topLanguage = data[0]?.name || 'N/A';
+    const topPercent = total > 0 ? ((data[0]?.value / total) * 100).toFixed(0) : 0;
+    
     return (
         <div className="relative">
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
+                    <defs>
+                        {COLORS.map((color, idx) => (
+                            <linearGradient key={idx} id={`langGrad${idx}`} x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stopColor={color} stopOpacity={1}/>
+                                <stop offset="100%" stopColor={color} stopOpacity={0.7}/>
+                            </linearGradient>
+                        ))}
+                    </defs>
                     <Pie
                         data={data}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={2}
+                        innerRadius={55}
+                        outerRadius={85}
+                        paddingAngle={3}
                         dataKey="value"
+                        animationDuration={800}
+                        animationEasing="ease-out"
                     >
                         {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell 
+                                key={`cell-${index}`} 
+                                fill={`url(#langGrad${index % COLORS.length})`}
+                                stroke="hsl(220, 13%, 8%)"
+                                strokeWidth={2}
+                            />
                         ))}
                     </Pie>
                     <Tooltip 
                         contentStyle={{ 
                             background: 'hsl(220, 13%, 10%)', 
-                            border: '1px solid hsl(220, 13%, 20%)',
-                            borderRadius: '8px'
+                            border: '1px solid hsl(220, 13%, 25%)',
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.4)'
                         }}
                         formatter={(value) => [`${((value / total) * 100).toFixed(1)}%`, 'Usage']}
                     />
                 </PieChart>
             </ResponsiveContainer>
-            {/* Center text */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-                <span className="text-2xl font-bold text-[hsl(210,11%,90%)]">
-                    {total > 0 ? `${((data[0]?.value / total) * 100).toFixed(0)}%` : '-'}
+            {/* Center text with icon */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                <Code className="w-5 h-5 mx-auto mb-1 text-[hsl(142,70%,55%)]" />
+                <span className="text-xl font-bold text-[hsl(210,11%,95%)]">
+                    {topPercent}%
                 </span>
+                <p className="text-[10px] text-[hsl(210,11%,50%)] mt-0.5">{topLanguage}</p>
             </div>
-            {/* Legend */}
-            <div className="flex flex-wrap justify-center gap-2 mt-2">
-                {data.map((entry, index) => (
-                    <div key={entry.name} className="flex items-center gap-1 text-xs">
+            {/* Legend with dots */}
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-2">
+                {data.slice(0, 5).map((entry, index) => (
+                    <div key={entry.name} className="flex items-center gap-1.5 text-xs">
                         <div 
-                            className="w-3 h-3 rounded-sm" 
-                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                            className="w-2.5 h-2.5 rounded-full shadow-sm" 
+                            style={{ 
+                                backgroundColor: COLORS[index % COLORS.length],
+                                boxShadow: `0 0 6px ${COLORS[index % COLORS.length]}40`
+                            }}
                         />
-                        <span className="text-[hsl(210,11%,60%)]">
-                            {entry.name} ({((entry.value / total) * 100).toFixed(0)}%)
+                        <span className="text-[hsl(210,11%,65%)] font-medium">
+                            {entry.name}
                         </span>
                     </div>
                 ))}
             </div>
+        </div>
+    );
+};
+
+// Stat Card with icon and animated value
+const StatCard = ({ icon: Icon, label, value, color = 'green', trend }) => {
+    const colorClasses = {
+        green: 'from-emerald-500/20 to-emerald-600/5 border-emerald-500/30 text-emerald-400',
+        blue: 'from-blue-500/20 to-blue-600/5 border-blue-500/30 text-blue-400',
+        purple: 'from-purple-500/20 to-purple-600/5 border-purple-500/30 text-purple-400',
+        orange: 'from-orange-500/20 to-orange-600/5 border-orange-500/30 text-orange-400',
+        pink: 'from-pink-500/20 to-pink-600/5 border-pink-500/30 text-pink-400',
+    };
+    
+    return (
+        <div className={`bg-gradient-to-br ${colorClasses[color]} rounded-xl p-4 border backdrop-blur-sm 
+            hover:scale-[1.02] transition-all duration-300 cursor-default`}>
+            <div className="flex items-center justify-between mb-2">
+                <Icon className={`w-5 h-5 ${colorClasses[color].split(' ').pop()}`} />
+                {trend && (
+                    <span className="flex items-center gap-0.5 text-xs text-emerald-400">
+                        <TrendingUp className="w-3 h-3" />
+                        {trend}
+                    </span>
+                )}
+            </div>
+            <p className="text-2xl font-bold text-[hsl(210,11%,95%)] tracking-tight">
+                {typeof value === 'number' ? value.toLocaleString() : value}
+            </p>
+            <p className="text-xs text-[hsl(210,11%,50%)] mt-1">{label}</p>
         </div>
     );
 };
@@ -335,18 +441,30 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
             {/* Stat Card - Capturable */}
             <div 
                 ref={statCardRef}
-                className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]"
+                className="bg-gradient-to-br from-[hsl(220,13%,10%)] to-[hsl(220,13%,6%)] rounded-2xl p-6 border border-[hsl(220,13%,18%)] shadow-xl"
             >
+                {/* Header with glowing accent */}
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">
-                        Contribution Stats
-                    </h2>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/30 to-emerald-600/10 
+                            flex items-center justify-center border border-emerald-500/30">
+                            <Activity className="w-5 h-5 text-emerald-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-[hsl(210,11%,95%)] tracking-tight">
+                                Contribution Stats
+                            </h2>
+                            <p className="text-xs text-[hsl(210,11%,50%)]">Your GitHub activity overview</p>
+                        </div>
+                    </div>
                     {isOwner && (
                         <button
                             onClick={saveStatsImage}
                             disabled={saving}
-                            className="flex items-center gap-2 px-4 py-2 bg-[hsl(142,70%,45%)] text-black rounded-lg
-                                hover:bg-[hsl(142,70%,50%)] disabled:opacity-50 transition-colors font-medium text-sm"
+                            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 
+                                text-white rounded-xl hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-50 
+                                transition-all duration-300 font-semibold text-sm shadow-lg shadow-emerald-500/20
+                                hover:shadow-emerald-500/40 hover:scale-[1.02]"
                         >
                             {saving ? (
                                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -358,12 +476,43 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                     )}
                 </div>
                 
+                {/* Quick Stats Row */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <StatCard 
+                        icon={GitCommit} 
+                        label="Commits" 
+                        value={githubStats?.commits || publicContributions?.pushEvents || 0}
+                        color="green"
+                    />
+                    <StatCard 
+                        icon={GitPullRequest} 
+                        label="Pull Requests" 
+                        value={githubStats?.pullRequests || publicContributions?.prEvents || 0}
+                        color="blue"
+                    />
+                    <StatCard 
+                        icon={Flame} 
+                        label="Current Streak" 
+                        value={githubStats?.streak || '0 days'}
+                        color="orange"
+                    />
+                    <StatCard 
+                        icon={Star} 
+                        label="Stars Earned" 
+                        value={githubStats?.stars || 0}
+                        color="purple"
+                    />
+                </div>
+                
                 {/* GitHub-style 2D Contribution Heatmap */}
                 <div className="mb-6">
-                    <h3 className="text-sm font-medium text-[hsl(210,11%,60%)] mb-3">
-                        Contribution Activity
-                    </h3>
-                    <div className="bg-[hsl(220,13%,6%)] rounded-lg p-4 overflow-x-auto">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Zap className="w-4 h-4 text-emerald-400" />
+                        <h3 className="text-sm font-semibold text-[hsl(210,11%,80%)]">
+                            Contribution Activity
+                        </h3>
+                    </div>
+                    <div className="bg-[hsl(220,13%,6%)] rounded-xl p-4 overflow-x-auto border border-[hsl(220,13%,12%)]">
                         <GitHubHeatmap 
                             data={contributionData} 
                             totalContributions={totalContributions}
@@ -372,35 +521,45 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                 </div>
                 
                 {/* Charts Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Radar Chart */}
-                    <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4">
-                        <h3 className="text-sm font-medium text-[hsl(210,11%,60%)] mb-2">
-                            Activity
-                        </h3>
+                    <div className="bg-gradient-to-br from-[hsl(220,13%,12%)] to-[hsl(220,13%,8%)] rounded-xl p-4 border border-[hsl(220,13%,15%)]">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Trophy className="w-4 h-4 text-blue-400" />
+                            <h3 className="text-sm font-semibold text-[hsl(210,11%,80%)]">
+                                Activity Breakdown
+                            </h3>
+                        </div>
                         <ActivityRadar data={activityData} />
                     </div>
                     
                     {/* Donut Chart */}
-                    <div className="bg-[hsl(220,13%,10%)] rounded-lg p-4">
-                        <h3 className="text-sm font-medium text-[hsl(210,11%,60%)] mb-2">
-                            Top Languages
-                        </h3>
+                    <div className="bg-gradient-to-br from-[hsl(220,13%,12%)] to-[hsl(220,13%,8%)] rounded-xl p-4 border border-[hsl(220,13%,15%)]">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Code className="w-4 h-4 text-purple-400" />
+                            <h3 className="text-sm font-semibold text-[hsl(210,11%,80%)]">
+                                Language Distribution
+                            </h3>
+                        </div>
                         <LanguageDonut languages={languages} />
                     </div>
                 </div>
                 
-                {/* Total Contributions */}
-                <div className="mt-6 text-center">
-                    <span className="text-3xl font-bold text-[hsl(142,70%,55%)]">
-                        {totalContributions?.toLocaleString() || '0'}
-                    </span>
-                    <span className="text-[hsl(210,11%,50%)] ml-2">
-                        {isGitHubFallback ? 'recent activities' : 'contributions'}
+                {/* Total Contributions - Hero Section */}
+                <div className="mt-6 text-center py-6 rounded-xl bg-gradient-to-r from-emerald-500/10 via-transparent to-blue-500/10 border border-[hsl(220,13%,15%)]">
+                    <div className="flex items-center justify-center gap-3 mb-2">
+                        <Flame className="w-6 h-6 text-orange-400 animate-pulse" />
+                        <span className="text-4xl font-black bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
+                            {totalContributions?.toLocaleString() || '0'}
+                        </span>
+                        <Flame className="w-6 h-6 text-orange-400 animate-pulse" />
+                    </div>
+                    <span className="text-sm text-[hsl(210,11%,60%)] font-medium">
+                        {isGitHubFallback ? 'Recent Activities' : 'Total Contributions'}
                     </span>
                     {isGitHubFallback && (
-                        <p className="text-xs text-[hsl(210,11%,40%)] mt-1">
-                            Based on public GitHub activity (last 100 events)
+                        <p className="text-xs text-[hsl(210,11%,40%)] mt-2">
+                            📊 Based on public GitHub activity (last 100 events)
                         </p>
                     )}
                 </div>
@@ -408,15 +567,22 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
             
             {/* Cached Image Preview (if available and is owner) */}
             {isOwner && cachedImage && (
-                <div className="bg-[hsl(220,13%,8%)] rounded-xl p-4 border border-[hsl(220,13%,15%)]">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-medium text-[hsl(210,11%,60%)]">
-                            Cached Snapshot (Offline Available)
-                        </h3>
+                <div className="bg-gradient-to-br from-[hsl(220,13%,10%)] to-[hsl(220,13%,6%)] rounded-2xl p-5 border border-[hsl(220,13%,18%)]">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Download className="w-4 h-4 text-blue-400" />
+                            <h3 className="text-sm font-semibold text-[hsl(210,11%,80%)]">
+                                Cached Snapshot
+                            </h3>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-medium">
+                                Offline Ready
+                            </span>
+                        </div>
                         <a
                             href={cachedImage}
                             download={`${username}-stats.png`}
-                            className="flex items-center gap-1 text-xs text-[hsl(217,91%,60%)] hover:underline"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-blue-400 bg-blue-500/10 
+                                rounded-lg hover:bg-blue-500/20 transition-colors font-medium border border-blue-500/20"
                         >
                             <Download className="w-3 h-3" />
                             Download
@@ -425,7 +591,7 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                     <img 
                         src={cachedImage} 
                         alt="Cached stats" 
-                        className="w-full rounded-lg border border-[hsl(220,13%,15%)] opacity-75"
+                        className="w-full rounded-xl border border-[hsl(220,13%,15%)] opacity-80 hover:opacity-100 transition-opacity"
                     />
                 </div>
             )}

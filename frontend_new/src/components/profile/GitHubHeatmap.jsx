@@ -3,15 +3,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 
 /**
  * GitHubHeatmap - A 2D SVG-based contribution heatmap similar to GitHub's
- * Replaces the previous 3D isometric canvas implementation
+ * Enhanced with better colors and visual effects
  */
 const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
-    const CELL_SIZE = 11;
+    const CELL_SIZE = 12;
     const CELL_GAP = 3;
     const WEEKS = 53;
     const DAYS = 7;
-    const MONTH_LABELS_HEIGHT = 20;
-    const DAY_LABELS_WIDTH = 30;
+    const MONTH_LABELS_HEIGHT = 22;
+    const DAY_LABELS_WIDTH = 32;
 
     // Generate dates for the past year
     const dateMap = useMemo(() => {
@@ -35,13 +35,22 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
         return map;
     }, [data]);
 
-    // Get color based on contribution level
+    // Get color based on contribution level - Enhanced gradient
     const getColor = (value) => {
-        if (value === 0) return 'hsl(220, 13%, 12%)';
-        if (value <= 2) return 'hsl(142, 64%, 20%)';
-        if (value <= 5) return 'hsl(142, 64%, 30%)';
-        if (value <= 10) return 'hsl(142, 64%, 40%)';
-        return 'hsl(142, 64%, 50%)';
+        if (value === 0) return 'hsl(220, 13%, 14%)';
+        if (value <= 2) return 'hsl(142, 55%, 25%)';
+        if (value <= 5) return 'hsl(142, 60%, 35%)';
+        if (value <= 10) return 'hsl(142, 65%, 45%)';
+        return 'hsl(142, 70%, 55%)'; // Bright green for high activity
+    };
+    
+    // Get glow effect intensity based on value
+    const getGlowOpacity = (value) => {
+        if (value === 0) return 0;
+        if (value <= 2) return 0.1;
+        if (value <= 5) return 0.2;
+        if (value <= 10) return 0.3;
+        return 0.4;
     };
 
     // Generate month labels
@@ -120,13 +129,24 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                     viewBox={`0 0 ${svgWidth} ${svgHeight}`}
                     className="overflow-visible"
                 >
+                    {/* Subtle glow filter for high activity cells */}
+                    <defs>
+                        <filter id="cellGlow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    
                     {/* Month Labels */}
                     {monthLabels.map((label, i) => (
                         <text
                             key={i}
                             x={label.x}
-                            y={12}
-                            className="fill-[hsl(210,11%,50%)] text-[10px]"
+                            y={14}
+                            className="fill-[hsl(210,11%,55%)] font-medium"
                             style={{ fontSize: '10px' }}
                         >
                             {label.month}
@@ -139,7 +159,7 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                             key={i}
                             x={0}
                             y={MONTH_LABELS_HEIGHT + i * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 2}
-                            className="fill-[hsl(210,11%,50%)] text-[10px]"
+                            className="fill-[hsl(210,11%,55%)] font-medium"
                             style={{ fontSize: '10px' }}
                         >
                             {label}
@@ -155,41 +175,50 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                                     y={cell.y}
                                     width={CELL_SIZE}
                                     height={CELL_SIZE}
-                                    rx={2}
+                                    rx={3}
                                     fill={getColor(cell.value)}
-                                    className="cursor-pointer hover:stroke-[hsl(210,11%,50%)] hover:stroke-1 transition-colors"
+                                    className="cursor-pointer transition-all duration-200 hover:brightness-125"
+                                    style={{
+                                        filter: cell.value > 5 ? 'url(#cellGlow)' : 'none',
+                                    }}
                                 />
                             </TooltipTrigger>
                             <TooltipContent
                                 side="top"
-                                className="bg-[hsl(220,13%,10%)] border-[hsl(220,13%,20%)] text-[hsl(210,11%,90%)]"
+                                className="bg-[hsl(220,13%,8%)] border-[hsl(220,13%,20%)] text-[hsl(210,11%,95%)] shadow-xl"
                             >
-                                <p className="text-sm font-medium">
-                                    {cell.value} contribution{cell.value !== 1 ? 's' : ''} on {cell.date}
+                                <p className="text-sm font-semibold">
+                                    {cell.value === 0 ? 'No' : cell.value} contribution{cell.value !== 1 ? 's' : ''}
                                 </p>
+                                <p className="text-xs text-[hsl(210,11%,50%)]">{cell.date}</p>
                             </TooltipContent>
                         </Tooltip>
                     ))}
                 </svg>
             </TooltipProvider>
 
-            {/* Legend */}
-            <div className="flex items-center justify-between mt-3 px-1">
-                <span className="text-xs text-[hsl(210,11%,50%)]">
-                    {totalContributions.toLocaleString()} contributions in the last year
-                </span>
-                <div className="flex items-center gap-1 text-xs text-[hsl(210,11%,50%)]">
-                    <span>Less</span>
-                    <div className="flex gap-0.5">
+            {/* Legend - Enhanced */}
+            <div className="flex items-center justify-between mt-4 px-1">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-emerald-400">
+                        🔥 {totalContributions.toLocaleString()}
+                    </span>
+                    <span className="text-xs text-[hsl(210,11%,50%)]">
+                        contributions this year
+                    </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-[hsl(210,11%,50%)]">
+                    <span className="font-medium">Less</span>
+                    <div className="flex gap-1">
                         {[0, 2, 5, 10, 15].map((level) => (
                             <div
                                 key={level}
-                                className="w-[10px] h-[10px] rounded-sm"
+                                className="w-[11px] h-[11px] rounded-sm transition-transform hover:scale-110"
                                 style={{ backgroundColor: getColor(level) }}
                             />
                         ))}
                     </div>
-                    <span>More</span>
+                    <span className="font-medium">More</span>
                 </div>
             </div>
         </div>

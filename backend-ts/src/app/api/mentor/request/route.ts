@@ -23,11 +23,12 @@ export async function POST(request: NextRequest) {
         // Let's read the body.
         const body = await request.json().catch(() => ({}));
 
-        const mentorId = body.mentorId; // The mentor the user wants
+        // Accept both snake_case (mentor_id) from frontend and camelCase (mentorId)
+        const mentorId = body.mentor_id || body.mentorId;
         const message = body.message;
 
         if (!mentorId) {
-            return NextResponse.json({ error: "Mentor ID required" }, { status: 400 });
+            return NextResponse.json({ error: "Mentor ID required. Please provide mentor_id in request body." }, { status: 400 });
         }
 
         // Get mentor details to confirm existence

@@ -11,47 +11,84 @@ class RealtimeMessagingClient {
     this.listeners = [];
     this.isConnected = false;
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
-    this.reconnectDelay = 3000;
+    this.maxReconnectAttempts = 3; // Reduced to avoid spam
+    this.reconnectDelay = 5000;
+    this.authFailed = false; // Track auth failures
   }
 
   connect() {
     return new Promise((resolve, reject) => {
       try {
+        // Don't retry if auth has failed
+        if (this.authFailed) {
+          console.log("Skipping reconnect - authentication failed previously");
+          resolve(); // Resolve without connecting
+          return;
+        }
+
         if (this.eventSource) {
           this.disconnect();
         }
 
         const token = localStorage.getItem("token");
-        const url = `${API_BASE}/api/messaging/ws${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-        this.eventSource = new EventSource(url);
 
-        this.eventSource.onopen = () => {
-          this.isConnected = true;
-          this.reconnectAttempts = 0;
-          console.log("Real-time messaging connected");
-          this.notifyListeners("onConnectionOpen");
-          resolve();
-        };
+        // Don't try to connect without a token
+        if (!token) {
+          console.log("No auth token available for real-time messaging");
+          resolve(); // Resolve without connecting
+          return;
+        }
 
-        this.eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            this.handleMessage(data);
-          } catch (error) {
-            console.error("Error parsing SSE message:", error);
-          }
-        };
+        const url = `${API_BASE}/api/messaging/ws?token=${encodeURIComponent(token)}`;
 
-        this.eventSource.onerror = () => {
-          this.isConnected = false;
-          if (this.eventSource?.readyState === EventSource.CLOSED) {
-            this.attemptReconnect();
-          }
-          this.notifyListeners("onConnectionClose");
-        };
+        // Use fetch first to check auth, then establish SSE
+        fetch(url, { method: "HEAD" })
+          .then((res) => {
+            if (res.status === 401) {
+              console.log(
+                "Real-time messaging auth failed - will use polling instead",
+              );
+              this.authFailed = true;
+              this.notifyListeners("onAuthFailed");
+              resolve();
+              return;
+            }
+
+            this.eventSource = new EventSource(url);
+
+            this.eventSource.onopen = () => {
+              this.isConnected = true;
+              this.reconnectAttempts = 0;
+              this.authFailed = false;
+              console.log("Real-time messaging connected");
+              this.notifyListeners("onConnectionOpen");
+              resolve();
+            };
+
+            this.eventSource.onmessage = (event) => {
+              try {
+                const data = JSON.parse(event.data);
+                this.handleMessage(data);
+              } catch (error) {
+                console.error("Error parsing SSE message:", error);
+              }
+            };
+
+            this.eventSource.onerror = () => {
+              this.isConnected = false;
+              if (this.eventSource?.readyState === EventSource.CLOSED) {
+                this.attemptReconnect();
+              }
+              this.notifyListeners("onConnectionClose");
+            };
+          })
+          .catch((err) => {
+            console.log("Real-time messaging unavailable:", err.message);
+            resolve(); // Still resolve, just without real-time
+          });
       } catch (error) {
-        reject(error);
+        console.log("Real-time messaging error:", error.message);
+        resolve(); // Don't reject, just work without real-time
       }
     });
   }
@@ -112,14 +149,30 @@ class RealtimeMessagingClient {
   }
 
   attemptReconnect() {
+    // Don't reconnect if auth failed
+    if (this.authFailed) {
+      console.log("Not reconnecting - auth failed");
+      return;
+    }
+
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error("Max reconnect attempts reached");
+      console.log("Max reconnect attempts reached - falling back to polling");
+      this.notifyListeners("onMaxReconnectReached");
       return;
     }
     this.reconnectAttempts++;
     const delay =
       this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts - 1);
+    console.log(
+      `Reconnecting in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
+    );
     setTimeout(() => this.connect().catch(() => {}), delay);
+  }
+
+  // Reset auth state (call this after login/token refresh)
+  resetAuthState() {
+    this.authFailed = false;
+    this.reconnectAttempts = 0;
   }
 }
 
