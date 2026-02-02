@@ -99,6 +99,11 @@ export async function getProfileByUsername(username: string) {
 
     return {
         ...profile[0],
+        // Include snake_case aliases for frontend compatibility
+        available_for_mentoring: profile[0].availableForMentoring,
+        avatar_url: profile[0].avatarUrl,
+        profile_visibility: profile[0].profileVisibility,
+        show_email: profile[0].showEmail,
         skills: skills.map(s => s.skill),
         mentoringTopics: topics.map(t => t.topic),
     };

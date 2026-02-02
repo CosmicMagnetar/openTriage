@@ -37,7 +37,17 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const { bio, location, website, twitter, skills, availableForMentoring, mentoringTopics } = body;
+        // Support both camelCase and snake_case for compatibility
+        const { 
+            bio, 
+            location, 
+            website, 
+            twitter, 
+            skills, 
+            availableForMentoring, 
+            available_for_mentoring,
+            mentoringTopics 
+        } = body;
 
         const updatedProfile = await createOrUpdateProfile(user.id, {
             username: user.username,
@@ -46,7 +56,7 @@ export async function PUT(
             location,
             website,
             twitter,
-            availableForMentoring,
+            availableForMentoring: availableForMentoring ?? available_for_mentoring,
             skills,
             mentoringTopics,
         });

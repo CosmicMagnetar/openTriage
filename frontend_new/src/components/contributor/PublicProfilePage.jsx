@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, ArrowLeft, ExternalLink } from 'lucide-react';
+import { User, ArrowLeft, ExternalLink, Users } from 'lucide-react';
 import { profileApi, gamificationApi } from '../../services/api';
 import ContributionStats from '../profile/ContributionStats';
 import FeaturedBadges from './FeaturedBadges';
@@ -29,15 +29,24 @@ const PublicProfilePage = () => {
             let githubStatsData = null;
             let featuredData = { badges: [] };
             
+            // Fetch profile - wrapped in its own try-catch so we can fallback to GitHub
             try {
-                [profileData, featuredData, githubStatsData] = await Promise.all([
-                    profileApi.getProfile(username),
-                    profileApi.getFeaturedBadges(username).catch(() => ({ badges: [] })),
-                    profileApi.getGitHubStats(username).catch(() => null)
-                ]);
+                profileData = await profileApi.getProfile(username);
             } catch (e) {
                 // Profile not found in database - that's ok, we'll try GitHub
-                console.log('Profile not in database, trying GitHub fallback');
+                console.log('Profile not in OpenTriage database, will try GitHub fallback');
+            }
+            
+            // If we have profile data, also fetch featured badges and stats
+            if (profileData) {
+                try {
+                    [featuredData, githubStatsData] = await Promise.all([
+                        profileApi.getFeaturedBadges(username).catch(() => ({ badges: [] })),
+                        profileApi.getGitHubStats(username).catch(() => null)
+                    ]);
+                } catch (e) {
+                    console.log('Could not fetch additional profile data');
+                }
             }
 
             // If no profile in database, fetch from GitHub API directly
@@ -200,6 +209,12 @@ const PublicProfilePage = () => {
                                 {profile?.isGitHubFallback && (
                                     <span className="text-xs px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25">
                                         Not on OpenTriage
+                                    </span>
+                                )}
+                                {profile?.available_for_mentoring && (
+                                    <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
+                                        <Users className="w-3 h-3" />
+                                        Available for Mentoring
                                     </span>
                                 )}
                             </div>
