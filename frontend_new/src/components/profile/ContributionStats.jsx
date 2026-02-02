@@ -154,7 +154,7 @@ const LanguageDonut = ({ languages }) => {
 };
 
 // Main Component
-const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallback }) => {
+const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallback, isOwner = true }) => {
     const statCardRef = useRef(null);
     const [saving, setSaving] = useState(false);
     const [cachedImage, setCachedImage] = useState(null);
@@ -341,19 +341,21 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                     <h2 className="text-lg font-semibold text-[hsl(210,11%,90%)]">
                         Contribution Stats
                     </h2>
-                    <button
-                        onClick={saveStatsImage}
-                        disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 bg-[hsl(142,70%,45%)] text-black rounded-lg
-                            hover:bg-[hsl(142,70%,50%)] disabled:opacity-50 transition-colors font-medium text-sm"
-                    >
-                        {saving ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <Save className="w-4 h-4" />
-                        )}
-                        Save Stats
-                    </button>
+                    {isOwner && (
+                        <button
+                            onClick={saveStatsImage}
+                            disabled={saving}
+                            className="flex items-center gap-2 px-4 py-2 bg-[hsl(142,70%,45%)] text-black rounded-lg
+                                hover:bg-[hsl(142,70%,50%)] disabled:opacity-50 transition-colors font-medium text-sm"
+                        >
+                            {saving ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Save className="w-4 h-4" />
+                            )}
+                            Save Stats
+                        </button>
+                    )}
                 </div>
                 
                 {/* GitHub-style 2D Contribution Heatmap */}
@@ -404,8 +406,8 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                 </div>
             </div>
             
-            {/* Cached Image Preview (if available) */}
-            {cachedImage && (
+            {/* Cached Image Preview (if available and is owner) */}
+            {isOwner && cachedImage && (
                 <div className="bg-[hsl(220,13%,8%)] rounded-xl p-4 border border-[hsl(220,13%,15%)]">
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-medium text-[hsl(210,11%,60%)]">

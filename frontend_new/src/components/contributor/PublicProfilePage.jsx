@@ -335,11 +335,12 @@ const PublicProfilePage = () => {
                     </div>
                 </div>
 
-                {/* Contribution Stats with Heatmap */}
+                {/* Contribution Stats with Heatmap - Read only, no save/export */}
                 <ContributionStats 
                     username={username} 
                     githubStats={profile?.github_stats}
                     isGitHubFallback={profile?.isGitHubFallback}
+                    isOwner={false}
                 />
             </div>
         </div>

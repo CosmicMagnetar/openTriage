@@ -22,7 +22,10 @@ const DiscoveryPage = () => {
     const loadUserProfile = async () => {
         try {
             // Fetch user profile to get their skills/languages
-            const res = await axios.get(`${API}/profiles/${user?.username}`);
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${API}/profile/${user?.username}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             const profile = res.data;
             
             // Extract programming languages from skills
