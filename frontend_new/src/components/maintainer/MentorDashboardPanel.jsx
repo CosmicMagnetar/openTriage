@@ -433,7 +433,8 @@ const MentorDashboardPanel = () => {
                                     </div>
                                 ) : chatMessages.length > 0 ? (
                                     chatMessages.map(msg => {
-                                        const isMe = msg.sender_id === user?.id || msg.sender_id === user?.username;
+                                        // Debug: Compare sender_id with user.id
+                                        const isMe = String(msg.sender_id) === String(user?.id);
                                         const isEditing = editingMessageId === msg.id;
                                         return (
                                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
