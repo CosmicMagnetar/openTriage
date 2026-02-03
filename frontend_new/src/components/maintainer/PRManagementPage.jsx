@@ -79,13 +79,13 @@ const PRManagementPage = () => {
         setLoadingPRs(true);
 
         try {
-            // Fetch PRs from database only - fast!
-            // GitHub sync happens in background, not on every page load
-            const issuesRes = await axios.get(`${API}/maintainer/issues`);
+            // Fetch PRs from database filtered by repoId - much more efficient!
+            const issuesRes = await axios.get(`${API}/maintainer/issues`, {
+                params: { repoId: repo.id }
+            });
             const issuesData = issuesRes.data.items || issuesRes.data || [];
-            const repoPRs = issuesData.filter(
-                item => item.isPR && item.repoName === repo.name
-            );
+            // Filter for PRs only (repoId filter already applied server-side)
+            const repoPRs = issuesData.filter(item => item.isPR);
 
             setPullRequests(repoPRs);
         } catch (error) {

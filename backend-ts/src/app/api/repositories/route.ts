@@ -39,7 +39,13 @@ export async function GET(request: NextRequest) {
             .where(eq(repositories.userId, userId))
             .orderBy(desc(repositories.createdAt));
 
-        return NextResponse.json(repos, { status: 200 });
+        // Add fullName for consistency with other endpoints
+        const reposWithFullName = repos.map(repo => ({
+            ...repo,
+            fullName: `${repo.owner}/${repo.name}`
+        }));
+
+        return NextResponse.json(reposWithFullName, { status: 200 });
     } catch (error) {
         console.error("GET /api/repositories error:", error);
         return NextResponse.json(
