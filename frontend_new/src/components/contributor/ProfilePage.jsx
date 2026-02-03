@@ -9,6 +9,8 @@ import ContributionCalendar from './ContributionCalendar';
 import MentorMatchPanel from './MentorMatchPanel';
 import ContributionStats from '../profile/ContributionStats';
 import FeaturedBadges from './FeaturedBadges';
+import TopLanguages from './TopLanguages';
+import ContributorHype from './ContributorHype';
 
 const ProfilePage = () => {
     const { user } = useAuthStore();
@@ -250,6 +252,12 @@ const ProfilePage = () => {
                         <>
                             {/* Streak */}
                             <StreakDisplay />
+
+                            {/* Top Languages from GitHub */}
+                            <TopLanguages username={user?.username} />
+
+                            {/* Contributor Hype Generator */}
+                            <ContributorHype />
 
                             {/* Profile Editor */}
                             <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">

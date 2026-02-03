@@ -444,6 +444,9 @@ export const profileApi = {
 
   getUserRepos: (username) => apiRequest(`/api/profile/${username}/repos`),
 
+  getUserLanguages: (username) =>
+    apiRequest(`/api/profile/${username}/languages`),
+
   connectRepo: (userId, repoName, enableMonitoring = true) =>
     apiRequest(`/api/profile/${userId}/connect-repo`, {
       method: "POST",
@@ -469,6 +472,11 @@ export const profileApi = {
       method: "PUT",
       body: JSON.stringify({ badge_ids: badgeIds }),
     }),
+
+  // Sync user's GitHub data
+  syncUserData: () => apiRequest("/api/sync/user-data", { method: "POST" }),
+
+  getSyncStatus: () => apiRequest("/api/sync/user-data"),
 };
 
 // ============ Repository API ============

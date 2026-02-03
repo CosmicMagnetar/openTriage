@@ -1,6 +1,6 @@
 import { LayoutDashboard, GitPullRequest, LogOut, Settings, Menu, X, Sparkles, User, Plus, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import useAuthStore from '../../stores/authStore';
 import Logo from '../Logo';
 import UserSearch from '../shared/UserSearch';
@@ -8,8 +8,20 @@ import UserSearch from '../shared/UserSearch';
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout: storeLogout } = useAuthStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Enhanced logout handler that prevents re-auth loops
+  const handleLogout = useCallback(() => {
+    // Use global handler if available (handles cleanup)
+    if (window.handleLogout) {
+      window.handleLogout();
+    } else {
+      storeLogout();
+    }
+    // Navigate to landing page explicitly
+    navigate('/', { replace: true });
+  }, [storeLogout, navigate]);
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -111,7 +123,7 @@ const Sidebar = () => {
         <div className="p-3 border-t border-[hsl(220,13%,14%)]">
           <button
             data-testid="logout-button"
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[hsl(210,11%,50%)] hover:bg-[hsl(0,60%,50%,0.1)] hover:text-[hsl(0,60%,60%)] transition-colors border border-transparent hover:border-[hsl(0,60%,50%,0.2)]"
           >
             <LogOut className="w-4.5 h-4.5" />

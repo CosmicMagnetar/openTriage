@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { gamificationApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
+import { toast } from 'sonner';
+import { RefreshCw } from 'lucide-react';
 
 // Generate years for selector (current and 4 previous for better historical view)
 const currentYear = new Date().getFullYear();
@@ -10,9 +12,11 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
     const { user } = useAuthStore();
     const [calendar, setCalendar] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [syncing, setSyncing] = useState(false);
     const [internalYear, setInternalYear] = useState(propYear || currentYear);
     const [totalContributions, setTotalContributions] = useState(0);
     const [hoveredDay, setHoveredDay] = useState(null);
+    const [needsSync, setNeedsSync] = useState(false);
 
     // Use prop year if provided, otherwise internal state
     const selectedYear = propYear !== undefined ? propYear : internalYear;
@@ -24,9 +28,83 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
         }
     };
 
+    // Check if user needs initial data sync
+    const checkSyncStatus = useCallback(async () => {
+        if (!user) return;
+        
+        try {
+            const token = localStorage.getItem('token');
+            const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+            
+            const response = await fetch(`${API_BASE}/api/sync/user-data`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                setNeedsSync(data.needsSync);
+                return data.needsSync;
+            }
+        } catch (error) {
+            console.error('Failed to check sync status:', error);
+        }
+        return false;
+    }, [user]);
+
+    // Trigger data sync for new users
+    const syncUserData = useCallback(async () => {
+        if (!user || syncing) return;
+        
+        setSyncing(true);
+        try {
+            const token = localStorage.getItem('token');
+            const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+            
+            toast.info('Syncing your GitHub history...');
+            
+            const response = await fetch(`${API_BASE}/api/sync/user-data`, {
+                method: 'POST',
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                toast.success(`Synced ${data.prsImported} PRs and ${data.issuesImported} issues!`);
+                setNeedsSync(false);
+                // Reload calendar data after sync
+                await loadData();
+            } else {
+                throw new Error('Sync failed');
+            }
+        } catch (error) {
+            console.error('Failed to sync user data:', error);
+            toast.error('Failed to sync your GitHub history');
+        } finally {
+            setSyncing(false);
+        }
+    }, [user, syncing]);
+
     useEffect(() => {
         loadData();
     }, [user, selectedYear]);
+
+    // Check sync status on mount
+    useEffect(() => {
+        const initSync = async () => {
+            const shouldSync = await checkSyncStatus();
+            // Auto-sync for new users
+            if (shouldSync) {
+                syncUserData();
+            }
+        };
+        
+        if (user) {
+            initSync();
+        }
+    }, [user, checkSyncStatus, syncUserData]);
 
     const loadData = async () => {
         if (!user) {
@@ -119,11 +197,12 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
         return { weeks: weeksArr, monthPositions: monthPos };
     }, [calendar, selectedYear]);
 
-    if (loading) {
+    if (loading || syncing) {
         return (
             <div className="bg-[#0d1117] rounded-lg border border-[#30363d] p-4">
-                <div className="flex justify-center py-8">
+                <div className="flex justify-center items-center py-8 gap-3">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#238636]"></div>
+                    {syncing && <span className="text-[#8b949e] text-sm">Syncing GitHub history...</span>}
                 </div>
             </div>
         );
@@ -131,10 +210,21 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
 
     return (
         <div className="bg-[#0d1117] rounded-lg border border-[#30363d] p-4">
-            {/* Header: Total contributions */}
-            <h2 className="text-base font-normal text-[#c9d1d9] mb-4">
-                <span className="font-semibold">{totalContributions.toLocaleString()}</span> contributions in {selectedYear}
-            </h2>
+            {/* Header: Total contributions with sync button */}
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-normal text-[#c9d1d9]">
+                    <span className="font-semibold">{totalContributions.toLocaleString()}</span> contributions in {selectedYear}
+                </h2>
+                <button
+                    onClick={syncUserData}
+                    disabled={syncing}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d] rounded-md transition-colors"
+                    title="Sync GitHub history"
+                >
+                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Syncing...' : 'Refresh'}
+                </button>
+            </div>
 
             {/* Main layout: Calendar + Year buttons */}
             <div className="flex gap-4">
