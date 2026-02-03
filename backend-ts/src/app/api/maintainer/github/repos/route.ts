@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "GitHub token not available" }, { status: 400 });
         }
 
-        // Fetch user's owned repos from GitHub
-        const response = await fetch("https://api.github.com/user/repos?affiliation=owner&per_page=100&sort=updated", {
+        // Fetch user's repos from GitHub (owned and where they have push/admin access)
+        const response = await fetch("https://api.github.com/user/repos?affiliation=owner,collaborator&per_page=100&sort=updated", {
             headers: {
                 "Authorization": `Bearer ${user.githubAccessToken}`,
                 "Accept": "application/vnd.github.v3+json",
@@ -38,16 +38,18 @@ export async function GET(request: NextRequest) {
 
         const githubRepos = await response.json();
 
-        // Get already-added repos to filter them out
-        const existingRepos = await db.select({ githubRepoId: repositories.githubRepoId })
+        // Get already-added repos to filter them out (by name since githubRepoId might be 0)
+        const existingRepos = await db.select({ name: repositories.name })
             .from(repositories)
             .where(eq(repositories.userId, user.id));
 
-        const existingIds = new Set(existingRepos.map(r => r.githubRepoId));
+        const existingNames = new Set(existingRepos.map(r => r.name));
 
-        // Filter and format repos
+        // Filter and format repos - filter by fullName
         const availableRepos = githubRepos
-            .filter((repo: any) => !existingIds.has(repo.id))
+            .filter((repo: any) => !existingNames.has(repo.full_name))
+            // Only include repos where user has admin or push permissions
+            .filter((repo: any) => repo.permissions?.admin || repo.permissions?.push || repo.permissions?.maintain)
             .map((repo: any) => ({
                 id: repo.id,
                 name: repo.name,

@@ -48,16 +48,21 @@ export async function POST(request: NextRequest) {
             throw error;
         }
 
-        // Get or create repository entry
+        // Get or create repository entry for THIS USER
+        // Important: Each user needs their own repository entry to show in their dashboard
         let repoId: string;
         const existingRepo = await db.select({ id: repositories.id })
             .from(repositories)
-            .where(eq(repositories.name, repoName))
+            .where(and(
+                eq(repositories.name, repoName),
+                eq(repositories.userId, user.id)
+            ))
             .limit(1);
 
         if (existingRepo[0]) {
             repoId = existingRepo[0].id;
         } else {
+            // Create a new repository entry for this user
             repoId = uuidv4();
             await db.insert(repositories).values({
                 id: repoId,
