@@ -296,6 +296,7 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
     })();
     
     // Activity data for radar - ensure meaningful values
+    // Map API field names: totalCommits, totalPRs, totalIssues, totalReviews, public_repos
     const rawActivityData = isGitHubFallback && publicContributions ? {
         commits: Math.min(100, (publicContributions.pushEvents || 0) * 2),
         issues: Math.min(100, (publicContributions.issueEvents || 0) * 10),
@@ -303,11 +304,11 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         reviews: Math.min(100, 10),
         repos: Math.min(100, (githubStats?.public_repos || 0) * 2),
     } : {
-        commits: Math.min(100, (githubStats?.commits || 0) / 10),
-        issues: Math.min(100, (githubStats?.issues || 0) * 5),
-        pullRequests: Math.min(100, (githubStats?.pullRequests || 0) * 3),
-        reviews: Math.min(100, (githubStats?.reviews || 0) * 4),
-        repos: Math.min(100, (githubStats?.repos || 0) * 2),
+        commits: Math.min(100, (githubStats?.totalCommits || githubStats?.commits || 0) / 10),
+        issues: Math.min(100, (githubStats?.totalIssues || githubStats?.issues || 0) * 5),
+        pullRequests: Math.min(100, (githubStats?.totalPRs || githubStats?.pullRequests || 0) * 3),
+        reviews: Math.min(100, (githubStats?.totalReviews || githubStats?.reviews || 0) * 4),
+        repos: Math.min(100, (githubStats?.public_repos || githubStats?.repos || 0) * 2),
     };
     
     // Use demo data if all values are 0
@@ -403,19 +404,19 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                         <MiniStat 
                             icon={GitCommit} 
                             label="Commits" 
-                            value={githubStats?.commits || publicContributions?.pushEvents || 0}
+                            value={githubStats?.totalCommits || githubStats?.commits || publicContributions?.pushEvents || 0}
                             color="green"
                         />
                         <MiniStat 
                             icon={GitPullRequest} 
                             label="PRs" 
-                            value={githubStats?.pullRequests || publicContributions?.prEvents || 0}
+                            value={githubStats?.totalPRs || githubStats?.pullRequests || publicContributions?.prEvents || 0}
                             color="blue"
                         />
                         <MiniStat 
                             icon={Star} 
                             label="Stars" 
-                            value={githubStats?.stars || 0}
+                            value={githubStats?.total_stars || githubStats?.stars || 0}
                             color="orange"
                         />
                         <MiniStat 
