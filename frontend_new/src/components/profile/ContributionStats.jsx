@@ -95,22 +95,50 @@ const ActivityRadar = ({ data }) => {
     );
 };
 
-// Clean Language Donut Chart
+// Modern Language Donut Chart with enhanced UI
 const LanguageDonut = ({ languages }) => {
-    const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
+    // GitHub-style language colors
+    const LANGUAGE_COLORS = {
+        'JavaScript': '#f1e05a',
+        'TypeScript': '#3178c6',
+        'Python': '#3572A5',
+        'Java': '#b07219',
+        'Go': '#00ADD8',
+        'Rust': '#dea584',
+        'Ruby': '#701516',
+        'C++': '#f34b7d',
+        'C#': '#178600',
+        'PHP': '#4F5D95',
+        'Swift': '#F05138',
+        'Kotlin': '#A97BFF',
+        'Scala': '#c22d40',
+        'Shell': '#89e051',
+        'HTML': '#e34c26',
+        'CSS': '#563d7c',
+        'Vue': '#41b883',
+        'Dart': '#00B4AB',
+    };
+    
+    const DEFAULT_COLORS = ['#3fb950', '#58a6ff', '#a371f7', '#f78166', '#db61a2', '#79c0ff'];
     const [activeIndex, setActiveIndex] = useState(null);
     
     let data = Object.entries(languages || {})
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([name, value]) => ({ name, value }));
+        .slice(0, 6)
+        .map(([name, value], index) => ({ 
+            name, 
+            value,
+            color: LANGUAGE_COLORS[name] || DEFAULT_COLORS[index % DEFAULT_COLORS.length]
+        }));
     
     // Show placeholder when no data is available
     if (data.length === 0 || data.every(d => d.value === 0)) {
         return (
-            <div className="relative h-[200px] flex flex-col items-center justify-center">
-                <div className="text-[#7d8590] text-sm mb-2">Loading languages...</div>
-                <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <div className="relative h-[240px] flex flex-col items-center justify-center bg-gradient-to-br from-[#161b22] to-[#0d1117] rounded-xl">
+                <div className="w-20 h-20 rounded-full border-4 border-[#30363d] flex items-center justify-center mb-3">
+                    <div className="w-12 h-12 rounded-full border-2 border-[#238636]/30 border-t-[#238636] animate-spin" />
+                </div>
+                <div className="text-[#8b949e] text-sm">Analyzing languages...</div>
             </div>
         );
     }
@@ -119,89 +147,117 @@ const LanguageDonut = ({ languages }) => {
     const topLanguage = data[0]?.name || 'N/A';
     const topPercent = total > 0 ? ((data[0]?.value / total) * 100).toFixed(0) : 0;
 
-    // Custom tooltip that shows language name and percentage
+    // Custom tooltip
     const CustomTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
-            const { name, value } = payload[0].payload;
+            const { name, value, color } = payload[0].payload;
             const percentage = ((value / total) * 100).toFixed(1);
             return (
-                <div className="bg-[#1f2937] border border-[#374151] rounded-lg px-3 py-2 shadow-lg">
-                    <p className="text-sm font-semibold text-white">{name}</p>
-                    <p className="text-xs text-gray-300">{percentage}% of code</p>
+                <div className="bg-[#161b22] border border-[#30363d] rounded-xl px-4 py-3 shadow-xl backdrop-blur-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                        <p className="text-sm font-semibold text-white">{name}</p>
+                    </div>
+                    <p className="text-xs text-[#8b949e]">
+                        <span className="text-white font-medium">{percentage}%</span> of codebase
+                    </p>
                 </div>
             );
         }
         return null;
     };
 
-    // Handle mouse events for hover effect
-    const onPieEnter = (_, index) => {
-        setActiveIndex(index);
-    };
-
-    const onPieLeave = () => {
-        setActiveIndex(null);
-    };
+    const onPieEnter = (_, index) => setActiveIndex(index);
+    const onPieLeave = () => setActiveIndex(null);
     
     return (
-        <div className="relative">
-            <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                    <Pie
-                        data={data}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                        onMouseEnter={onPieEnter}
-                        onMouseLeave={onPieLeave}
-                    >
-                        {data.map((entry, index) => (
-                            <Cell 
-                                key={`cell-${index}`} 
-                                fill={COLORS[index % COLORS.length]}
-                                stroke={activeIndex === index ? '#fff' : 'transparent'}
-                                strokeWidth={activeIndex === index ? 2 : 0}
-                                style={{
-                                    filter: activeIndex === index ? 'brightness(1.2)' : 'none',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease-in-out',
+        <div className="relative bg-gradient-to-br from-[#161b22] to-[#0d1117] rounded-xl p-4">
+            {/* Chart Container */}
+            <div className="relative">
+                <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                        <Pie
+                            data={data}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={55}
+                            outerRadius={75}
+                            paddingAngle={3}
+                            dataKey="value"
+                            onMouseEnter={onPieEnter}
+                            onMouseLeave={onPieLeave}
+                            animationBegin={0}
+                            animationDuration={800}
+                        >
+                            {data.map((entry, index) => (
+                                <Cell 
+                                    key={`cell-${index}`} 
+                                    fill={entry.color}
+                                    stroke={activeIndex === index ? entry.color : 'transparent'}
+                                    strokeWidth={activeIndex === index ? 3 : 0}
+                                    style={{
+                                        filter: activeIndex === index ? 'brightness(1.2) drop-shadow(0 0 8px currentColor)' : 'none',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s ease',
+                                        opacity: activeIndex !== null && activeIndex !== index ? 0.5 : 1,
+                                    }}
+                                />
+                            ))}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                </ResponsiveContainer>
+                
+                {/* Center Content */}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                    <div 
+                        className="w-3 h-3 rounded-full mx-auto mb-1 transition-all duration-300"
+                        style={{ 
+                            backgroundColor: activeIndex !== null ? data[activeIndex]?.color : data[0]?.color,
+                            boxShadow: `0 0 12px ${activeIndex !== null ? data[activeIndex]?.color : data[0]?.color}40`
+                        }}
+                    />
+                    <span className="text-2xl font-bold text-white block">
+                        {activeIndex !== null 
+                            ? ((data[activeIndex]?.value / total) * 100).toFixed(0) 
+                            : topPercent}%
+                    </span>
+                    <p className="text-xs text-[#8b949e] max-w-[90px] truncate">
+                        {activeIndex !== null ? data[activeIndex]?.name : topLanguage}
+                    </p>
+                </div>
+            </div>
+            
+            {/* Legend - Modern Grid Layout */}
+            <div className="grid grid-cols-2 gap-2 mt-4">
+                {data.map((entry, index) => {
+                    const percentage = ((entry.value / total) * 100).toFixed(1);
+                    const isActive = activeIndex === index;
+                    return (
+                        <div 
+                            key={entry.name} 
+                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ${
+                                isActive ? 'bg-[#21262d]' : 'hover:bg-[#21262d]/50'
+                            }`}
+                            onMouseEnter={() => setActiveIndex(index)}
+                            onMouseLeave={() => setActiveIndex(null)}
+                        >
+                            <div 
+                                className="w-2.5 h-2.5 rounded-sm flex-shrink-0 transition-all duration-200" 
+                                style={{ 
+                                    backgroundColor: entry.color,
+                                    boxShadow: isActive ? `0 0 8px ${entry.color}` : 'none'
                                 }}
                             />
-                        ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-            </ResponsiveContainer>
-            {/* Center text - shows hovered language or top language */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none" style={{ marginTop: '-5px' }}>
-                <span className="text-2xl font-bold text-white">
-                    {activeIndex !== null 
-                        ? ((data[activeIndex]?.value / total) * 100).toFixed(0) 
-                        : topPercent}%
-                </span>
-                <p className="text-xs text-gray-400 max-w-[80px] truncate">
-                    {activeIndex !== null ? data[activeIndex]?.name : topLanguage}
-                </p>
-            </div>
-            {/* Legend */}
-            <div className="flex flex-wrap justify-center gap-4 mt-3">
-                {data.slice(0, 4).map((entry, index) => (
-                    <div 
-                        key={entry.name} 
-                        className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-                        onMouseEnter={() => setActiveIndex(index)}
-                        onMouseLeave={() => setActiveIndex(null)}
-                    >
-                        <div 
-                            className="w-2.5 h-2.5 rounded-full" 
-                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                        />
-                        <span className="text-xs text-gray-400">{entry.name}</span>
-                    </div>
-                ))}
+                            <span className={`text-xs truncate flex-1 transition-colors ${isActive ? 'text-white' : 'text-[#8b949e]'}`}>
+                                {entry.name}
+                            </span>
+                            <span className={`text-xs font-medium transition-colors ${isActive ? 'text-white' : 'text-[#484f58]'}`}>
+                                {percentage}%
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

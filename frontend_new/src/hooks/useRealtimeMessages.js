@@ -44,7 +44,7 @@ export function useRealtimeMessages({
         setIsConnected(realtimeMessagingClient.getIsConnected());
         setConnectionError(null);
       } catch (error) {
-        console.error("Failed to connect to real-time messaging:", error);
+        // Silently handle connection errors - polling will be used as fallback
         setConnectionError(error.message);
         setIsConnected(false);
       }
