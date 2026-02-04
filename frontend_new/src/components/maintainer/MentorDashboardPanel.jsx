@@ -31,6 +31,30 @@ const MentorDashboardPanel = () => {
         }
     }, [selectedChat]);
 
+    // Polling for real-time updates (since WebSocket may not be available)
+    useEffect(() => {
+        const pollMessages = async () => {
+            if (!selectedChat || chatLoading) return;
+            
+            try {
+                const history = await messagingApi.getHistory(selectedChat.user_id);
+                if (history && history.length > 0) {
+                    // Only update if there are new messages
+                    if (history.length !== chatMessages.length || 
+                        (history[history.length - 1]?.id !== chatMessages[chatMessages.length - 1]?.id)) {
+                        setChatMessages(history);
+                    }
+                }
+            } catch (error) {
+                console.debug('Message poll error:', error);
+            }
+        };
+
+        // Poll every 2 seconds for faster updates
+        const pollInterval = setInterval(pollMessages, 2000);
+        return () => clearInterval(pollInterval);
+    }, [selectedChat, chatMessages, chatLoading]);
+
     // Scroll to bottom when messages change or chat finishes loading
     useEffect(() => {
         const timeoutId = setTimeout(() => {

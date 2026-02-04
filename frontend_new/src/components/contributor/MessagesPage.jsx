@@ -34,11 +34,10 @@ const MessagesPage = () => {
         realtimeMessagingClient.connect()
             .then(() => {
                 setRealtimeConnected(true);
-                toast.success('Connected to real-time messaging');
             })
             .catch(error => {
                 console.error('Failed to connect to real-time messaging:', error);
-                toast.error('Real-time messaging unavailable, using polling');
+                // Don't show toast - polling will work silently
             });
 
         return () => {
@@ -126,31 +125,46 @@ const MessagesPage = () => {
 
     // Fallback polling when real-time is not available
     useEffect(() => {
-        if (realtimeConnected || !selectedChat || chatLoading) return;
+        if (realtimeConnected) return;
 
-        let consecutiveErrors = 0;
-        const MAX_ERRORS = 3;
-
-        const pollInterval = setInterval(async () => {
+        // Poll for new messages in the current chat
+        const pollMessages = async () => {
+            if (!selectedChat || chatLoading) return;
+            
             try {
-                const lastMsgId = messages[messages.length - 1]?.id;
-                const newMessages = await messagingApi.pollMessages(selectedChat.user_id, lastMsgId);
-                if (newMessages && newMessages.length > 0) {
-                    setMessages(prev => [...prev, ...newMessages]);
-                    // Mark new messages as read
-                    await messagingApi.markRead(selectedChat.user_id);
+                const history = await messagingApi.getHistory(selectedChat.user_id);
+                if (history && history.length > 0) {
+                    // Only update if there are new messages
+                    if (history.length !== messages.length || 
+                        (history[history.length - 1]?.id !== messages[messages.length - 1]?.id)) {
+                        setMessages(history);
+                    }
                 }
-                consecutiveErrors = 0;
             } catch (error) {
-                consecutiveErrors++;
-                console.debug(`Message poll error (${consecutiveErrors}/${MAX_ERRORS}):`, error);
-
-                if (consecutiveErrors >= MAX_ERRORS) {
-                    clearInterval(pollInterval);
-                    toast.error('Lost connection to messaging service. Please refresh the page.');
-                }
+                console.debug('Message poll error:', error);
             }
-        }, 3000);
+        };
+
+        // Poll for conversations updates
+        const pollConversations = async () => {
+            try {
+                const data = await messagingApi.getConversations();
+                const sortedConversations = (data.conversations || []).sort((a, b) => {
+                    const aTime = a.last_message_timestamp || '';
+                    const bTime = b.last_message_timestamp || '';
+                    return bTime.localeCompare(aTime);
+                });
+                setConversations(sortedConversations);
+            } catch (error) {
+                console.debug('Conversations poll error:', error);
+            }
+        };
+
+        // Poll every 2 seconds for faster updates
+        const pollInterval = setInterval(() => {
+            pollMessages();
+            pollConversations();
+        }, 2000);
 
         return () => clearInterval(pollInterval);
     }, [realtimeConnected, selectedChat, messages, chatLoading]);
@@ -283,9 +297,9 @@ const MessagesPage = () => {
     }
 
     return (
-        <div className="h-full flex">
-            {/* Left Panel - Conversations List */}
-            <div className={`w-80 border-r border-[hsl(220,13%,12%)] flex flex-col ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
+        <div className="h-full flex overflow-hidden">
+            {/* Left Panel - Conversations List - Always visible on md+ screens */}
+            <div className={`w-80 min-w-[320px] border-r border-[hsl(220,13%,12%)] flex flex-col bg-[hsl(220,13%,6%)] ${selectedChat ? 'hidden md:flex' : 'flex w-full md:w-80 md:min-w-[320px]'}`}>
                 <div className="p-4 border-b border-[hsl(220,13%,15%)]">
                     <h1 className="text-xl font-bold text-[hsl(210,11%,90%)] mb-3">Messages</h1>
                     <div className="relative">
@@ -339,7 +353,7 @@ const MessagesPage = () => {
             </div>
 
             {/* Right Panel - Chat */}
-            <div className={`flex-1 flex flex-col ${!selectedChat ? 'hidden md:flex' : 'flex'}`}>
+            <div className={`flex-1 flex flex-col min-w-0 ${!selectedChat ? 'hidden md:flex' : 'flex'}`}>
                 {selectedChat ? (
                     <>
                         {/* Chat Header */}
