@@ -20,9 +20,28 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "10");
+        const isPRParam = searchParams.get("isPR");
+        const repoParam = searchParams.get("repo");
 
-        // Get issues from database
-        const issuesData = await getIssuesWithTriage({ authorName: user.username }, page, limit);
+        // Build filters
+        const filters: { authorName: string; isPR?: boolean; repoName?: string } = { 
+            authorName: user.username 
+        };
+        
+        // Add isPR filter if specified
+        if (isPRParam === 'true') {
+            filters.isPR = true;
+        } else if (isPRParam === 'false') {
+            filters.isPR = false;
+        }
+        
+        // Add repo filter if specified
+        if (repoParam && repoParam !== 'all') {
+            filters.repoName = repoParam;
+        }
+
+        // Get issues from database with filters
+        const issuesData = await getIssuesWithTriage(filters, page, limit);
 
         // If database has results, return them
         if (issuesData.total > 0) {

@@ -70,6 +70,7 @@ export async function updateIssueState(id: string, state: string) {
 
 export interface IssueFilters {
     repoId?: string;
+    repoName?: string;  // Filter by repo name (owner/repo format)
     userId?: string;
     authorName?: string;
     state?: string;
@@ -83,6 +84,7 @@ export async function getIssues(filters: IssueFilters, page = 1, limit = 10) {
     // Build conditions
     const conditions = [];
     if (filters.repoId) conditions.push(eq(issues.repoId, filters.repoId));
+    if (filters.repoName) conditions.push(eq(issues.repoName, filters.repoName));
     if (filters.authorName) conditions.push(eq(issues.authorName, filters.authorName));
     if (filters.state) conditions.push(eq(issues.state, filters.state));
     if (filters.isPR !== undefined) conditions.push(eq(issues.isPR, filters.isPR));

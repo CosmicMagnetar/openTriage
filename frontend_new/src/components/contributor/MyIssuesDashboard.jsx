@@ -98,10 +98,10 @@ const MyIssuesDashboard = () => {
     checkAndTriggerOnboardingSync();
   }, []);
 
-  // Reload when page changes
+  // Reload when page or filters change
   useEffect(() => {
     loadDashboardData();
-  }, [currentPage]);
+  }, [currentPage, activeFilter, selectedRepo]);
 
   const loadDashboardData = async (isAutoSync = false) => {
     if (!isAutoSync) {
@@ -111,11 +111,27 @@ const MyIssuesDashboard = () => {
     }
 
     try {
-      // Fetch both issues (with pagination) and dashboard summary
+      // Build filter params for backend
+      const filterParams = { 
+        page: currentPage, 
+        limit: ITEMS_PER_PAGE 
+      };
+      
+      // Add type filter
+      if (activeFilter === 'prs') {
+        filterParams.isPR = 'true';
+      } else if (activeFilter === 'issues') {
+        filterParams.isPR = 'false';
+      }
+      
+      // Add repo filter
+      if (selectedRepo !== 'all') {
+        filterParams.repo = selectedRepo;
+      }
+
+      // Fetch both issues (with pagination and filters) and dashboard summary
       const [issuesResponse, statsResponse] = await Promise.all([
-        axios.get(`${API}/contributor/my-issues`, {
-          params: { page: currentPage, limit: ITEMS_PER_PAGE }
-        }),
+        axios.get(`${API}/contributor/my-issues`, { params: filterParams }),
         axios.get(`${API}/contributor/dashboard-summary`)
       ]);
 
@@ -217,24 +233,12 @@ const MyIssuesDashboard = () => {
     return repos.sort();
   }, [issues, dashboardStats]);
 
-  // Filter and sort issues
-  const filteredAndSortedIssues = useMemo(() => {
-    let filtered = [...issues];
+  // Sort issues (filtering is now done by backend)
+  const sortedIssues = useMemo(() => {
+    let sorted = [...issues];
 
-    // Apply type filter
-    if (activeFilter === 'prs') {
-      filtered = filtered.filter(i => i.isPR);
-    } else if (activeFilter === 'issues') {
-      filtered = filtered.filter(i => !i.isPR);
-    }
-
-    // Apply repository filter
-    if (selectedRepo !== 'all') {
-      filtered = filtered.filter(i => i.repoName === selectedRepo);
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
+    // Apply client-side sorting only
+    sorted.sort((a, b) => {
       if (sortBy === 'newest') {
         return new Date(b.createdAt) - new Date(a.createdAt);
       } else if (sortBy === 'oldest') {
@@ -245,16 +249,16 @@ const MyIssuesDashboard = () => {
       return 0;
     });
 
-    return filtered;
-  }, [issues, activeFilter, sortBy, selectedRepo]);
+    return sorted;
+  }, [issues, sortBy]);
 
-  // Client-side filtering/sorting still works - pagination is handled by backend
-  // paginatedIssues is now just the filtered/sorted issues (already paginated from backend)
-
-  // Reset to page 1 when filters change
+  // Reset to page 1 when filters change (sortBy doesn't need page reset - sorting is client-side)
   useEffect(() => {
-    setCurrentPage(1);
-  }, [activeFilter, selectedRepo, sortBy]);
+    // Only reset page for filter changes, not for initial mount
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [activeFilter, selectedRepo]);
 
   const stats = dashboardStats || {
     totalContributions: issues.length,
@@ -498,7 +502,7 @@ const MyIssuesDashboard = () => {
             {/* Filtered Results Count */}
             {(activeFilter !== 'all' || selectedRepo !== 'all' || totalPages > 1) && (
               <div className="mb-4 text-sm text-[hsl(210,11%,50%)]">
-                Showing {filteredAndSortedIssues.length} of {totalItems} items
+                Showing {sortedIssues.length} of {totalItems} items
                 {selectedRepo !== 'all' && <span> in <span className="text-[hsl(142,70%,55%)]">{selectedRepo}</span></span>}
                 {totalPages > 1 && <span> • Page {currentPage} of {totalPages}</span>}
               </div>
@@ -506,8 +510,8 @@ const MyIssuesDashboard = () => {
 
             {/* Issues Grid */}
             <div className="grid gap-4">
-              {filteredAndSortedIssues.length > 0 ? (
-                filteredAndSortedIssues.map((issue) => (
+              {sortedIssues.length > 0 ? (
+                sortedIssues.map((issue) => (
                   <ParticipantIssueCard key={issue.id} issue={issue} />
                 ))
               ) : (
