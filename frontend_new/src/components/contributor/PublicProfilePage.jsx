@@ -28,21 +28,43 @@ const PublicProfilePage = () => {
             setNotFound(false);
             setRateLimited(false);
             
-            // Try to get OpenTriage profile first
+            // Try to get profile from our backend (handles both registered users and GitHub fallback)
             let profileData = null;
             let githubStatsData = null;
             let featuredData = { badges: [] };
             
-            // Fetch profile - wrapped in its own try-catch so we can fallback to GitHub
             try {
                 profileData = await profileApi.getProfile(username);
+                
+                // Check if this is an external user (GitHub only, not registered)
+                if (profileData?.isExternalUser) {
+                    // Transform external user data to expected format
+                    setProfile({
+                        username: profileData.username,
+                        avatar_url: profileData.avatarUrl,
+                        bio: profileData.bio || '',
+                        name: profileData.github?.name,
+                        location: profileData.location,
+                        company: profileData.github?.company,
+                        skills: [],
+                        isGitHubFallback: true,
+                        github_stats: {
+                            public_repos: profileData.github?.public_repos || 0,
+                            followers: profileData.github?.followers || 0,
+                            following: profileData.github?.following || 0,
+                            totalContributions: 0,
+                        }
+                    });
+                    setLoading(false);
+                    return;
+                }
             } catch (e) {
-                // Profile not found in database - that's ok, we'll try GitHub
-                console.log('Profile not in OpenTriage database, will try GitHub fallback');
+                // Profile API failed - try direct GitHub fallback
+                console.log('Profile API failed, trying GitHub fallback');
             }
             
-            // If we have profile data, also fetch featured badges and stats
-            if (profileData) {
+            // If we have profile data from a registered user, fetch additional data
+            if (profileData && !profileData.isExternalUser) {
                 try {
                     [featuredData, githubStatsData] = await Promise.all([
                         profileApi.getFeaturedBadges(username).catch(() => ({ badges: [] })),
@@ -53,48 +75,9 @@ const PublicProfilePage = () => {
                 }
             }
 
-            // If no profile in database, fetch from GitHub API directly
-            // Use authenticated request if we have a token to avoid rate limits
+            // If profile API failed entirely, try direct GitHub API as last resort
             if (!profileData) {
                 try {
-                    const token = localStorage.getItem('token');
-                    const headers = token ? {
-                        'Authorization': `Bearer ${token}`,
-                    } : {};
-                    
-                    // First try to get the user via our backend (which has the GitHub token)
-                    try {
-                        const backendRes = await fetch(
-                            `${import.meta.env.VITE_BACKEND_URL}/api/user/github/${username}`,
-                            { headers: { 'Authorization': `Bearer ${token}` } }
-                        );
-                        if (backendRes.ok) {
-                            const githubUser = await backendRes.json();
-                            setProfile({
-                                username: githubUser.login || githubUser.username,
-                                avatar_url: githubUser.avatar_url || githubUser.avatarUrl,
-                                bio: githubUser.bio || '',
-                                name: githubUser.name,
-                                location: githubUser.location,
-                                company: githubUser.company,
-                                skills: [],
-                                isGitHubFallback: true,
-                                github_stats: {
-                                    public_repos: githubUser.public_repos || 0,
-                                    followers: githubUser.followers || 0,
-                                    following: githubUser.following || 0,
-                                    totalContributions: 0,
-                                    public_gists: githubUser.public_gists || 0,
-                                }
-                            });
-                            setLoading(false);
-                            return;
-                        }
-                    } catch (backendErr) {
-                        console.log('Backend GitHub lookup failed, trying direct API');
-                    }
-                    
-                    // Fallback: Direct GitHub API call (may be rate limited)
                     const githubRes = await fetch(`https://api.github.com/users/${username}`);
                     if (githubRes.ok) {
                         const githubUser = await githubRes.json();
@@ -119,7 +102,6 @@ const PublicProfilePage = () => {
                         setLoading(false);
                         return;
                     } else if (githubRes.status === 403) {
-                        // Rate limited - show a helpful message
                         console.log('GitHub API rate limited');
                         setRateLimited(true);
                         setLoading(false);
