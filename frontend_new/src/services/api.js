@@ -472,7 +472,11 @@ export const profileApi = {
       method: "PUT",
       body: JSON.stringify({ badge_ids: badgeIds }),
     }),
+};
 
+// ============ Sync API ============
+
+export const syncApi = {
   // Sync user's GitHub data
   syncUserData: () => apiRequest("/api/sync/user-data", { method: "POST" }),
 
@@ -509,4 +513,5 @@ export default {
   profileApi,
   repositoryApi,
   messagingApi,
+  syncApi,
 };

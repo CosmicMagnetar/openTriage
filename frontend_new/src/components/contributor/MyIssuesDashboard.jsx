@@ -1,10 +1,11 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import ParticipantIssueCard from './ParticipantIssueCard';
 import OpportunitiesPanel from './OpportunitiesPanel';
 import OrganizationsPanel from './OrganizationsPanel';
 import { FileQuestion, RefreshCw, TrendingUp, GitPullRequest, AlertCircle, ChevronDown, ArrowUpDown, Building2, ChevronLeft, ChevronRight, Clock, Loader2, Plus, X, Link, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { syncApi } from '../../services/api';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -30,6 +31,8 @@ const MyIssuesDashboard = () => {
   const [showOpportunities, setShowOpportunities] = useState(false);
   const [showOrganizations, setShowOrganizations] = useState(false);
   const [showTrackRepo, setShowTrackRepo] = useState(false);
+  const [isOnboardingSyncing, setIsOnboardingSyncing] = useState(false);
+  const hasCheckedOnboarding = useRef(false);
 
   // Filtering, sorting, and pagination state
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'prs', 'issues'
@@ -54,6 +57,45 @@ const MyIssuesDashboard = () => {
 
     // Cleanup interval on unmount
     return () => clearInterval(intervalId);
+  }, []);
+
+  // Check if this is a new user who needs onboarding sync
+  useEffect(() => {
+    const checkAndTriggerOnboardingSync = async () => {
+      // Only check once per session
+      if (hasCheckedOnboarding.current) return;
+      hasCheckedOnboarding.current = true;
+
+      try {
+        const syncStatus = await syncApi.getSyncStatus();
+        
+        // If user has never synced or has no data, trigger onboarding sync
+        if (syncStatus.needsSync) {
+          setIsOnboardingSyncing(true);
+          toast.info('Welcome! Syncing your GitHub contribution history...', {
+            duration: 5000,
+          });
+
+          const syncResult = await syncApi.syncUserData();
+          
+          if (syncResult.success) {
+            toast.success(
+              `Synced ${syncResult.totalPRs} PRs and ${syncResult.totalIssues} issues from GitHub!`,
+              { duration: 4000 }
+            );
+            // Reload dashboard to show updated data
+            await loadDashboardData();
+          }
+        }
+      } catch (error) {
+        console.error('Onboarding sync check failed:', error);
+        // Don't show error to user - they can still use the app
+      } finally {
+        setIsOnboardingSyncing(false);
+      }
+    };
+
+    checkAndTriggerOnboardingSync();
   }, []);
 
   // Reload when page changes

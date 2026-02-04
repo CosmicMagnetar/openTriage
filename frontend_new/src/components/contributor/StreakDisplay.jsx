@@ -266,11 +266,11 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
                                         {week.map((day, dayIdx) => (
                                             <div
                                                 key={`${weekIdx}-${dayIdx}`}
-                                                className={`w-[11px] h-[11px] rounded-sm cursor-pointer transition-all
+                                                className={`w-[11px] h-[11px] rounded-sm cursor-pointer heatmap-cell
                                                     ${!day.isInYear ? 'bg-transparent' :
                                                         day.isFuture ? 'bg-[#161b22]' :
                                                             getContributionColor(day.level)}
-                                                    ${hoveredDay?.date === day.date ? 'ring-1 ring-white' : ''}`}
+                                                    ${hoveredDay?.date === day.date ? 'ring-1 ring-white scale-125' : ''}`}
                                                 onMouseEnter={() => day.isInYear && !day.isFuture && setHoveredDay(day)}
                                                 onMouseLeave={() => setHoveredDay(null)}
                                             />

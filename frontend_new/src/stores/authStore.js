@@ -62,6 +62,10 @@ const useAuthStore = create((set, get) => ({
     localStorage.removeItem("token");
     delete axios.defaults.headers.common["Authorization"];
 
+    // Clear all localStorage items that might trigger re-auth
+    localStorage.removeItem("ably-auth");
+    localStorage.removeItem("realtimeToken");
+
     // Update state with isLoggingOut flag
     set({
       token: null,
@@ -84,11 +88,18 @@ const useAuthStore = create((set, get) => ({
       console.debug("Cleanup during logout:", e);
     }
 
+    // Force redirect to landing page (using window.location to ensure full cleanup)
+    // This ensures no React Router state persists
+    if (typeof window !== "undefined" && window.location.pathname !== "/") {
+      window.location.href = "/";
+      return; // Don't reset flag since we're navigating away
+    }
+
     // Reset logging out flag after a brief delay to allow navigation
     setTimeout(() => {
       isLoggingOut = false;
       set({ isLoggingOut: false });
-    }, 100);
+    }, 200);
   },
 
   // Check if currently logging out (for protected routes)

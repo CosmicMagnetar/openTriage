@@ -68,6 +68,16 @@ function App() {
       return;
     }
 
+    // Check if we're on a logout-sensitive path (landing/login page after logout)
+    const isLogoutPath =
+      window.location.pathname === "/" || window.location.pathname === "/login";
+    const hasStoredToken = localStorage.getItem("token");
+
+    // If no token and on landing page, don't try to load user
+    if (!hasStoredToken && !token && isLogoutPath) {
+      return;
+    }
+
     if (token) {
       localStorage.setItem("token", token);
       // Clean URL immediately - redirect to dashboard

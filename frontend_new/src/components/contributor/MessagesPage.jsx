@@ -69,6 +69,26 @@ const MessagesPage = () => {
                         return [...prev, message];
                     });
                 }
+                
+                // Update conversation list with new message info
+                setConversations(prev => {
+                    const otherUserId = message.sender_id !== user?.id ? message.sender_id : message.receiver_id;
+                    return prev.map(conv => {
+                        if (conv.user_id === otherUserId) {
+                            return {
+                                ...conv,
+                                last_message: message.content,
+                                last_message_timestamp: message.created_at,
+                                unread_count: conv.user_id === selectedChat?.user_id ? 0 : (conv.unread_count || 0) + 1
+                            };
+                        }
+                        return conv;
+                    }).sort((a, b) => {
+                        const aTime = a.last_message_timestamp || '';
+                        const bTime = b.last_message_timestamp || '';
+                        return bTime.localeCompare(aTime);
+                    });
+                });
             },
             onMessageEdited: (message) => {
                 if (message.sender_id === selectedChat.user_id || message.receiver_id === selectedChat.user_id) {

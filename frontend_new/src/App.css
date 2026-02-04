@@ -77,3 +77,57 @@ a {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
+
+/* Smooth content transitions for tabs and expandable sections */
+.tab-content-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.tab-content-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+/* Expand/collapse animation for heatmap and contribution sections */
+.expandable-content {
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.3s ease-in-out,
+              padding 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.expandable-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.expandable-content.expanded {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+/* Smooth height transitions for contribution calendar */
+.contribution-graph {
+  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Prevent layout jumps with smooth min-height */
+.stats-container {
+  transition: min-height 0.3s ease-out;
+}
+
+/* Grid cell hover animation for heatmap */
+.heatmap-cell {
+  transition: transform 0.15s ease-out, 
+              box-shadow 0.15s ease-out;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.2);
+  z-index: 10;
+}

@@ -97,6 +97,7 @@ const ActivityRadar = ({ data }) => {
 // Clean Language Donut Chart
 const LanguageDonut = ({ languages }) => {
     const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
+    const [activeIndex, setActiveIndex] = useState(null);
     
     let data = Object.entries(languages || {})
         .sort((a, b) => b[1] - a[1])
@@ -116,6 +117,30 @@ const LanguageDonut = ({ languages }) => {
     const total = data.reduce((sum, item) => sum + item.value, 0);
     const topLanguage = data[0]?.name || 'N/A';
     const topPercent = total > 0 ? ((data[0]?.value / total) * 100).toFixed(0) : 0;
+
+    // Custom tooltip that shows language name and percentage
+    const CustomTooltip = ({ active, payload }) => {
+        if (active && payload && payload.length) {
+            const { name, value } = payload[0].payload;
+            const percentage = ((value / total) * 100).toFixed(1);
+            return (
+                <div className="bg-[#1f2937] border border-[#374151] rounded-lg px-3 py-2 shadow-lg">
+                    <p className="text-sm font-semibold text-white">{name}</p>
+                    <p className="text-xs text-gray-300">{percentage}% of code</p>
+                </div>
+            );
+        }
+        return null;
+    };
+
+    // Handle mouse events for hover effect
+    const onPieEnter = (_, index) => {
+        setActiveIndex(index);
+    };
+
+    const onPieLeave = () => {
+        setActiveIndex(null);
+    };
     
     return (
         <div className="relative">
@@ -129,36 +154,46 @@ const LanguageDonut = ({ languages }) => {
                         outerRadius={80}
                         paddingAngle={2}
                         dataKey="value"
+                        onMouseEnter={onPieEnter}
+                        onMouseLeave={onPieLeave}
                     >
                         {data.map((entry, index) => (
                             <Cell 
                                 key={`cell-${index}`} 
                                 fill={COLORS[index % COLORS.length]}
+                                stroke={activeIndex === index ? '#fff' : 'transparent'}
+                                strokeWidth={activeIndex === index ? 2 : 0}
+                                style={{
+                                    filter: activeIndex === index ? 'brightness(1.2)' : 'none',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease-in-out',
+                                }}
                             />
                         ))}
                     </Pie>
-                    <Tooltip 
-                        contentStyle={{ 
-                            background: '#1f2937', 
-                            border: '1px solid #374151',
-                            borderRadius: '8px',
-                            color: '#e5e7eb',
-                        }}
-                        itemStyle={{ color: '#e5e7eb' }}
-                        labelStyle={{ color: '#9ca3af' }}
-                        formatter={(value) => [`${((value / total) * 100).toFixed(1)}%`, 'Usage']}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                 </PieChart>
             </ResponsiveContainer>
-            {/* Center text */}
+            {/* Center text - shows hovered language or top language */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none" style={{ marginTop: '-5px' }}>
-                <span className="text-2xl font-bold text-white">{topPercent}%</span>
-                <p className="text-xs text-gray-400">{topLanguage}</p>
+                <span className="text-2xl font-bold text-white">
+                    {activeIndex !== null 
+                        ? ((data[activeIndex]?.value / total) * 100).toFixed(0) 
+                        : topPercent}%
+                </span>
+                <p className="text-xs text-gray-400 max-w-[80px] truncate">
+                    {activeIndex !== null ? data[activeIndex]?.name : topLanguage}
+                </p>
             </div>
             {/* Legend */}
             <div className="flex flex-wrap justify-center gap-4 mt-3">
                 {data.slice(0, 4).map((entry, index) => (
-                    <div key={entry.name} className="flex items-center gap-1.5">
+                    <div 
+                        key={entry.name} 
+                        className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onMouseLeave={() => setActiveIndex(null)}
+                    >
                         <div 
                             className="w-2.5 h-2.5 rounded-full" 
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}

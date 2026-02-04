@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Code, GitBranch, Save, Plus, X, RefreshCw, Users, Flame, Trophy, Calendar, BarChart3 } from 'lucide-react';
+import { User, Code, GitBranch, Save, Plus, X, RefreshCw, Users, Flame, Trophy, Calendar, BarChart3, Sparkles } from 'lucide-react';
 import { profileApi, gamificationApi, trophyApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
@@ -11,10 +11,12 @@ import ContributionStats from '../profile/ContributionStats';
 import FeaturedBadges from './FeaturedBadges';
 import TopLanguages from './TopLanguages';
 import ContributorHype from './ContributorHype';
+import HypeScreen from './HypeScreen';
 
 const ProfilePage = () => {
     const { user } = useAuthStore();
     const [activeTab, setActiveTab] = useState('overview');
+    const [showHypeScreen, setShowHypeScreen] = useState(false);
     const [profile, setProfile] = useState(null);
     const [repos, setRepos] = useState([]);
     const [connectedRepos, setConnectedRepos] = useState([]);
@@ -169,6 +171,11 @@ const ProfilePage = () => {
         );
     }
 
+    // Show HypeScreen if requested
+    if (showHypeScreen) {
+        return <HypeScreen onBack={() => setShowHypeScreen(false)} />;
+    }
+
     return (
         <div className="h-full overflow-y-auto p-6">
             <div className="max-w-4xl mx-auto space-y-6">
@@ -256,8 +263,17 @@ const ProfilePage = () => {
                             {/* Top Languages from GitHub */}
                             <TopLanguages username={user?.username} />
 
-                            {/* Contributor Hype Generator */}
-                            <ContributorHype />
+                            {/* Contributor Hype Generator - Button to open dedicated screen */}
+                            <button
+                                onClick={() => setShowHypeScreen(true)}
+                                className="w-full bg-gradient-to-r from-[hsl(142,70%,45%)] to-[hsl(142,70%,35%)] hover:from-[hsl(142,70%,50%)] hover:to-[hsl(142,70%,40%)] 
+                                          text-white font-semibold py-4 px-6 rounded-xl transition-all transform hover:scale-105 active:scale-95
+                                          flex items-center justify-center gap-3 border border-[hsl(142,70%,50%)]/20 shadow-lg"
+                            >
+                                <Sparkles className="w-5 h-5" />
+                                <span>Share Your Contribution Hype</span>
+                                <Sparkles className="w-5 h-5" />
+                            </button>
 
                             {/* Profile Editor */}
                             <div className="bg-[hsl(220,13%,8%)] rounded-xl p-6 border border-[hsl(220,13%,15%)]">
