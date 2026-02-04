@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
-import { mentorshipRequests, mentors, messages } from "@/db/schema";
+import { mentorshipRequests, mentors, mentorMatches, messages, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
@@ -22,8 +22,9 @@ export async function POST(request: NextRequest) {
 
         // Find the mentor record for this user
         const mentorRecord = await db
-            .select({ id: mentors.id })
+            .select({ id: mentors.id, username: users.username })
             .from(mentors)
+            .leftJoin(users, eq(mentors.userId, users.id))
             .where(eq(mentors.userId, user.id))
             .limit(1);
 
@@ -58,13 +59,26 @@ export async function POST(request: NextRequest) {
             .set({ status: "accepted" })
             .where(eq(mentorshipRequests.id, requestId));
 
+        // Create mentor-mentee relationship in mentorMatches
+        await db.insert(mentorMatches).values({
+            id: uuidv4(),
+            mentorId: mentorId,
+            mentorUsername: mentorRecord[0].username || user.username || "",
+            menteeId: req.menteeId,
+            menteeUsername: req.menteeUsername || "",
+            compatibilityScore: 1.0,
+            matchReason: "Mentorship request accepted",
+            status: "active",
+            createdAt: new Date().toISOString(),
+        });
+
         // Send welcome message
         if (welcomeMessage) {
             await db.insert(messages).values({
                 id: uuidv4(),
                 senderId: user.id,
                 receiverId: req.menteeId,
-                content: `[Mentorship Welcome] ${welcomeMessage}`,
+                content: welcomeMessage,
                 read: false,
                 timestamp: new Date().toISOString(),
             });

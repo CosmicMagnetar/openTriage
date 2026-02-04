@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
-import { mentorMatches, users } from "@/db/schema";
+import { mentorMatches, mentors, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -10,6 +10,21 @@ export async function GET(request: NextRequest) {
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        // First find the mentor record for this user
+        const mentorRecord = await db
+            .select({ id: mentors.id })
+            .from(mentors)
+            .where(eq(mentors.userId, user.id))
+            .limit(1);
+
+        if (!mentorRecord[0]) {
+            console.log("[Get Mentees] No mentor record for user:", user.id);
+            return NextResponse.json({ mentees: [] });
+        }
+
+        const mentorId = mentorRecord[0].id;
+        console.log("[Get Mentees] Found mentor:", mentorId, "for user:", user.id);
 
         const mentees = await db
             .select({
@@ -24,10 +39,12 @@ export async function GET(request: NextRequest) {
             .leftJoin(users, eq(mentorMatches.menteeId, users.id))
             .where(
                 and(
-                    eq(mentorMatches.mentorId, user.id),
+                    eq(mentorMatches.mentorId, mentorId),
                     eq(mentorMatches.status, "active")
                 )
             );
+
+        console.log("[Get Mentees] Found", mentees.length, "active mentees");
 
         // Transform to match frontend expectations
         const formattedMentees = mentees.map(m => ({

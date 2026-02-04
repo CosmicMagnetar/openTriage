@@ -74,7 +74,7 @@ const MentorDashboardPanel = () => {
 
     const handleAcceptRequest = async (requestId) => {
         try {
-            await messagingApi.acceptMentorship(requestId, "Welcome! I'm excited to be your mentor. Feel free to ask me anything!");
+            await messagingApi.acceptMentorship(requestId, "Hey! I've accepted your mentorship request. Looking forward to helping you on your open source journey! Feel free to reach out anytime.");
             toast.success('Mentorship request accepted!');
             loadData();
         } catch (error) {
