@@ -4,7 +4,7 @@ import {
     Filter, Code, Flame, Clock, Tag, AlertCircle, X, Sparkles, 
     ChevronRight, Bookmark, TrendingUp, Zap, Check, BookOpen
 } from 'lucide-react';
-import useAuthStore from '../../stores/authStore';
+import useAuthStore from '@/stores/authStore';
 
 // Common issue labels for discovery with enhanced styling
 const COMMON_LABELS = [
