@@ -35,10 +35,11 @@ export async function GET(request: NextRequest) {
             }
         }
 
+        // Only return repositories that were explicitly added by the user (maintainer)
         const repos = await db
             .select()
             .from(repositories)
-            .where(eq(repositories.userId, userId))
+            .where(and(eq(repositories.userId, userId), eq(repositories.addedByUser, true)))
             .orderBy(desc(repositories.createdAt));
 
         // Add fullName for consistency with other endpoints
