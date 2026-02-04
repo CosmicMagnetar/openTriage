@@ -1,44 +1,29 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-    Search, RefreshCw, ExternalLink, Star, GitFork, MessageSquare,
+    Search, RefreshCw, ExternalLink, GitFork, MessageSquare,
     Filter, Code, Flame, Clock, Tag, AlertCircle, X, Sparkles, 
-    ChevronRight, Bookmark, TrendingUp, Zap, Check, BookOpen
+    Bookmark, TrendingUp, Check, BookOpen, Sprout, HelpCircle,
+    Bug, Lightbulb, FileText, Calendar, Baby, CheckCircle, Target,
+    PartyPopper, ArrowUpDown, Plus, Hash, Circle
 } from 'lucide-react';
 import useAuthStore from '@/stores/authStore';
 
-// Common issue labels for discovery with enhanced styling
+// Common issue labels with Lucide icons
 const COMMON_LABELS = [
-    { value: 'good first issue', label: 'Good First Issue', color: '7057ff', icon: '🌱' },
-    { value: 'help wanted', label: 'Help Wanted', color: '008672', icon: '🙋' },
-    { value: 'bug', label: 'Bug', color: 'd73a4a', icon: '🐛' },
-    { value: 'enhancement', label: 'Enhancement', color: 'a2eeef', icon: '✨' },
-    { value: 'documentation', label: 'Documentation', color: '0075ca', icon: '📝' },
-    { value: 'hacktoberfest', label: 'Hacktoberfest', color: 'ff7518', icon: '🎃' },
-    { value: 'beginner friendly', label: 'Beginner Friendly', color: '7057ff', icon: '👶' },
-    { value: 'easy', label: 'Easy', color: '22c55e', icon: '✅' },
-    { value: 'up for grabs', label: 'Up For Grabs', color: '10b981', icon: '🎯' },
-    { value: 'first-timers-only', label: 'First Timers Only', color: 'ec4899', icon: '🎉' },
+    { value: 'good first issue', label: 'Good First Issue', color: '7057ff', Icon: Sprout },
+    { value: 'help wanted', label: 'Help Wanted', color: '008672', Icon: HelpCircle },
+    { value: 'bug', label: 'Bug', color: 'd73a4a', Icon: Bug },
+    { value: 'enhancement', label: 'Enhancement', color: 'a2eeef', Icon: Lightbulb },
+    { value: 'documentation', label: 'Documentation', color: '0075ca', Icon: FileText },
+    { value: 'hacktoberfest', label: 'Hacktoberfest', color: 'ff7518', Icon: Calendar },
+    { value: 'beginner friendly', label: 'Beginner Friendly', color: '7057ff', Icon: Baby },
+    { value: 'easy', label: 'Easy', color: '22c55e', Icon: CheckCircle },
+    { value: 'up for grabs', label: 'Up For Grabs', color: '10b981', Icon: Target },
+    { value: 'first-timers-only', label: 'First Timers Only', color: 'ec4899', Icon: PartyPopper },
 ];
 
-// Popular languages with icons
-const LANGUAGE_CONFIG = {
-    'JavaScript': { color: '#f7df1e', icon: '🟨' },
-    'TypeScript': { color: '#3178c6', icon: '🔷' },
-    'Python': { color: '#3776ab', icon: '🐍' },
-    'Go': { color: '#00add8', icon: '🐹' },
-    'Rust': { color: '#dea584', icon: '🦀' },
-    'Java': { color: '#ed8b00', icon: '☕' },
-    'C++': { color: '#00599c', icon: '⚙️' },
-    'Ruby': { color: '#cc342d', icon: '💎' },
-    'PHP': { color: '#777bb4', icon: '🐘' },
-    'Swift': { color: '#fa7343', icon: '🍎' },
-    'Kotlin': { color: '#7f52ff', icon: '🎯' },
-    'C#': { color: '#512bd4', icon: '🎮' },
-};
-
 /**
- * DiscoveryEngine - Modern GitHub Issue Discovery
- * Beautiful UI with smart filtering and real-time search
+ * DiscoveryEngine - GitHub Issue Discovery with clean UI
  */
 const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
     const { token } = useAuthStore();
@@ -60,11 +45,9 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
     });
     const debounceRef = useRef(null);
 
-    // Default popular languages if user has none
     const defaultLanguages = ['JavaScript', 'Python', 'TypeScript', 'Go', 'Rust', 'Java', 'C++', 'Ruby', 'PHP', 'Swift'];
     const languages = userLanguages.length > 0 ? userLanguages : defaultLanguages;
 
-    // Debounced fetch to prevent rate limiting
     const debouncedFetch = useCallback(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
@@ -112,7 +95,6 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
         setError(null);
 
         try {
-            // Try backend API first (authenticated, higher rate limits)
             const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
             const params = new URLSearchParams({
                 labels: selectedLabels.join(','),
@@ -124,7 +106,6 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
             let response;
             let data;
 
-            // Try backend API with auth
             if (token) {
                 try {
                     response = await fetch(`${backendUrl}/api/discover/issues?${params}`, {
@@ -137,11 +118,10 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                         data = await response.json();
                     }
                 } catch (e) {
-                    // Backend not available, fall through to GitHub API
+                    // Backend not available
                 }
             }
 
-            // Fallback to direct GitHub API if backend fails
             if (!data) {
                 let query = 'is:issue is:open';
                 if (selectedLabels.length > 0) {
@@ -172,8 +152,6 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                 }
 
                 data = await response.json();
-                
-                // Get rate limit info from headers
                 setRateLimitInfo({
                     remaining: response.headers.get('x-ratelimit-remaining'),
                     limit: response.headers.get('x-ratelimit-limit'),
@@ -194,13 +172,11 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
         }
     };
 
-    // Parse repo info from issue URL
     const parseRepoInfo = (url) => {
         const match = url?.match(/repos\/([^/]+)\/([^/]+)/);
         return match ? { owner: match[1], repo: match[2] } : { owner: '', repo: '' };
     };
 
-    // Format relative time
     const formatTimeAgo = (dateStr) => {
         if (!dateStr) return '';
         const seconds = Math.floor((new Date() - new Date(dateStr)) / 1000);
@@ -217,40 +193,39 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
     const isIssueSaved = (issueId) => savedIssues.some(i => i.id === issueId);
 
     return (
-        <div className={`bg-gradient-to-br from-[#0d1117] to-[#161b22] rounded-2xl border border-[#30363d] overflow-hidden shadow-2xl ${className}`}>
-            {/* Hero Header */}
-            <div className="relative px-6 py-5 border-b border-[#30363d] bg-gradient-to-r from-[#238636]/10 via-transparent to-[#1f6feb]/10">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyMzg2MzYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-                <div className="relative flex items-center justify-between">
+        <div className={`bg-[#0d1117] rounded-xl border border-[#30363d] overflow-hidden ${className}`}>
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-[#21262d]">
+                <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-[#238636]/20 rounded-xl">
+                        <div className="p-2 bg-[#238636]/15 rounded-lg">
                             <Sparkles className="w-5 h-5 text-[#3fb950]" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                            <h2 className="text-base font-semibold text-[#e6edf3] flex items-center gap-2">
                                 Discovery Engine
-                                <span className="px-2 py-0.5 text-[10px] font-medium bg-[#238636]/30 text-[#3fb950] rounded-full uppercase tracking-wide">
-                                    Live
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium bg-[#238636]/20 text-[#3fb950] rounded">
+                                    LIVE
                                 </span>
                             </h2>
-                            <p className="text-sm text-[#8b949e]">
-                                Find your next open source contribution
+                            <p className="text-xs text-[#8b949e]">
+                                Find open source issues to contribute
                             </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setShowFilters(!showFilters)}
-                            className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all ${
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                                 showFilters 
                                     ? 'bg-[#238636] text-white' 
-                                    : 'bg-[#21262d] text-[#8b949e] hover:text-white hover:bg-[#30363d]'
+                                    : 'bg-[#21262d] text-[#c9d1d9] hover:bg-[#30363d]'
                             }`}
                         >
-                            <Filter className="w-4 h-4" />
+                            <Filter className="w-3.5 h-3.5" />
                             Filters
                             {selectedLabels.length > 1 && (
-                                <span className="px-1.5 py-0.5 text-[10px] bg-white/20 rounded-full">
+                                <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-white/20 rounded">
                                     {selectedLabels.length}
                                 </span>
                             )}
@@ -258,8 +233,7 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                         <button
                             onClick={fetchIssues}
                             disabled={loading}
-                            className="flex items-center gap-2 px-3 py-2 text-sm bg-[#21262d] text-[#8b949e] 
-                                hover:text-white hover:bg-[#30363d] rounded-lg transition-all"
+                            className="p-1.5 bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#30363d] rounded-md transition-colors"
                         >
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         </button>
@@ -267,46 +241,45 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                 </div>
             </div>
 
-            {/* Quick Stats Bar */}
-            <div className="flex items-center justify-between px-6 py-3 bg-[#161b22]/50 border-b border-[#21262d]">
-                <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1.5 text-sm">
-                        <TrendingUp className="w-4 h-4 text-[#3fb950]" />
-                        <span className="text-[#8b949e]">{totalCount.toLocaleString()}</span>
-                        <span className="text-[#484f58]">issues found</span>
+            {/* Stats Bar */}
+            <div className="flex items-center justify-between px-5 py-2.5 bg-[#161b22] border-b border-[#21262d]">
+                <div className="flex items-center gap-4 text-xs">
+                    <span className="flex items-center gap-1.5 text-[#8b949e]">
+                        <TrendingUp className="w-3.5 h-3.5 text-[#3fb950]" />
+                        <span className="font-medium text-[#e6edf3]">{totalCount.toLocaleString()}</span>
+                        issues
                     </span>
                     {lastFetched && (
-                        <span className="flex items-center gap-1.5 text-xs text-[#484f58]">
+                        <span className="flex items-center gap-1 text-[#6e7681]">
                             <Clock className="w-3 h-3" />
                             {formatTimeAgo(lastFetched)}
                         </span>
                     )}
                 </div>
                 {rateLimitInfo && (
-                    <span className="text-xs text-[#484f58]">
-                        {rateLimitInfo.remaining}/{rateLimitInfo.limit} API calls
+                    <span className="text-[10px] text-[#6e7681]">
+                        API: {rateLimitInfo.remaining}/{rateLimitInfo.limit}
                     </span>
                 )}
             </div>
 
             {/* Filters Panel */}
             {showFilters && (
-                <div className="px-6 py-4 bg-[#0d1117] border-b border-[#21262d] space-y-4">
-                    {/* Language & Sort Row */}
-                    <div className="flex flex-wrap items-center gap-4">
-                        {/* Language Selector */}
+                <div className="px-5 py-4 bg-[#161b22] border-b border-[#21262d] space-y-4">
+                    {/* Language & Sort */}
+                    <div className="flex flex-wrap gap-4">
                         <div className="flex-1 min-w-[200px]">
-                            <label className="flex items-center gap-2 text-xs text-[#8b949e] mb-2">
-                                <Code className="w-3.5 h-3.5" />
+                            <label className="flex items-center gap-1.5 text-xs text-[#8b949e] mb-2">
+                                <Code className="w-3 h-3" />
                                 Language
                             </label>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5">
                                 <button
                                     onClick={() => setSelectedLanguage('all')}
-                                    className={`px-3 py-1.5 text-xs rounded-lg transition-all ${
+                                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
                                         selectedLanguage === 'all'
                                             ? 'bg-[#238636] text-white'
-                                            : 'bg-[#21262d] text-[#8b949e] hover:text-white hover:bg-[#30363d]'
+                                            : 'bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#30363d]'
                                     }`}
                                 >
                                     All
@@ -315,20 +288,19 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                                     <button
                                         key={lang}
                                         onClick={() => setSelectedLanguage(lang)}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-all ${
+                                        className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
                                             selectedLanguage === lang
                                                 ? 'bg-[#238636] text-white'
-                                                : 'bg-[#21262d] text-[#8b949e] hover:text-white hover:bg-[#30363d]'
+                                                : 'bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#30363d]'
                                         }`}
                                     >
-                                        <span>{LANGUAGE_CONFIG[lang]?.icon || '📄'}</span>
                                         {lang}
                                     </button>
                                 ))}
                                 <select
                                     value={selectedLanguage}
-                                    onChange={(e) => setSelectedLanguage(e.target.value)}
-                                    className="px-3 py-1.5 text-xs bg-[#21262d] text-[#8b949e] rounded-lg border-0 
+                                    onChange={(e) => e.target.value && setSelectedLanguage(e.target.value)}
+                                    className="px-2 py-1 text-xs bg-[#21262d] text-[#8b949e] rounded-md border-0 
                                         focus:outline-none focus:ring-1 focus:ring-[#238636] cursor-pointer"
                                 >
                                     <option value="">More...</option>
@@ -339,109 +311,112 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                             </div>
                         </div>
 
-                        {/* Sort */}
                         <div>
-                            <label className="flex items-center gap-2 text-xs text-[#8b949e] mb-2">
-                                <Filter className="w-3.5 h-3.5" />
-                                Sort by
+                            <label className="flex items-center gap-1.5 text-xs text-[#8b949e] mb-2">
+                                <ArrowUpDown className="w-3 h-3" />
+                                Sort
                             </label>
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
-                                className="px-3 py-1.5 text-xs bg-[#21262d] text-[#c9d1d9] rounded-lg border-0 
+                                className="px-2.5 py-1 text-xs bg-[#21262d] text-[#c9d1d9] rounded-md border-0 
                                     focus:outline-none focus:ring-1 focus:ring-[#238636] cursor-pointer"
                             >
-                                <option value="created">🆕 Newest</option>
-                                <option value="updated">🔄 Recently Updated</option>
-                                <option value="comments">💬 Most Discussed</option>
-                                <option value="reactions">🔥 Most Popular</option>
+                                <option value="created">Newest</option>
+                                <option value="updated">Recently Updated</option>
+                                <option value="comments">Most Discussed</option>
+                                <option value="reactions">Most Popular</option>
                             </select>
                         </div>
                     </div>
 
-                    {/* Labels Section */}
+                    {/* Labels */}
                     <div>
-                        <label className="flex items-center gap-2 text-xs text-[#8b949e] mb-2">
-                            <Tag className="w-3.5 h-3.5" />
-                            Issue Labels
+                        <label className="flex items-center gap-1.5 text-xs text-[#8b949e] mb-2">
+                            <Tag className="w-3 h-3" />
+                            Labels
                         </label>
-                        <div className="flex flex-wrap gap-2">
-                            {COMMON_LABELS.map(label => {
-                                const isSelected = selectedLabels.includes(label.value);
+                        <div className="flex flex-wrap gap-1.5">
+                            {COMMON_LABELS.map(({ value, label, color, Icon }) => {
+                                const isSelected = selectedLabels.includes(value);
                                 return (
                                     <button
-                                        key={label.value}
-                                        onClick={() => toggleLabel(label.value)}
-                                        className={`group flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-all ${
-                                            isSelected 
-                                                ? 'ring-2 ring-offset-1 ring-offset-[#0d1117]' 
-                                                : 'opacity-60 hover:opacity-100'
+                                        key={value}
+                                        onClick={() => toggleLabel(value)}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md transition-all ${
+                                            isSelected ? 'ring-1 ring-offset-1 ring-offset-[#161b22]' : 'opacity-70 hover:opacity-100'
                                         }`}
                                         style={{
-                                            backgroundColor: `#${label.color}20`,
-                                            color: `#${label.color}`,
-                                            borderColor: `#${label.color}40`,
-                                            ringColor: isSelected ? `#${label.color}` : undefined
+                                            backgroundColor: `#${color}18`,
+                                            color: `#${color}`,
+                                            ringColor: isSelected ? `#${color}` : undefined
                                         }}
                                     >
-                                        <span>{label.icon}</span>
-                                        {label.label}
-                                        {isSelected && <Check className="w-3 h-3 ml-1" />}
+                                        <Icon className="w-3 h-3" />
+                                        {label}
+                                        {isSelected && <Check className="w-3 h-3" />}
                                     </button>
                                 );
                             })}
                         </div>
                         
-                        {/* Custom Label Input */}
+                        {/* Custom Label */}
                         <div className="flex gap-2 mt-3">
-                            <input
-                                type="text"
-                                value={customLabel}
-                                onChange={(e) => setCustomLabel(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && addCustomLabel()}
-                                placeholder="Add custom label..."
-                                className="flex-1 max-w-[200px] px-3 py-1.5 text-xs bg-[#0d1117] border border-[#30363d] 
-                                    rounded-lg text-[#c9d1d9] placeholder-[#484f58] focus:outline-none focus:border-[#238636]"
-                            />
+                            <div className="relative flex-1 max-w-[200px]">
+                                <Hash className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#6e7681]" />
+                                <input
+                                    type="text"
+                                    value={customLabel}
+                                    onChange={(e) => setCustomLabel(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && addCustomLabel()}
+                                    placeholder="Custom label..."
+                                    className="w-full pl-7 pr-3 py-1.5 text-xs bg-[#0d1117] border border-[#30363d] 
+                                        rounded-md text-[#c9d1d9] placeholder-[#6e7681] focus:outline-none focus:border-[#238636]"
+                                />
+                            </div>
                             <button
                                 onClick={addCustomLabel}
                                 disabled={!customLabel.trim()}
-                                className="px-3 py-1.5 text-xs bg-[#238636] text-white rounded-lg hover:bg-[#2ea043] 
-                                    disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="flex items-center gap-1 px-2.5 py-1.5 text-xs bg-[#238636] text-white rounded-md 
+                                    hover:bg-[#2ea043] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
+                                <Plus className="w-3 h-3" />
                                 Add
                             </button>
                         </div>
                     </div>
 
-                    {/* Active Filters Summary */}
+                    {/* Active Filters */}
                     {(selectedLabels.length > 0 || selectedLanguage !== 'all') && (
-                        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#21262d]">
-                            <span className="text-xs text-[#484f58]">Active:</span>
-                            {selectedLabels.map(label => {
-                                const labelInfo = COMMON_LABELS.find(l => l.value === label);
+                        <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-[#21262d]">
+                            <span className="text-[10px] text-[#6e7681] mr-1">Active:</span>
+                            {selectedLabels.map(labelVal => {
+                                const labelInfo = COMMON_LABELS.find(l => l.value === labelVal);
+                                const LabelIcon = labelInfo?.Icon || Tag;
                                 return (
                                     <span
-                                        key={label}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full cursor-pointer hover:opacity-80"
+                                        key={labelVal}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded cursor-pointer hover:opacity-80"
                                         style={{
-                                            backgroundColor: labelInfo ? `#${labelInfo.color}20` : '#21262d',
+                                            backgroundColor: labelInfo ? `#${labelInfo.color}18` : '#21262d',
                                             color: labelInfo ? `#${labelInfo.color}` : '#8b949e',
                                         }}
-                                        onClick={() => selectedLabels.length > 1 && toggleLabel(label)}
+                                        onClick={() => selectedLabels.length > 1 && toggleLabel(labelVal)}
                                     >
-                                        {labelInfo?.icon} {labelInfo?.label || label}
-                                        {selectedLabels.length > 1 && <X className="w-3 h-3" />}
+                                        <LabelIcon className="w-2.5 h-2.5" />
+                                        {labelInfo?.label || labelVal}
+                                        {selectedLabels.length > 1 && <X className="w-2.5 h-2.5" />}
                                     </span>
                                 );
                             })}
                             {selectedLanguage !== 'all' && (
                                 <span 
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-[#1f6feb]/20 text-[#58a6ff] rounded-full cursor-pointer hover:opacity-80"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] bg-[#1f6feb]/15 text-[#58a6ff] rounded cursor-pointer hover:opacity-80"
                                     onClick={() => setSelectedLanguage('all')}
                                 >
-                                    {LANGUAGE_CONFIG[selectedLanguage]?.icon} {selectedLanguage}
-                                    <X className="w-3 h-3" />
+                                    <Code className="w-2.5 h-2.5" />
+                                    {selectedLanguage}
+                                    <X className="w-2.5 h-2.5" />
                                 </span>
                             )}
                         </div>
@@ -450,39 +425,36 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
             )}
 
             {/* Content */}
-            <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+            <div className="max-h-[550px] overflow-y-auto">
                 {loading && issues.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 gap-4">
-                        <div className="relative">
-                            <div className="w-12 h-12 rounded-full border-2 border-[#238636]/30 border-t-[#238636] animate-spin" />
-                            <Sparkles className="w-5 h-5 text-[#238636] absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
-                        </div>
-                        <p className="text-sm text-[#8b949e]">Discovering issues...</p>
+                    <div className="flex flex-col items-center justify-center py-16 gap-3">
+                        <div className="w-10 h-10 rounded-full border-2 border-[#30363d] border-t-[#238636] animate-spin" />
+                        <p className="text-sm text-[#8b949e]">Searching issues...</p>
                     </div>
                 ) : error ? (
-                    <div className="px-6 py-12 text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 mb-4">
-                            <AlertCircle className="w-8 h-8 text-red-400" />
+                    <div className="px-5 py-12 text-center">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-500/10 mb-3">
+                            <AlertCircle className="w-6 h-6 text-red-400" />
                         </div>
                         <p className="text-sm text-red-400 mb-2">{error}</p>
                         <button
                             onClick={fetchIssues}
-                            className="mt-2 px-4 py-2 text-sm bg-[#21262d] text-[#c9d1d9] rounded-lg hover:bg-[#30363d] transition-colors"
+                            className="px-3 py-1.5 text-xs bg-[#21262d] text-[#c9d1d9] rounded-md hover:bg-[#30363d] transition-colors"
                         >
                             Try again
                         </button>
                     </div>
                 ) : issues.length === 0 ? (
-                    <div className="px-6 py-12 text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#21262d] mb-4">
-                            <Search className="w-8 h-8 text-[#484f58]" />
+                    <div className="px-5 py-12 text-center">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#21262d] mb-3">
+                            <Search className="w-6 h-6 text-[#6e7681]" />
                         </div>
                         <p className="text-sm text-[#8b949e]">No issues found</p>
-                        <p className="text-xs text-[#484f58] mt-1">Try adjusting your filters</p>
+                        <p className="text-xs text-[#6e7681] mt-1">Try different filters</p>
                     </div>
                 ) : (
                     <div className="divide-y divide-[#21262d]">
-                        {issues.map((issue, index) => {
+                        {issues.map((issue) => {
                             const { owner, repo } = parseRepoInfo(issue.repository_url);
                             const isSaved = isIssueSaved(issue.id);
                             
@@ -492,65 +464,63 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                                     href={issue.html_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="group block px-6 py-4 hover:bg-[#161b22] transition-all duration-200"
-                                    style={{ animationDelay: `${index * 30}ms` }}
+                                    className="group block px-5 py-3.5 hover:bg-[#161b22] transition-colors"
                                 >
-                                    <div className="flex items-start gap-4">
-                                        {/* Issue Number Badge */}
-                                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#238636]/10 flex items-center justify-center">
-                                            <BookOpen className="w-5 h-5 text-[#3fb950]" />
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-shrink-0 mt-0.5">
+                                            <Circle className="w-4 h-4 text-[#3fb950]" fill="#3fb950" />
                                         </div>
                                         
                                         <div className="flex-1 min-w-0">
-                                            {/* Repository */}
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <GitFork className="w-3.5 h-3.5 text-[#484f58]" />
-                                                <span className="text-xs text-[#8b949e] hover:text-[#58a6ff] truncate">
+                                            {/* Repo & Time */}
+                                            <div className="flex items-center gap-2 mb-1 text-xs text-[#8b949e]">
+                                                <GitFork className="w-3 h-3 text-[#6e7681]" />
+                                                <span className="hover:text-[#58a6ff] truncate">
                                                     {owner}/{repo}
                                                 </span>
-                                                <span className="text-[#30363d]">•</span>
-                                                <span className="flex items-center gap-1 text-xs text-[#484f58]">
-                                                    <Clock className="w-3 h-3" />
+                                                <span className="text-[#30363d]">·</span>
+                                                <span className="text-[#6e7681]">
                                                     {formatTimeAgo(issue.created_at)}
                                                 </span>
                                             </div>
 
                                             {/* Title */}
-                                            <h3 className="text-sm font-medium text-[#c9d1d9] group-hover:text-[#3fb950] transition-colors line-clamp-2 mb-2">
+                                            <h3 className="text-sm text-[#e6edf3] group-hover:text-[#58a6ff] transition-colors line-clamp-2 mb-2">
                                                 {issue.title}
                                             </h3>
 
                                             {/* Labels */}
-                                            <div className="flex flex-wrap gap-1.5 mb-2">
-                                                {issue.labels?.slice(0, 4).map((label) => (
-                                                    <span
-                                                        key={label.id}
-                                                        className="px-2 py-0.5 text-[10px] font-medium rounded-full"
-                                                        style={{
-                                                            backgroundColor: `#${label.color}15`,
-                                                            color: `#${label.color}`,
-                                                            border: `1px solid #${label.color}30`
-                                                        }}
-                                                    >
-                                                        {label.name}
-                                                    </span>
-                                                ))}
-                                                {issue.labels?.length > 4 && (
-                                                    <span className="px-2 py-0.5 text-[10px] text-[#484f58] bg-[#21262d] rounded-full">
-                                                        +{issue.labels.length - 4}
-                                                    </span>
-                                                )}
-                                            </div>
+                                            {issue.labels?.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mb-2">
+                                                    {issue.labels.slice(0, 3).map((label) => (
+                                                        <span
+                                                            key={label.id}
+                                                            className="px-1.5 py-0.5 text-[10px] font-medium rounded"
+                                                            style={{
+                                                                backgroundColor: `#${label.color}18`,
+                                                                color: `#${label.color}`,
+                                                            }}
+                                                        >
+                                                            {label.name}
+                                                        </span>
+                                                    ))}
+                                                    {issue.labels.length > 3 && (
+                                                        <span className="px-1.5 py-0.5 text-[10px] text-[#6e7681]">
+                                                            +{issue.labels.length - 3}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             {/* Stats */}
-                                            <div className="flex items-center gap-4 text-xs text-[#484f58]">
+                                            <div className="flex items-center gap-3 text-xs text-[#6e7681]">
                                                 <span className="flex items-center gap-1">
-                                                    <MessageSquare className="w-3.5 h-3.5" />
+                                                    <MessageSquare className="w-3 h-3" />
                                                     {issue.comments}
                                                 </span>
                                                 {issue.reactions?.total_count > 0 && (
-                                                    <span className="flex items-center gap-1 text-orange-400">
-                                                        <Flame className="w-3.5 h-3.5" />
+                                                    <span className="flex items-center gap-1 text-[#f78166]">
+                                                        <Flame className="w-3 h-3" />
                                                         {issue.reactions.total_count}
                                                     </span>
                                                 )}
@@ -558,19 +528,19 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="flex-shrink-0 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex-shrink-0 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button
                                                 onClick={(e) => toggleSaveIssue(issue, e)}
-                                                className={`p-2 rounded-lg transition-colors ${
+                                                className={`p-1.5 rounded-md transition-colors ${
                                                     isSaved 
-                                                        ? 'bg-[#1f6feb]/20 text-[#58a6ff]' 
-                                                        : 'bg-[#21262d] text-[#484f58] hover:text-[#c9d1d9]'
+                                                        ? 'bg-[#1f6feb]/15 text-[#58a6ff]' 
+                                                        : 'bg-[#21262d] text-[#6e7681] hover:text-[#c9d1d9]'
                                                 }`}
                                             >
-                                                <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
+                                                <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
                                             </button>
-                                            <div className="p-2 bg-[#21262d] rounded-lg text-[#484f58] group-hover:text-[#3fb950] group-hover:bg-[#238636]/20 transition-colors">
-                                                <ExternalLink className="w-4 h-4" />
+                                            <div className="p-1.5 bg-[#21262d] rounded-md text-[#6e7681] group-hover:text-[#3fb950]">
+                                                <ExternalLink className="w-3.5 h-3.5" />
                                             </div>
                                         </div>
                                     </div>
@@ -582,33 +552,17 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-3 border-t border-[#21262d] bg-[#0d1117] flex items-center justify-between">
-                <p className="text-xs text-[#484f58]">
-                    Powered by GitHub Search API
+            <div className="px-5 py-2.5 border-t border-[#21262d] bg-[#0d1117] flex items-center justify-between">
+                <p className="text-[10px] text-[#6e7681]">
+                    GitHub Search API
                 </p>
                 {savedIssues.length > 0 && (
-                    <span className="flex items-center gap-1.5 text-xs text-[#58a6ff]">
-                        <Bookmark className="w-3.5 h-3.5 fill-current" />
+                    <span className="flex items-center gap-1 text-[10px] text-[#58a6ff]">
+                        <Bookmark className="w-3 h-3 fill-current" />
                         {savedIssues.length} saved
                     </span>
                 )}
             </div>
-
-            <style jsx>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: #0d1117;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: #30363d;
-                    border-radius: 3px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: #484f58;
-                }
-            `}</style>
         </div>
     );
 };
