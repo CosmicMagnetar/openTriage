@@ -1,37 +1,77 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
     Search, RefreshCw, ExternalLink, Star, GitFork, MessageSquare,
-    Filter, ChevronDown, Code, Flame, Clock, Tag, AlertCircle
+    Filter, ChevronDown, Code, Flame, Clock, Tag, AlertCircle, X
 } from 'lucide-react';
 
+// Common issue labels for discovery
+const COMMON_LABELS = [
+    { value: 'good first issue', label: 'Good First Issue', color: '7057ff' },
+    { value: 'help wanted', label: 'Help Wanted', color: '008672' },
+    { value: 'bug', label: 'Bug', color: 'd73a4a' },
+    { value: 'enhancement', label: 'Enhancement', color: 'a2eeef' },
+    { value: 'documentation', label: 'Documentation', color: '0075ca' },
+    { value: 'hacktoberfest', label: 'Hacktoberfest', color: 'ff7518' },
+    { value: 'beginner friendly', label: 'Beginner Friendly', color: '7057ff' },
+    { value: 'easy', label: 'Easy', color: '22c55e' },
+    { value: 'up for grabs', label: 'Up For Grabs', color: '10b981' },
+    { value: 'first-timers-only', label: 'First Timers Only', color: 'ec4899' },
+];
+
 /**
- * DiscoveryEngine - Live GitHub Search for good first issues
- * Replaces curated lists with real-time GitHub API queries
- * Filters by user's preferred languages from their profile
+ * DiscoveryEngine - Live GitHub Search for open source issues
+ * Filters by labels, languages, and more
  */
 const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
     const [issues, setIssues] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [selectedLanguage, setSelectedLanguage] = useState('all');
+    const [selectedLabels, setSelectedLabels] = useState(['good first issue']);
+    const [customLabel, setCustomLabel] = useState('');
     const [sortBy, setSortBy] = useState('created');
     const [lastFetched, setLastFetched] = useState(null);
+    const [showLabelSelector, setShowLabelSelector] = useState(false);
 
     // Default popular languages if user has none
-    const defaultLanguages = ['JavaScript', 'Python', 'TypeScript', 'Go', 'Rust', 'Java'];
+    const defaultLanguages = ['JavaScript', 'Python', 'TypeScript', 'Go', 'Rust', 'Java', 'C++', 'Ruby', 'PHP', 'Swift'];
     const languages = userLanguages.length > 0 ? userLanguages : defaultLanguages;
 
     useEffect(() => {
         fetchIssues();
-    }, [selectedLanguage, sortBy]);
+    }, [selectedLanguage, sortBy, selectedLabels]);
+
+    const toggleLabel = (labelValue) => {
+        setSelectedLabels(prev => {
+            if (prev.includes(labelValue)) {
+                // Don't allow removing all labels
+                if (prev.length === 1) return prev;
+                return prev.filter(l => l !== labelValue);
+            }
+            return [...prev, labelValue];
+        });
+    };
+
+    const addCustomLabel = () => {
+        if (customLabel.trim() && !selectedLabels.includes(customLabel.trim().toLowerCase())) {
+            setSelectedLabels(prev => [...prev, customLabel.trim().toLowerCase()]);
+            setCustomLabel('');
+        }
+    };
 
     const fetchIssues = async () => {
         setLoading(true);
         setError(null);
 
         try {
-            // Build GitHub search query
-            let query = 'is:issue is:open label:"good first issue"';
+            // Build GitHub search query with multiple labels
+            let query = 'is:issue is:open';
+            
+            // Add label filters (OR logic for multiple labels)
+            if (selectedLabels.length > 0) {
+                const labelQuery = selectedLabels.map(l => `label:"${l}"`).join(' ');
+                query += ` ${labelQuery}`;
+            }
             
             // Add language filter
             if (selectedLanguage !== 'all') {
@@ -110,7 +150,7 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                     <div className="flex items-center gap-2">
                         <Search className="w-4 h-4 text-[hsl(142,70%,55%)]" />
                         <h2 className="text-sm font-semibold text-[hsl(210,11%,90%)]">
-                            Discover Good First Issues
+                            Discover Open Source Issues
                         </h2>
                     </div>
                     <button
@@ -124,49 +164,139 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                     </button>
                 </div>
                 <p className="text-xs text-[hsl(210,11%,50%)] mt-1">
-                    Live results from GitHub • Good first issues for beginners
+                    Live results from GitHub • Filter by labels and languages
                 </p>
             </div>
 
             {/* Filters */}
-            <div className="px-4 py-2 border-b border-[hsl(220,13%,12%)] flex flex-wrap items-center gap-3">
-                {/* Language Filter */}
-                <div className="flex items-center gap-2">
-                    <Code className="w-3.5 h-3.5 text-[hsl(210,11%,50%)]" />
-                    <select
-                        value={selectedLanguage}
-                        onChange={(e) => setSelectedLanguage(e.target.value)}
-                        className="bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded px-2 py-1 
-                            text-xs text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(220,13%,28%)]"
-                    >
-                        <option value="all">All Languages</option>
-                        {languages.map(lang => (
-                            <option key={lang} value={lang}>{lang}</option>
-                        ))}
-                    </select>
+            <div className="px-4 py-3 border-b border-[hsl(220,13%,12%)] space-y-3">
+                {/* Top row: Language and Sort */}
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Language Filter */}
+                    <div className="flex items-center gap-2">
+                        <Code className="w-3.5 h-3.5 text-[hsl(210,11%,50%)]" />
+                        <select
+                            value={selectedLanguage}
+                            onChange={(e) => setSelectedLanguage(e.target.value)}
+                            className="bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded px-2 py-1 
+                                text-xs text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(220,13%,28%)]"
+                        >
+                            <option value="all">All Languages</option>
+                            {languages.map(lang => (
+                                <option key={lang} value={lang}>{lang}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Sort */}
+                    <div className="flex items-center gap-2">
+                        <Filter className="w-3.5 h-3.5 text-[hsl(210,11%,50%)]" />
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded px-2 py-1 
+                                text-xs text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(220,13%,28%)]"
+                        >
+                            <option value="created">Newest</option>
+                            <option value="updated">Recently Updated</option>
+                            <option value="comments">Most Discussed</option>
+                            <option value="reactions">Most Popular</option>
+                        </select>
+                    </div>
+
+                    {lastFetched && (
+                        <span className="text-[10px] text-[hsl(210,11%,40%)] ml-auto">
+                            Updated {formatTimeAgo(lastFetched)}
+                        </span>
+                    )}
                 </div>
 
-                {/* Sort */}
-                <div className="flex items-center gap-2">
-                    <Filter className="w-3.5 h-3.5 text-[hsl(210,11%,50%)]" />
-                    <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded px-2 py-1 
-                            text-xs text-[hsl(210,11%,80%)] focus:outline-none focus:border-[hsl(220,13%,28%)]"
-                    >
-                        <option value="created">Newest</option>
-                        <option value="updated">Recently Updated</option>
-                        <option value="comments">Most Discussed</option>
-                        <option value="reactions">Most Popular</option>
-                    </select>
-                </div>
+                {/* Label Tags Row */}
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Tag className="w-3.5 h-3.5 text-[hsl(210,11%,50%)]" />
+                        <span className="text-xs text-[hsl(210,11%,60%)]">Labels:</span>
+                        <button
+                            onClick={() => setShowLabelSelector(!showLabelSelector)}
+                            className="text-xs text-[hsl(217,91%,60%)] hover:text-[hsl(217,91%,70%)]"
+                        >
+                            {showLabelSelector ? 'Hide options' : '+ Add labels'}
+                        </button>
+                    </div>
+                    
+                    {/* Selected Labels */}
+                    <div className="flex flex-wrap gap-1.5">
+                        {selectedLabels.map(label => {
+                            const labelInfo = COMMON_LABELS.find(l => l.value === label);
+                            return (
+                                <span
+                                    key={label}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full cursor-pointer hover:opacity-80"
+                                    style={{
+                                        backgroundColor: labelInfo ? `#${labelInfo.color}20` : 'hsl(220,13%,15%)',
+                                        color: labelInfo ? `#${labelInfo.color}` : 'hsl(210,11%,70%)',
+                                        border: `1px solid ${labelInfo ? `#${labelInfo.color}40` : 'hsl(220,13%,25%)'}`
+                                    }}
+                                    onClick={() => toggleLabel(label)}
+                                >
+                                    {labelInfo?.label || label}
+                                    {selectedLabels.length > 1 && (
+                                        <X className="w-3 h-3" />
+                                    )}
+                                </span>
+                            );
+                        })}
+                    </div>
 
-                {lastFetched && (
-                    <span className="text-[10px] text-[hsl(210,11%,40%)] ml-auto">
-                        Updated {formatTimeAgo(lastFetched)}
-                    </span>
-                )}
+                    {/* Label Selector Dropdown */}
+                    {showLabelSelector && (
+                        <div className="bg-[hsl(220,13%,10%)] rounded-lg p-3 border border-[hsl(220,13%,18%)]">
+                            <p className="text-xs text-[hsl(210,11%,50%)] mb-2">Click to toggle labels:</p>
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                                {COMMON_LABELS.map(label => {
+                                    const isSelected = selectedLabels.includes(label.value);
+                                    return (
+                                        <button
+                                            key={label.value}
+                                            onClick={() => toggleLabel(label.value)}
+                                            className={`px-2 py-1 text-xs rounded-full transition-all ${
+                                                isSelected 
+                                                    ? 'ring-2 ring-white/30' 
+                                                    : 'opacity-60 hover:opacity-100'
+                                            }`}
+                                            style={{
+                                                backgroundColor: `#${label.color}20`,
+                                                color: `#${label.color}`,
+                                                border: `1px solid #${label.color}40`
+                                            }}
+                                        >
+                                            {label.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            
+                            {/* Custom Label Input */}
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={customLabel}
+                                    onChange={(e) => setCustomLabel(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && addCustomLabel()}
+                                    placeholder="Add custom label..."
+                                    className="flex-1 bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,20%)] rounded px-2 py-1 
+                                        text-xs text-[hsl(210,11%,80%)] placeholder-[hsl(210,11%,40%)] focus:outline-none focus:border-[hsl(217,91%,60%)]"
+                                />
+                                <button
+                                    onClick={addCustomLabel}
+                                    className="px-3 py-1 text-xs bg-[hsl(217,91%,60%)] text-white rounded hover:bg-[hsl(217,91%,50%)]"
+                                >
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Content */}

@@ -44,10 +44,8 @@ class RealtimeMessagingClient {
         // Use fetch first to check auth, then establish SSE
         fetch(url, { method: "HEAD" })
           .then((res) => {
-            if (res.status === 401) {
-              console.log(
-                "Real-time messaging auth failed - will use polling instead",
-              );
+            if (res.status === 401 || res.status === 404) {
+              // Silently fall back to polling - no console output needed
               this.authFailed = true;
               this.notifyListeners("onAuthFailed");
               resolve();
