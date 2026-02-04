@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Share2, Copy, CheckCircle, Linkedin, Twitter, Trophy, GitPullRequest, Flame, Calendar, RefreshCw, ArrowLeft, GitCommit } from 'lucide-react';
+import { Sparkles, Share2, Copy, CheckCircle, Linkedin, Twitter, Trophy, GitPullRequest, Flame, Calendar, RefreshCw, ArrowLeft, GitCommit, X, Eye } from 'lucide-react';
 import { communityApi, profileApi, gamificationApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
@@ -22,6 +22,7 @@ const HypeScreen = ({ onBack }) => {
     });
     const [copiedPlatform, setCopiedPlatform] = useState(null);
     const [selectedMilestone, setSelectedMilestone] = useState('overall');
+    const [previewModal, setPreviewModal] = useState({ open: false, platform: null });
 
     useEffect(() => {
         loadStats();
@@ -140,6 +141,138 @@ const HypeScreen = ({ onBack }) => {
 
         const text = encodeURIComponent(`${content.content} ${content.hashtags?.join(' ') || ''}`);
         window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+    };
+
+    const openPreview = (platform) => {
+        setPreviewModal({ open: true, platform });
+    };
+
+    const closePreview = () => {
+        setPreviewModal({ open: false, platform: null });
+    };
+
+    // Preview Modal Component
+    const PreviewModal = () => {
+        if (!previewModal.open || !previewModal.platform) return null;
+        
+        const content = hypeContent[previewModal.platform];
+        if (!content) return null;
+
+        const isLinkedIn = previewModal.platform === 'linkedin';
+        const fullContent = `${content.content}\n\n${content.hashtags?.join(' ') || ''}`;
+
+        return (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={closePreview}>
+                <div 
+                    className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-auto shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className={`px-6 py-4 border-b flex items-center justify-between ${isLinkedIn ? 'bg-[#0077B5]' : 'bg-black'}`}>
+                        <div className="flex items-center gap-3">
+                            {isLinkedIn ? (
+                                <Linkedin className="w-6 h-6 text-white" />
+                            ) : (
+                                <Twitter className="w-6 h-6 text-white" />
+                            )}
+                            <span className="text-white font-semibold">
+                                {isLinkedIn ? 'LinkedIn' : 'X (Twitter)'} Preview
+                            </span>
+                        </div>
+                        <button
+                            onClick={closePreview}
+                            className="p-1 rounded-full hover:bg-white/20 transition-colors"
+                        >
+                            <X className="w-5 h-5 text-white" />
+                        </button>
+                    </div>
+
+                    {/* Post Preview */}
+                    <div className="p-6">
+                        {/* User Info */}
+                        <div className="flex items-start gap-3 mb-4">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${isLinkedIn ? 'bg-[#0077B5]' : 'bg-gray-800'}`}>
+                                {user?.username?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <div>
+                                <p className="font-semibold text-gray-900">{user?.name || user?.username}</p>
+                                <p className="text-gray-500 text-sm">@{user?.username}</p>
+                                {isLinkedIn && (
+                                    <p className="text-gray-400 text-xs mt-0.5">Open Source Contributor</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Post Content */}
+                        <div className="text-gray-800 leading-relaxed whitespace-pre-wrap mb-4">
+                            {content.content}
+                        </div>
+
+                        {/* Hashtags */}
+                        <div className="flex flex-wrap gap-1 mb-4">
+                            {content.hashtags?.map((tag, i) => (
+                                <span key={i} className={`text-sm ${isLinkedIn ? 'text-[#0077B5]' : 'text-blue-500'}`}>
+                                    {tag}
+                                </span>
+                            ))}
+                        </div>
+
+                        {/* Engagement Preview (mock) */}
+                        <div className={`border-t pt-4 flex items-center gap-6 text-gray-500 text-sm ${isLinkedIn ? '' : 'justify-around'}`}>
+                            {isLinkedIn ? (
+                                <>
+                                    <span>👍 Like</span>
+                                    <span>💬 Comment</span>
+                                    <span>🔄 Repost</span>
+                                    <span>📤 Send</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>💬 Reply</span>
+                                    <span>🔄 Repost</span>
+                                    <span>❤️ Like</span>
+                                    <span>📊 View</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="px-6 py-4 bg-gray-50 border-t flex gap-3">
+                        <button
+                            onClick={() => copyToClipboard(previewModal.platform)}
+                            className="flex-1 py-2.5 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                            {copiedPlatform === previewModal.platform ? (
+                                <>
+                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                    Copied!
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="w-4 h-4" />
+                                    Copy Text
+                                </>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => {
+                                isLinkedIn ? shareToLinkedIn() : shareToTwitter();
+                                closePreview();
+                            }}
+                            className={`flex-1 py-2.5 px-4 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                                isLinkedIn 
+                                    ? 'bg-[#0077B5] hover:bg-[#006097]' 
+                                    : 'bg-black hover:bg-gray-800'
+                            }`}
+                        >
+                            <Share2 className="w-4 h-4" />
+                            Share to {isLinkedIn ? 'LinkedIn' : 'X'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     if (loading) {
@@ -271,6 +404,13 @@ const HypeScreen = ({ onBack }) => {
                                 {hypeContent.linkedin && (
                                     <div className="flex gap-2">
                                         <button
+                                            onClick={() => openPreview('linkedin')}
+                                            className="p-2 rounded-lg bg-[hsl(220,13%,20%)] hover:bg-[hsl(220,13%,30%)] text-[hsl(210,11%,70%)] hover:text-[hsl(210,11%,100%)] transition-colors"
+                                            title="Preview post"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                        </button>
+                                        <button
                                             onClick={() => copyToClipboard('linkedin')}
                                             className="p-2 rounded-lg bg-[hsl(220,13%,20%)] hover:bg-[hsl(220,13%,30%)] text-[hsl(210,11%,70%)] hover:text-[hsl(210,11%,100%)] transition-colors"
                                             title="Copy to clipboard"
@@ -332,6 +472,13 @@ const HypeScreen = ({ onBack }) => {
                                 {hypeContent.twitter && (
                                     <div className="flex gap-2">
                                         <button
+                                            onClick={() => openPreview('twitter')}
+                                            className="p-2 rounded-lg bg-[hsl(220,13%,20%)] hover:bg-[hsl(220,13%,30%)] text-[hsl(210,11%,70%)] hover:text-[hsl(210,11%,100%)] transition-colors"
+                                            title="Preview post"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                        </button>
+                                        <button
                                             onClick={() => copyToClipboard('twitter')}
                                             className="p-2 rounded-lg bg-[hsl(220,13%,20%)] hover:bg-[hsl(220,13%,30%)] text-[hsl(210,11%,70%)] hover:text-[hsl(210,11%,100%)] transition-colors"
                                             title="Copy to clipboard"
@@ -385,6 +532,9 @@ const HypeScreen = ({ onBack }) => {
                     </div>
                 </div>
             </div>
+
+            {/* Preview Modal */}
+            <PreviewModal />
         </div>
     );
 };

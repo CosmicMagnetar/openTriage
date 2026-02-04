@@ -3,6 +3,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { Download, RefreshCw, Save, Flame, Code, GitPullRequest, GitCommit, Star, Activity, Users, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import GitHubHeatmap from './GitHubHeatmap';
+import { profileApi } from '../../services/api';
 
 // IndexedDB helper for offline-first caching
 const DB_NAME = 'OpenTriageStats';
@@ -104,14 +105,14 @@ const LanguageDonut = ({ languages }) => {
         .slice(0, 5)
         .map(([name, value]) => ({ name, value }));
     
-    // Use demo data if empty
+    // Show placeholder when no data is available
     if (data.length === 0 || data.every(d => d.value === 0)) {
-        data = [
-            { name: 'TypeScript', value: 45 },
-            { name: 'Python', value: 30 },
-            { name: 'JavaScript', value: 15 },
-            { name: 'Other', value: 10 },
-        ];
+        return (
+            <div className="relative h-[200px] flex flex-col items-center justify-center">
+                <div className="text-[#7d8590] text-sm mb-2">Loading languages...</div>
+                <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
     }
     
     const total = data.reduce((sum, item) => sum + item.value, 0);
@@ -236,6 +237,30 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
     const [loading, setLoading] = useState(true);
     const [publicContributions, setPublicContributions] = useState(null);
     const [publicLanguages, setPublicLanguages] = useState(null);
+    const [apiLanguages, setApiLanguages] = useState(null);
+    
+    // Fetch languages from our API (works for all users)
+    useEffect(() => {
+        const fetchLanguages = async () => {
+            if (!username) return;
+            
+            try {
+                const data = await profileApi.getUserLanguages(username);
+                if (data?.languages && data.languages.length > 0) {
+                    // Convert API response to format needed by LanguageDonut
+                    const langMap = {};
+                    data.languages.forEach(lang => {
+                        langMap[lang.language] = lang.percentage;
+                    });
+                    setApiLanguages(langMap);
+                }
+            } catch (err) {
+                console.log('Failed to fetch languages from API:', err);
+            }
+        };
+        
+        fetchLanguages();
+    }, [username]);
     
     // Fetch public GitHub data for non-OpenTriage users
     useEffect(() => {
@@ -356,12 +381,8 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         repos: 50
     };
     
-    const languages = publicLanguages || githubStats?.languages || {
-        TypeScript: 45,
-        Python: 30,
-        Rust: 15,
-        Other: 10,
-    };
+    // Priority: API languages > public languages > githubStats languages
+    const languages = apiLanguages || publicLanguages || githubStats?.languages || null;
     
     const totalContributions = isGitHubFallback && publicContributions
         ? publicContributions.events
