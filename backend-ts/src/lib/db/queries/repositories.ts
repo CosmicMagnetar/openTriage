@@ -68,9 +68,13 @@ export async function deleteRepository(id: string) {
 // =============================================================================
 
 export async function getMaintainerRepositories(userId: string) {
+    // Only return repos explicitly added by the user (maintainer)
     const repos = await db.select()
         .from(repositories)
-        .where(eq(repositories.userId, userId))
+        .where(and(
+            eq(repositories.userId, userId),
+            eq(repositories.addedByUser, true)
+        ))
         .orderBy(asc(repositories.name));
 
     // Add issue counts

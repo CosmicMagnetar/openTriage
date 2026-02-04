@@ -61,8 +61,12 @@ export async function POST(request: NextRequest) {
 
         if (existingRepo[0]) {
             repoId = existingRepo[0].id;
+            // Mark as explicitly added by user if not already
+            await db.update(repositories)
+                .set({ addedByUser: true })
+                .where(eq(repositories.id, repoId));
         } else {
-            // Create a new repository entry for this user
+            // Create a new repository entry for this user (explicitly added)
             repoId = uuidv4();
             await db.insert(repositories).values({
                 id: repoId,
@@ -70,6 +74,7 @@ export async function POST(request: NextRequest) {
                 name: repoName,
                 owner: owner,
                 userId: user.id,
+                addedByUser: true, // Explicitly added by maintainer
                 createdAt: new Date().toISOString(),
             }).onConflictDoNothing();
         }

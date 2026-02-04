@@ -15,6 +15,13 @@
       "when": 1769623029587,
       "tag": "0001_add_edited_at_to_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1770196804327,
+      "tag": "0002_simple_reavers",
+      "breakpoints": true
     }
   ]
 }

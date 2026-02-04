@@ -93,11 +93,14 @@ export async function getIssues(filters: IssueFilters, page = 1, limit = 10) {
         ));
     }
 
-    // If userId provided, filter by user's repos
+    // If userId provided, filter by user's repos that were explicitly added
     if (filters.userId) {
         const userRepos = await db.select({ id: repositories.id })
             .from(repositories)
-            .where(eq(repositories.userId, filters.userId));
+            .where(and(
+                eq(repositories.userId, filters.userId),
+                eq(repositories.addedByUser, true) // Only repos explicitly added by maintainer
+            ));
         const repoIds = userRepos.map(r => r.id);
 
         if (repoIds.length > 0) {
@@ -200,9 +203,13 @@ export async function createOrUpdateTriageData(data: {
 // =============================================================================
 
 export async function getDashboardStats(userId: string) {
+    // Only count issues/PRs from repos explicitly added by the user
     const userRepos = await db.select({ id: repositories.id })
         .from(repositories)
-        .where(eq(repositories.userId, userId));
+        .where(and(
+            eq(repositories.userId, userId),
+            eq(repositories.addedByUser, true)
+        ));
 
     if (userRepos.length === 0) {
         return { openIssues: 0, openPRs: 0, triaged: 0, untriaged: 0 };
