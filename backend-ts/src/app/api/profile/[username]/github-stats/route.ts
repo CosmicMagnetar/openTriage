@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { fetchGitHubContributions, calculateStreakFromContributions } from "@/lib/github-contributions";
 
 const GITHUB_API = 'https://api.github.com';
@@ -70,7 +70,7 @@ export async function GET(
             githubAccessToken: users.githubAccessToken
         })
             .from(users)
-            .where(eq(users.username, username))
+            .where(sql`LOWER(${users.username}) = LOWER(${username})`)
             .limit(1);
 
         const userToken = userRecord[0]?.githubAccessToken;

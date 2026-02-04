@@ -6,7 +6,7 @@
 
 import { db } from "@/db";
 import { users, profiles, profileSkills, profileMentoringTopics, profileConnectedRepos, userRepositories } from "@/db/schema";
-import { eq, and, like, desc } from "drizzle-orm";
+import { eq, and, like, desc, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 // =============================================================================
@@ -24,7 +24,8 @@ export async function getUserByGithubId(githubId: number) {
 }
 
 export async function getUserByUsername(username: string) {
-    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    // Case-insensitive lookup - GitHub usernames are case-insensitive
+    const result = await db.select().from(users).where(sql`LOWER(${users.username}) = LOWER(${username})`).limit(1);
     return result[0] || null;
 }
 
@@ -90,7 +91,8 @@ export async function getProfile(userId: string) {
 }
 
 export async function getProfileByUsername(username: string) {
-    const profile = await db.select().from(profiles).where(eq(profiles.username, username)).limit(1);
+    // Case-insensitive lookup - GitHub usernames are case-insensitive
+    const profile = await db.select().from(profiles).where(sql`LOWER(${profiles.username}) = LOWER(${username})`).limit(1);
     if (!profile[0]) return null;
 
     const userId = profile[0].userId;

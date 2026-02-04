@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { createGitHubClient, fetchAllUserRepositories } from "@/lib/github-client";
 
 export async function GET(
@@ -18,8 +18,8 @@ export async function GET(
     try {
         const { username } = await context.params;
 
-        // Find user to get their GitHub token
-        const user = await db.select().from(users).where(eq(users.username, username)).limit(1);
+        // Find user to get their GitHub token (case-insensitive)
+        const user = await db.select().from(users).where(sql`LOWER(${users.username}) = LOWER(${username})`).limit(1);
 
         if (!user[0]) {
             return NextResponse.json({ repos: [] });

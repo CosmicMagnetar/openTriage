@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 interface GitHubEvent {
     id: string;
@@ -36,10 +36,10 @@ export async function GET(
         const { searchParams } = new URL(request.url);
         const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
 
-        // Get user's GitHub token
+        // Get user's GitHub token (case-insensitive lookup)
         const user = await db.select()
             .from(users)
-            .where(eq(users.username, username))
+            .where(sql`LOWER(${users.username}) = LOWER(${username})`)
             .limit(1);
 
         const githubToken = user[0]?.githubAccessToken || process.env.GITHUB_TOKEN;

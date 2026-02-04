@@ -12,7 +12,8 @@ import { streakCache, calendarCache } from "@/lib/cache";
 // =============================================================================
 
 export async function getUserBadges(username: string) {
-    const user = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    // Case-insensitive lookup - GitHub usernames are case-insensitive
+    const user = await db.select().from(users).where(sql`LOWER(${users.username}) = LOWER(${username})`).limit(1);
     if (!user[0]) return [];
 
     return db.select()
@@ -34,7 +35,7 @@ export async function getUserStreak(username: string) {
         return cached;
     }
 
-    const user = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    const user = await db.select().from(users).where(sql`LOWER(${users.username}) = LOWER(${username})`).limit(1);
     if (!user[0]) {
         const emptyResult = { current_streak: 0, longest_streak: 0, is_active: false, total_contribution_days: 0 };
         streakCache.set(cacheKey, emptyResult);
@@ -153,7 +154,8 @@ function calculateLongestStreak(sortedDates: string[]): number {
 // =============================================================================
 
 export async function getUserCalendar(username: string, days: number = 365) {
-    const user = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    // Case-insensitive lookup
+    const user = await db.select().from(users).where(sql`LOWER(${users.username}) = LOWER(${username})`).limit(1);
     if (!user[0]) return [];
 
     // Calculate date range
