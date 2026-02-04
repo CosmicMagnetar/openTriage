@@ -3,6 +3,7 @@ import { Users, MessageSquare, Check, X, UserMinus, Send, Loader2, Sparkles, Bel
 import { messagingApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 
 const MentorDashboardPanel = () => {
     const { user } = useAuthStore();
@@ -499,7 +500,9 @@ const MentorDashboardPanel = () => {
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                <p>{msg.content}</p>
+                                                                <div className={`prose prose-sm max-w-none break-words overflow-hidden ${isMe ? 'prose-invert prose-p:text-white prose-code:text-emerald-100 prose-pre:bg-emerald-600/30' : 'prose-invert prose-p:text-[hsl(210,11%,90%)] prose-code:text-[hsl(142,70%,60%)] prose-pre:bg-[hsl(220,13%,8%)]'} prose-p:my-0 prose-p:leading-relaxed prose-pre:my-1 prose-pre:p-2 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:max-w-full prose-code:text-xs prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none`}>
+                                                                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                                                </div>
                                                                 <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-emerald-200' : 'text-[hsl(210,11%,40%)]'}`}>
                                                                     {msg.edited_at && <span className="mr-1">(edited)</span>}
                                                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
