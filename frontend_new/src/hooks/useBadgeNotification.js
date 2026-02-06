@@ -34,6 +34,28 @@ export const useBadgeNotification = (username, enabled = true) => {
         }
     }, [getSeenBadges]);
 
+    // Extract badges array from various API response formats
+    const extractBadgesArray = (response) => {
+        if (!response) return [];
+        
+        // Direct array
+        if (Array.isArray(response)) return response;
+        
+        // Object with various possible array properties
+        if (response.all_badges && Array.isArray(response.all_badges)) {
+            // Filter to only earned badges
+            return response.all_badges.filter(b => b.earned);
+        }
+        if (response.earned_badges && Array.isArray(response.earned_badges)) {
+            return response.earned_badges;
+        }
+        if (response.badges && Array.isArray(response.badges)) {
+            return response.badges;
+        }
+        
+        return [];
+    };
+
     // Check for new badges
     const checkForNewBadges = useCallback(async () => {
         if (!username || !enabled) return;
@@ -41,29 +63,34 @@ export const useBadgeNotification = (username, enabled = true) => {
         setLoading(true);
         try {
             // First, trigger badge check on the backend
-            await gamificationApi.checkBadges(username);
+            await gamificationApi.checkBadges(username).catch(() => null);
             
             // Then fetch user's badges
-            const badges = await gamificationApi.getUserBadges(username);
+            const response = await gamificationApi.getUserBadges(username);
+            const badges = extractBadgesArray(response);
             
             if (!badges || badges.length === 0) return;
 
             const seenBadges = getSeenBadges();
-            const earnedBadgeIds = badges.map(b => b.id || b.badge_id);
+            const earnedBadgeIds = badges.map(b => b.id || b.badge_id || b.badge?.id).filter(Boolean);
             
             // Find badges earned but not yet seen
             const newBadges = badges.filter(badge => {
-                const badgeId = badge.id || badge.badge_id;
-                return !seenBadges.includes(badgeId);
+                const badgeId = badge.id || badge.badge_id || badge.badge?.id;
+                return badgeId && !seenBadges.includes(badgeId);
             });
 
             if (newBadges.length > 0) {
                 // Show the first new badge (can queue others if needed)
-                setNewBadge(newBadges[0]);
+                // Normalize badge format for the modal
+                const badgeToShow = newBadges[0].badge || newBadges[0];
+                setNewBadge(badgeToShow);
             }
 
             // Mark all earned badges as seen after checking
-            markBadgesAsSeen(earnedBadgeIds);
+            if (earnedBadgeIds.length > 0) {
+                markBadgesAsSeen(earnedBadgeIds);
+            }
 
         } catch (error) {
             console.warn('Badge check failed:', error);
@@ -95,3 +122,4 @@ export const useBadgeNotification = (username, enabled = true) => {
 };
 
 export default useBadgeNotification;
+

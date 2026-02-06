@@ -193,50 +193,31 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
     const isIssueSaved = (issueId) => savedIssues.some(i => i.id === issueId);
 
     return (
-        <div className={`bg-[#0d1117] rounded-xl border border-[#30363d] overflow-hidden ${className}`}>
-            {/* Compact Header */}
-            <div className="px-4 py-3 border-b border-[#21262d] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#3fb950]" />
-                    <span className="text-sm font-medium text-[#e6edf3]">Issues</span>
-                    <span className="px-1.5 py-0.5 text-[10px] font-medium bg-[#238636]/20 text-[#3fb950] rounded">
-                        LIVE
-                    </span>
-                </div>
+        <div className={`bg-[hsl(220,13%,8%)] rounded-xl border border-[hsl(220,13%,15%)] overflow-hidden ${className}`}>
+            {/* Simple Header Bar */}
+            <div className="px-4 py-2.5 border-b border-[hsl(220,13%,15%)] flex items-center justify-between">
+                <span className="text-sm text-[hsl(210,11%,50%)]">
+                    <span className="text-[hsl(210,11%,85%)] font-medium">{totalCount.toLocaleString()}</span> issues found
+                </span>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${showFilters
-                                ? 'bg-[#238636] text-white'
-                                : 'bg-[#21262d] text-[#c9d1d9] hover:bg-[#30363d]'
+                            ? 'bg-[hsl(142,70%,45%)] text-black'
+                            : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,18%)] border border-[hsl(220,13%,20%)]'
                             }`}
                     >
                         <Filter className="w-3 h-3" />
                         Filters
-                        {selectedLabels.length > 1 && (
-                            <span className="px-1 text-[9px] bg-white/20 rounded">
-                                {selectedLabels.length}
-                            </span>
-                        )}
                     </button>
                     <button
                         onClick={fetchIssues}
                         disabled={loading}
-                        className="p-1 bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#30363d] rounded-md transition-colors"
+                        className="p-1.5 bg-[hsl(220,13%,12%)] text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,18%)] rounded-md transition-colors border border-[hsl(220,13%,20%)]"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
-            </div>
-
-            {/* Minimal Stats Bar */}
-            <div className="flex items-center justify-between px-4 py-1.5 bg-[#161b22] border-b border-[#21262d] text-[11px]">
-                <span className="text-[#8b949e]">
-                    <span className="text-[#e6edf3] font-medium">{totalCount.toLocaleString()}</span> results
-                </span>
-                <span className="text-[#6e7681]">
-                    {lastFetched && formatTimeAgo(lastFetched)}
-                </span>
             </div>
 
             {/* Filters Panel */}
@@ -253,8 +234,8 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                                 <button
                                     onClick={() => setSelectedLanguage('all')}
                                     className={`px-2.5 py-1 text-xs rounded-md transition-colors ${selectedLanguage === 'all'
-                                            ? 'bg-[#238636] text-white'
-                                            : 'bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#30363d]'
+                                        ? 'bg-[#238636] text-white'
+                                        : 'bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#30363d]'
                                         }`}
                                 >
                                     All
@@ -264,8 +245,8 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                                         key={lang}
                                         onClick={() => setSelectedLanguage(lang)}
                                         className={`px-2.5 py-1 text-xs rounded-md transition-colors ${selectedLanguage === lang
-                                                ? 'bg-[#238636] text-white'
-                                                : 'bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#30363d]'
+                                            ? 'bg-[#238636] text-white'
+                                            : 'bg-[#21262d] text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#30363d]'
                                             }`}
                                     >
                                         {lang}
@@ -505,8 +486,8 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                                             <button
                                                 onClick={(e) => toggleSaveIssue(issue, e)}
                                                 className={`p-1.5 rounded-md transition-colors ${isSaved
-                                                        ? 'bg-[#1f6feb]/15 text-[#58a6ff]'
-                                                        : 'bg-[#21262d] text-[#6e7681] hover:text-[#c9d1d9]'
+                                                    ? 'bg-[#1f6feb]/15 text-[#58a6ff]'
+                                                    : 'bg-[#21262d] text-[#6e7681] hover:text-[#c9d1d9]'
                                                     }`}
                                             >
                                                 <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />

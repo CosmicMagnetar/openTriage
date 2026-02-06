@@ -378,6 +378,23 @@ export async function submitPullRequestReview(
   body = "",
 ) {
   try {
+    // GitHub requires a body for REQUEST_CHANGES and COMMENT events
+    // For APPROVE, body is optional
+    const reviewBody = body.trim();
+    
+    if ((event === "REQUEST_CHANGES" || event === "COMMENT") && !reviewBody) {
+      throw new Error(
+        event === "REQUEST_CHANGES" 
+          ? "A comment is required when requesting changes"
+          : "A comment is required for comment-only reviews"
+      );
+    }
+
+    const requestBody = { event };
+    if (reviewBody) {
+      requestBody.body = reviewBody;
+    }
+
     const response = await fetch(
       `${GITHUB_API_BASE}/repos/${owner}/${repo}/pulls/${prNumber}/reviews`,
       {
@@ -387,15 +404,24 @@ export async function submitPullRequestReview(
           Accept: "application/vnd.github+json",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          body,
-          event, // APPROVE, REQUEST_CHANGES, or COMMENT
-        }),
+        body: JSON.stringify(requestBody),
       },
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
+      
+      // Handle common error cases with user-friendly messages
+      if (response.status === 422) {
+        if (errorData.message?.includes("author")) {
+          throw new Error("You cannot review your own pull request");
+        }
+        if (errorData.message?.includes("already reviewed")) {
+          throw new Error("You have already submitted a review for this PR");
+        }
+        throw new Error(errorData.message || "Cannot submit review - please check the PR state");
+      }
+      
       throw new Error(
         errorData.message ||
           `Failed to submit review: ${response.status} ${response.statusText}`,
@@ -411,3 +437,4 @@ export async function submitPullRequestReview(
     throw new Error(`Failed to submit review: ${error.message}`);
   }
 }
+
