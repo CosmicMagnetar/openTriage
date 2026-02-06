@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Compass, Sparkles, TrendingUp, BookOpen } from 'lucide-react';
+import { Compass, Sparkles, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 import DiscoveryEngine from './DiscoveryEngine';
 import useAuthStore from '../../stores/authStore';
 
@@ -14,6 +14,7 @@ const DiscoveryPage = () => {
     const { user } = useAuthStore();
     const [userLanguages, setUserLanguages] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showTips, setShowTips] = useState(false);
 
     useEffect(() => {
         loadUserProfile();
@@ -45,98 +46,91 @@ const DiscoveryPage = () => {
 
     return (
         <div className="h-full overflow-y-auto p-6">
-            <div className="max-w-5xl mx-auto space-y-6">
-                {/* Header */}
+            <div className="max-w-5xl mx-auto space-y-4">
+                {/* Compact Header */}
                 <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-[hsl(210,11%,90%)] flex items-center gap-2">
-                            <Compass className="w-6 h-6 text-[hsl(142,70%,55%)]" />
-                            Discover Issues
-                        </h1>
-                        <p className="text-[hsl(210,11%,50%)] mt-1">
-                            Find beginner-friendly issues to start contributing
-                        </p>
-                    </div>
-                </div>
-
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-[hsl(220,13%,8%)] rounded-xl p-4 border border-[hsl(220,13%,15%)]">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-[hsl(142,70%,45%,0.15)] flex items-center justify-center">
-                                <Sparkles className="w-5 h-5 text-[hsl(142,70%,55%)]" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-[hsl(210,11%,50%)]">Your Languages</p>
-                                <p className="text-sm font-medium text-[hsl(210,11%,85%)]">
-                                    {userLanguages.length > 0 
-                                        ? userLanguages.slice(0, 3).join(', ')
-                                        : 'Add skills to your profile'}
-                                </p>
-                            </div>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-[hsl(142,70%,45%,0.15)] rounded-lg">
+                            <Compass className="w-5 h-5 text-[hsl(142,70%,55%)]" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold text-[hsl(210,11%,90%)]">
+                                Discover Issues
+                            </h1>
+                            <p className="text-sm text-[hsl(210,11%,50%)]">
+                                Find beginner-friendly issues to start contributing
+                            </p>
                         </div>
                     </div>
                     
-                    <div className="bg-[hsl(220,13%,8%)] rounded-xl p-4 border border-[hsl(220,13%,15%)]">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-[hsl(217,91%,60%,0.15)] flex items-center justify-center">
-                                <TrendingUp className="w-5 h-5 text-[hsl(217,91%,65%)]" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-[hsl(210,11%,50%)]">Tip</p>
-                                <p className="text-sm font-medium text-[hsl(210,11%,85%)]">
-                                    Start with "good first issue" labels
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-[hsl(220,13%,8%)] rounded-xl p-4 border border-[hsl(220,13%,15%)]">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-purple-500/15 flex items-center justify-center">
-                                <BookOpen className="w-5 h-5 text-purple-400" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-[hsl(210,11%,50%)]">Getting Started</p>
-                                <p className="text-sm font-medium text-[hsl(210,11%,85%)]">
-                                    Read the CONTRIBUTING.md first
-                                </p>
+                    {/* Compact Language Tags */}
+                    {userLanguages.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-[hsl(142,70%,55%)]" />
+                            <div className="flex gap-1">
+                                {userLanguages.slice(0, 3).map(lang => (
+                                    <span key={lang} className="px-2 py-0.5 text-xs bg-[hsl(142,70%,45%,0.15)] text-[hsl(142,70%,55%)] rounded-full">
+                                        {lang}
+                                    </span>
+                                ))}
+                                {userLanguages.length > 3 && (
+                                    <span className="px-2 py-0.5 text-xs bg-[hsl(220,13%,15%)] text-[hsl(210,11%,50%)] rounded-full">
+                                        +{userLanguages.length - 3}
+                                    </span>
+                                )}
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Discovery Engine */}
                 <DiscoveryEngine userLanguages={userLanguages} />
 
-                {/* Help Section */}
-                <div className="bg-gradient-to-r from-[hsl(142,70%,45%,0.1)] to-[hsl(217,91%,60%,0.1)] 
-                    rounded-xl p-6 border border-[hsl(220,13%,15%)]">
-                    <h3 className="text-lg font-semibold text-[hsl(210,11%,90%)] mb-3">
-                        🚀 Tips for Your First Contribution
-                    </h3>
-                    <ul className="space-y-2 text-sm text-[hsl(210,11%,70%)]">
-                        <li className="flex items-start gap-2">
-                            <span className="text-[hsl(142,70%,55%)]">1.</span>
-                            <span>Look for issues labeled "good first issue" or "beginner friendly"</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-[hsl(142,70%,55%)]">2.</span>
-                            <span>Read the project's README and CONTRIBUTING guide before starting</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-[hsl(142,70%,55%)]">3.</span>
-                            <span>Comment on the issue to claim it before starting work</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-[hsl(142,70%,55%)]">4.</span>
-                            <span>Don't hesitate to ask questions - maintainers are usually helpful!</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                            <span className="text-[hsl(142,70%,55%)]">5.</span>
-                            <span>Start small - even documentation fixes count as contributions</span>
-                        </li>
-                    </ul>
+                {/* Collapsible Tips Section */}
+                <div className="bg-[hsl(220,13%,8%)] rounded-xl border border-[hsl(220,13%,15%)] overflow-hidden">
+                    <button
+                        onClick={() => setShowTips(!showTips)}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[hsl(220,13%,10%)] transition-colors"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Lightbulb className="w-4 h-4 text-[hsl(45,93%,58%)]" />
+                            <span className="text-sm font-medium text-[hsl(210,11%,75%)]">
+                                Tips for Your First Contribution
+                            </span>
+                        </div>
+                        {showTips ? (
+                            <ChevronUp className="w-4 h-4 text-[hsl(210,11%,50%)]" />
+                        ) : (
+                            <ChevronDown className="w-4 h-4 text-[hsl(210,11%,50%)]" />
+                        )}
+                    </button>
+                    
+                    {showTips && (
+                        <div className="px-4 pb-4">
+                            <ul className="space-y-1.5 text-sm text-[hsl(210,11%,60%)]">
+                                <li className="flex items-start gap-2">
+                                    <span className="text-[hsl(142,70%,55%)] font-medium">1.</span>
+                                    <span>Look for issues labeled "good first issue" or "beginner friendly"</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-[hsl(142,70%,55%)] font-medium">2.</span>
+                                    <span>Read the project's README and CONTRIBUTING guide before starting</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-[hsl(142,70%,55%)] font-medium">3.</span>
+                                    <span>Comment on the issue to claim it before starting work</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-[hsl(142,70%,55%)] font-medium">4.</span>
+                                    <span>Don't hesitate to ask questions - maintainers are usually helpful!</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="text-[hsl(142,70%,55%)] font-medium">5.</span>
+                                    <span>Start small - even documentation fixes count as contributions</span>
+                                </li>
+                            </ul>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -144,3 +138,4 @@ const DiscoveryPage = () => {
 };
 
 export default DiscoveryPage;
+

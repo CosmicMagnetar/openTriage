@@ -117,19 +117,55 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                     </button>
                 </div>
 
-                {/* Selection Status */}
-                <div className="px-5 py-3 bg-[hsl(220,13%,6%)] border-b border-[hsl(220,13%,15%)] flex items-center justify-between">
-                    <span className="text-sm text-[hsl(210,11%,60%)]">
-                        Selected: <span className="font-medium text-[hsl(210,11%,90%)]">{selectedBadgeIds.length}/3</span>
-                    </span>
-                    {selectedBadgeIds.length > 0 && (
-                        <button
-                            onClick={() => setSelectedBadgeIds([])}
-                            className="text-sm text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] transition-colors"
-                        >
-                            Clear selection
-                        </button>
-                    )}
+                {/* Selection Status + Live Preview */}
+                <div className="px-5 py-4 bg-[hsl(220,13%,6%)] border-b border-[hsl(220,13%,15%)]">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-[hsl(210,11%,60%)]">
+                            Selected: <span className="font-medium text-[hsl(210,11%,90%)]">{selectedBadgeIds.length}/3</span>
+                        </span>
+                        {selectedBadgeIds.length > 0 && (
+                            <button
+                                onClick={() => setSelectedBadgeIds([])}
+                                className="text-sm text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] transition-colors"
+                            >
+                                Clear selection
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Live Preview Panel */}
+                    <div className="flex items-center justify-center gap-4 p-4 bg-[hsl(220,13%,10%)] rounded-lg border border-[hsl(220,13%,18%)]">
+                        <span className="text-xs text-[hsl(210,11%,40%)] mr-2">Preview:</span>
+                        {[0, 1, 2].map((slot) => {
+                            const selectedBadge = selectedBadgeIds[slot]
+                                ? allBadges.find(b => b.badge?.id === selectedBadgeIds[slot])?.badge
+                                : null;
+
+                            return (
+                                <div
+                                    key={slot}
+                                    className={`w-14 h-14 rounded-lg border-2 flex items-center justify-center transition-all ${selectedBadge
+                                            ? `${getRarityColor(selectedBadge.rarity)}`
+                                            : 'border-dashed border-[hsl(220,13%,25%)] bg-[hsl(220,13%,8%)]'
+                                        }`}
+                                >
+                                    {selectedBadge ? (
+                                        selectedBadge.image_url ? (
+                                            <img
+                                                src={selectedBadge.image_url}
+                                                alt={selectedBadge.name}
+                                                className="w-10 h-10 object-contain"
+                                            />
+                                        ) : (
+                                            <span className="text-2xl">{selectedBadge.icon || '🏆'}</span>
+                                        )
+                                    ) : (
+                                        <span className="text-xs text-[hsl(210,11%,35%)]">{slot + 1}</span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 {/* Badge Grid */}
@@ -151,7 +187,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                                     </span>
                                 </div>
 
-                                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                                     {badges.map((item) => {
                                         const badge = item.badge;
                                         const earned = item.earned;
@@ -162,7 +198,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                                                 key={badge.id}
                                                 onClick={() => toggleBadge(badge.id, earned)}
                                                 disabled={!earned}
-                                                className={`relative aspect-square rounded-lg p-2 transition-all border-2
+                                                className={`group relative rounded-lg p-3 transition-all border-2
                                                     ${earned
                                                         ? isSelected
                                                             ? `${getRarityColor(badge.rarity)} ring-2 ring-[hsl(142,70%,55%)]`
@@ -172,7 +208,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                                             >
                                                 {/* Selected Checkmark */}
                                                 {isSelected && (
-                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-[hsl(142,70%,45%)] rounded-full flex items-center justify-center">
+                                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-[hsl(142,70%,45%)] rounded-full flex items-center justify-center z-10">
                                                         <Check className="w-3 h-3 text-white" />
                                                     </div>
                                                 )}
@@ -184,22 +220,32 @@ const BadgeSelectionModal = ({ isOpen, onClose, allBadges = [], featuredBadges =
                                                     </div>
                                                 )}
 
-                                                {/* Badge Content */}
-                                                <div className={`flex flex-col items-center justify-center h-full ${!earned && 'invisible'}`}>
-                                                    {badge.image_url ? (
-                                                        <img
-                                                            src={badge.image_url}
-                                                            alt={badge.name}
-                                                            className="w-full h-full object-contain rounded"
-                                                            onError={(e) => {
-                                                                e.target.style.display = 'none';
-                                                                e.target.nextSibling.style.display = 'block';
-                                                            }}
-                                                        />
-                                                    ) : null}
-                                                    <span className={`text-3xl ${badge.image_url ? 'hidden' : 'block'}`}>
-                                                        {badge.icon || '🏆'}
+                                                {/* Badge Content - Enhanced with larger preview */}
+                                                <div className={`flex flex-col items-center ${!earned && 'invisible'}`}>
+                                                    <div className="w-12 h-12 flex items-center justify-center mb-2">
+                                                        {badge.image_url ? (
+                                                            <img
+                                                                src={badge.image_url}
+                                                                alt={badge.name}
+                                                                className="w-full h-full object-contain rounded"
+                                                                onError={(e) => {
+                                                                    e.target.style.display = 'none';
+                                                                    e.target.nextSibling.style.display = 'block';
+                                                                }}
+                                                            />
+                                                        ) : null}
+                                                        <span className={`text-3xl ${badge.image_url ? 'hidden' : 'block'}`}>
+                                                            {badge.icon || '🏆'}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-[10px] text-center text-[hsl(210,11%,60%)] line-clamp-1 w-full">
+                                                        {badge.name}
                                                     </span>
+                                                </div>
+
+                                                {/* Hover tooltip with full name */}
+                                                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-[hsl(220,13%,5%)] text-[hsl(210,11%,85%)] text-xs rounded border border-[hsl(220,13%,20%)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20">
+                                                    {badge.name}
                                                 </div>
                                             </button>
                                         );

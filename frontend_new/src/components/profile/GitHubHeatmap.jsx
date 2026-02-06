@@ -2,22 +2,22 @@ import { useMemo } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 /**
- * GitHubHeatmap - Clean GitHub-style contribution graph
+ * GitHubHeatmap - Modern GitHub-style contribution graph with enhanced visuals
  */
 const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
-    const CELL_SIZE = 10;
+    const CELL_SIZE = 11;
     const CELL_GAP = 3;
     const WEEKS = 53;
     const DAYS = 7;
     const MONTH_LABELS_HEIGHT = 18;
     const DAY_LABELS_WIDTH = 28;
 
-    // GitHub's actual contribution colors
+    // Enhanced GitHub contribution colors with smoother gradient
     const getColor = (value) => {
         if (value === 0) return '#161b22';
-        if (value <= 3) return '#0e4429';
-        if (value <= 6) return '#006d32';
-        if (value <= 9) return '#26a641';
+        if (value <= 2) return '#0e4429';
+        if (value <= 5) return '#006d32';
+        if (value <= 8) return '#26a641';
         return '#39d353';
     };
 
@@ -101,8 +101,9 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                             key={i}
                             x={label.x}
                             y={12}
-                            fill="#7d8590"
+                            fill="#8b949e"
                             fontSize="10"
+                            fontWeight="500"
                         >
                             {label.month}
                         </text>
@@ -114,14 +115,14 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                             key={i}
                             x={0}
                             y={MONTH_LABELS_HEIGHT + i * (CELL_SIZE + CELL_GAP) + CELL_SIZE - 2}
-                            fill="#7d8590"
+                            fill="#8b949e"
                             fontSize="9"
                         >
                             {label}
                         </text>
                     ))}
 
-                    {/* Contribution Cells */}
+                    {/* Contribution Cells with enhanced styling */}
                     {cells.map((cell) => (
                         <Tooltip key={cell.key}>
                             <TooltipTrigger asChild>
@@ -130,20 +131,24 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                                     y={cell.y}
                                     width={CELL_SIZE}
                                     height={CELL_SIZE}
-                                    rx={2}
+                                    rx={2.5}
                                     fill={getColor(cell.value)}
-                                    className="cursor-pointer outline-none"
+                                    className="cursor-pointer outline-none transition-all duration-150 hover:brightness-125 hover:scale-105"
                                     style={{
-                                        outline: '1px solid rgba(27, 31, 35, 0.06)'
+                                        transformOrigin: `${cell.x + CELL_SIZE / 2}px ${cell.y + CELL_SIZE / 2}px`,
+                                        outline: cell.value > 0 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none'
                                     }}
                                 />
                             </TooltipTrigger>
                             <TooltipContent
                                 side="top"
-                                className="bg-[#1f2937] border-[#30363d] text-[#e6edf3]"
+                                className="bg-[#1c2128] border-[#30363d] text-[#e6edf3] shadow-lg shadow-black/20"
                             >
                                 <p className="text-xs font-medium">
-                                    {cell.value === 0 ? 'No' : cell.value} contribution{cell.value !== 1 ? 's' : ''} on {cell.date}
+                                    <span className={cell.value > 0 ? 'text-[#3fb950]' : 'text-[#8b949e]'}>
+                                        {cell.value === 0 ? 'No' : cell.value}
+                                    </span>{' '}
+                                    contribution{cell.value !== 1 ? 's' : ''} on {cell.date}
                                 </p>
                             </TooltipContent>
                         </Tooltip>
@@ -151,18 +156,19 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
                 </svg>
             </TooltipProvider>
 
-            {/* Legend */}
-            <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-[#7d8590]">
-                    {totalContributions.toLocaleString()} contributions in the last year
+            {/* Enhanced Legend */}
+            <div className="flex items-center justify-between mt-3">
+                <span className="text-xs text-[#8b949e]">
+                    <span className="text-[#e6edf3] font-semibold">{totalContributions.toLocaleString()}</span>{' '}
+                    contributions in the last year
                 </span>
-                <div className="flex items-center gap-1 text-xs text-[#7d8590]">
+                <div className="flex items-center gap-1.5 text-[10px] text-[#8b949e] bg-[#21262d]/50 px-2 py-1 rounded-full">
                     <span>Less</span>
-                    <div className="flex gap-[2px]">
-                        {[0, 3, 6, 9, 12].map((level) => (
+                    <div className="flex gap-[3px]">
+                        {[0, 2, 5, 8, 12].map((level) => (
                             <div
                                 key={level}
-                                className="w-[10px] h-[10px] rounded-sm"
+                                className="w-[11px] h-[11px] rounded-[3px] transition-transform hover:scale-110"
                                 style={{ backgroundColor: getColor(level) }}
                             />
                         ))}
@@ -175,3 +181,4 @@ const GitHubHeatmap = ({ data = [], totalContributions = 0 }) => {
 };
 
 export default GitHubHeatmap;
+

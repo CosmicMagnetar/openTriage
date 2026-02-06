@@ -12,6 +12,8 @@ import FeaturedBadges from './FeaturedBadges';
 import TopLanguages from './TopLanguages';
 import ContributorHype from './ContributorHype';
 import HypeScreen from './HypeScreen';
+import BadgeUnlockModal from '../ui/BadgeUnlockModal';
+import { useBadgeNotification } from '../../hooks/useBadgeNotification';
 
 const ProfilePage = () => {
     const { user } = useAuthStore();
@@ -25,6 +27,9 @@ const ProfilePage = () => {
     const [skillInput, setSkillInput] = useState('');
     const [allBadges, setAllBadges] = useState([]);
     const [featuredBadges, setFeaturedBadges] = useState([]);
+
+    // Badge notification hook - triggers auto-popup for newly earned badges
+    const { newBadge, dismissBadge } = useBadgeNotification(user?.username, !loading);
 
     // Editable fields
     const [bio, setBio] = useState('');
@@ -372,8 +377,8 @@ const ProfilePage = () => {
                     )}
 
                     {activeTab === 'stats' && (
-                        <ContributionStats 
-                            username={user?.username} 
+                        <ContributionStats
+                            username={user?.username}
                             githubStats={profile?.github_stats}
                         />
                     )}
@@ -456,6 +461,11 @@ const ProfilePage = () => {
 
                 </div>
             </div>
+
+            {/* Badge Unlock Popup - Auto-triggered for newly earned badges */}
+            {newBadge && (
+                <BadgeUnlockModal badge={newBadge} onClose={dismissBadge} />
+            )}
         </div>
     );
 };

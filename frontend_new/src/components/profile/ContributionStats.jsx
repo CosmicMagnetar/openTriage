@@ -55,11 +55,11 @@ const ActivityRadar = ({ data }) => {
         reviews: 40,
         repos: 55
     };
-    
+
     // Check if we have real data
     const hasRealData = data && Object.values(data).some(v => v > 5);
     const displayData = hasRealData ? data : demoData;
-    
+
     const radarData = [
         { subject: 'Commits', value: displayData.commits || 75 },
         { subject: 'Issues', value: displayData.issues || 50 },
@@ -67,18 +67,18 @@ const ActivityRadar = ({ data }) => {
         { subject: 'Reviews', value: displayData.reviews || 40 },
         { subject: 'Repos', value: displayData.repos || 55 },
     ];
-    
+
     return (
         <ResponsiveContainer width="100%" height={220}>
             <RadarChart data={radarData} outerRadius="65%">
                 <PolarGrid stroke="rgba(255,255,255,0.15)" />
-                <PolarAngleAxis 
-                    dataKey="subject" 
+                <PolarAngleAxis
+                    dataKey="subject"
                     tick={{ fill: '#9ca3af', fontSize: 11, fontWeight: 500 }}
                 />
-                <PolarRadiusAxis 
-                    angle={90} 
-                    domain={[0, 100]} 
+                <PolarRadiusAxis
+                    angle={90}
+                    domain={[0, 100]}
                     tick={false}
                     axisLine={false}
                 />
@@ -118,19 +118,19 @@ const LanguageDonut = ({ languages }) => {
         'Vue': '#41b883',
         'Dart': '#00B4AB',
     };
-    
+
     const DEFAULT_COLORS = ['#3fb950', '#58a6ff', '#a371f7', '#f78166', '#db61a2', '#79c0ff'];
     const [activeIndex, setActiveIndex] = useState(null);
-    
+
     let data = Object.entries(languages || {})
         .sort((a, b) => b[1] - a[1])
         .slice(0, 6)
-        .map(([name, value], index) => ({ 
-            name, 
+        .map(([name, value], index) => ({
+            name,
             value,
             color: LANGUAGE_COLORS[name] || DEFAULT_COLORS[index % DEFAULT_COLORS.length]
         }));
-    
+
     // Show placeholder when no data is available
     if (data.length === 0 || data.every(d => d.value === 0)) {
         return (
@@ -142,7 +142,7 @@ const LanguageDonut = ({ languages }) => {
             </div>
         );
     }
-    
+
     const total = data.reduce((sum, item) => sum + item.value, 0);
     const topLanguage = data[0]?.name || 'N/A';
     const topPercent = total > 0 ? ((data[0]?.value / total) * 100).toFixed(0) : 0;
@@ -169,7 +169,7 @@ const LanguageDonut = ({ languages }) => {
 
     const onPieEnter = (_, index) => setActiveIndex(index);
     const onPieLeave = () => setActiveIndex(null);
-    
+
     return (
         <div className="relative bg-gradient-to-br from-[#161b22] to-[#0d1117] rounded-xl p-4">
             {/* Chart Container */}
@@ -190,8 +190,8 @@ const LanguageDonut = ({ languages }) => {
                             animationDuration={800}
                         >
                             {data.map((entry, index) => (
-                                <Cell 
-                                    key={`cell-${index}`} 
+                                <Cell
+                                    key={`cell-${index}`}
                                     fill={entry.color}
                                     stroke={activeIndex === index ? entry.color : 'transparent'}
                                     strokeWidth={activeIndex === index ? 3 : 0}
@@ -207,19 +207,19 @@ const LanguageDonut = ({ languages }) => {
                         <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                 </ResponsiveContainer>
-                
+
                 {/* Center Content */}
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                    <div 
+                    <div
                         className="w-3 h-3 rounded-full mx-auto mb-1 transition-all duration-300"
-                        style={{ 
+                        style={{
                             backgroundColor: activeIndex !== null ? data[activeIndex]?.color : data[0]?.color,
                             boxShadow: `0 0 12px ${activeIndex !== null ? data[activeIndex]?.color : data[0]?.color}40`
                         }}
                     />
                     <span className="text-2xl font-bold text-white block">
-                        {activeIndex !== null 
-                            ? ((data[activeIndex]?.value / total) * 100).toFixed(0) 
+                        {activeIndex !== null
+                            ? ((data[activeIndex]?.value / total) * 100).toFixed(0)
                             : topPercent}%
                     </span>
                     <p className="text-xs text-[#8b949e] max-w-[90px] truncate">
@@ -227,24 +227,23 @@ const LanguageDonut = ({ languages }) => {
                     </p>
                 </div>
             </div>
-            
+
             {/* Legend - Modern Grid Layout */}
             <div className="grid grid-cols-2 gap-2 mt-4">
                 {data.map((entry, index) => {
                     const percentage = ((entry.value / total) * 100).toFixed(1);
                     const isActive = activeIndex === index;
                     return (
-                        <div 
-                            key={entry.name} 
-                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ${
-                                isActive ? 'bg-[#21262d]' : 'hover:bg-[#21262d]/50'
-                            }`}
+                        <div
+                            key={entry.name}
+                            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-all duration-200 ${isActive ? 'bg-[#21262d]' : 'hover:bg-[#21262d]/50'
+                                }`}
                             onMouseEnter={() => setActiveIndex(index)}
                             onMouseLeave={() => setActiveIndex(null)}
                         >
-                            <div 
-                                className="w-2.5 h-2.5 rounded-sm flex-shrink-0 transition-all duration-200" 
-                                style={{ 
+                            <div
+                                className="w-2.5 h-2.5 rounded-sm flex-shrink-0 transition-all duration-200"
+                                style={{
                                     backgroundColor: entry.color,
                                     boxShadow: isActive ? `0 0 8px ${entry.color}` : 'none'
                                 }}
@@ -263,7 +262,7 @@ const LanguageDonut = ({ languages }) => {
     );
 };
 
-// Mini Stat Card
+// Mini Stat Card - with responsive minimum sizing
 const MiniStat = ({ icon: Icon, label, value, color }) => {
     const colors = {
         green: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -271,14 +270,14 @@ const MiniStat = ({ icon: Icon, label, value, color }) => {
         purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
         orange: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
     };
-    
+
     return (
-        <div className={`${colors[color]} rounded-lg p-3 border`}>
+        <div className={`${colors[color]} rounded-lg p-3 border min-h-[72px] flex flex-col justify-center`}>
             <div className="flex items-center gap-2 mb-1">
-                <Icon className="w-4 h-4" />
-                <span className="text-[11px] text-gray-400">{label}</span>
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                <span className="text-[11px] text-gray-400 truncate">{label}</span>
             </div>
-            <p className="text-lg font-bold text-white">
+            <p className="text-lg font-bold text-white truncate">
                 {typeof value === 'number' ? value.toLocaleString() : value}
             </p>
         </div>
@@ -294,12 +293,12 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
     const [publicContributions, setPublicContributions] = useState(null);
     const [publicLanguages, setPublicLanguages] = useState(null);
     const [apiLanguages, setApiLanguages] = useState(null);
-    
+
     // Fetch languages from our API (works for all users)
     useEffect(() => {
         const fetchLanguages = async () => {
             if (!username) return;
-            
+
             try {
                 const data = await profileApi.getUserLanguages(username);
                 if (data?.languages && data.languages.length > 0) {
@@ -314,15 +313,15 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                 console.log('Failed to fetch languages from API:', err);
             }
         };
-        
+
         fetchLanguages();
     }, [username]);
-    
+
     // Fetch public GitHub data for non-OpenTriage users
     useEffect(() => {
         const fetchPublicData = async () => {
             if (!isGitHubFallback || !username) return;
-            
+
             try {
                 const eventsRes = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
                 if (eventsRes.ok) {
@@ -331,13 +330,13 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                         acc[event.type] = (acc[event.type] || 0) + 1;
                         return acc;
                     }, {});
-                    
+
                     const contributionMap = {};
                     events.forEach(event => {
                         const date = event.created_at.split('T')[0];
                         contributionMap[date] = (contributionMap[date] || 0) + 1;
                     });
-                    
+
                     setPublicContributions({
                         events: events.length,
                         pushEvents: eventCounts.PushEvent || 0,
@@ -347,7 +346,7 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                         contributionMap
                     });
                 }
-                
+
                 const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`);
                 if (reposRes.ok) {
                     const repos = await reposRes.json();
@@ -363,10 +362,10 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                 console.log('Failed to fetch public GitHub data:', err);
             }
         };
-        
+
         fetchPublicData();
     }, [username, isGitHubFallback]);
-    
+
     // Load cached stats on mount
     useEffect(() => {
         const loadCached = async () => {
@@ -383,16 +382,16 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         };
         if (username) loadCached();
     }, [username]);
-    
+
     // Generate contribution data
     const contributionData = (() => {
         const data = new Array(371).fill(0);
-        
+
         if (isGitHubFallback && publicContributions?.contributionMap) {
             const today = new Date();
             const oneYearAgo = new Date(today);
             oneYearAgo.setFullYear(today.getFullYear() - 1);
-            
+
             for (let i = 0; i < 371; i++) {
                 const date = new Date(oneYearAgo);
                 date.setDate(date.getDate() + i);
@@ -410,7 +409,7 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         }
         return data;
     })();
-    
+
     // Activity data for radar - ensure meaningful values
     // Map API field names: totalCommits, totalPRs, totalIssues, totalReviews, public_repos
     const rawActivityData = isGitHubFallback && publicContributions ? {
@@ -426,7 +425,7 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         reviews: Math.min(100, (githubStats?.totalReviews || githubStats?.reviews || 0) * 4),
         repos: Math.min(100, (githubStats?.public_repos || githubStats?.repos || 0) * 2),
     };
-    
+
     // Use demo data if all values are 0
     const hasActivityData = Object.values(rawActivityData).some(v => v > 0);
     const activityData = hasActivityData ? rawActivityData : {
@@ -436,38 +435,38 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         reviews: 35,
         repos: 50
     };
-    
+
     // Priority: API languages > public languages > githubStats languages
     const languages = apiLanguages || publicLanguages || githubStats?.languages || null;
-    
+
     const totalContributions = isGitHubFallback && publicContributions
         ? publicContributions.events
         : (githubStats?.totalContributions || 0);
-    
+
     const saveStatsImage = async () => {
         if (!statCardRef.current) return;
-        
+
         setSaving(true);
         try {
             const html2canvas = (await import('html2canvas')).default;
-            
+
             const canvas = await html2canvas(statCardRef.current, {
                 backgroundColor: '#0f172a',
                 scale: 2,
                 useCORS: true,
             });
-            
+
             const imageData = canvas.toDataURL('image/png');
             await saveToIndexedDB(username, imageData, githubStats);
             setCachedImage(imageData);
-            
+
             const link = document.createElement('a');
             link.download = `${username}-stats-${new Date().toISOString().split('T')[0]}.png`;
             link.href = imageData;
             link.click();
-            
+
             toast.success('Stats saved!');
-            
+
             if (onSaveStats) {
                 onSaveStats(imageData);
             }
@@ -478,11 +477,11 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
             setSaving(false);
         }
     };
-    
+
     return (
         <div className="space-y-4">
             {/* Main Stats Card */}
-            <div 
+            <div
                 ref={statCardRef}
                 className="bg-[#0d1117] rounded-xl border border-[#21262d] overflow-hidden"
             >
@@ -509,36 +508,36 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                         </button>
                     )}
                 </div>
-                
+
                 {/* Quick Stats */}
-                <div className="p-5">
-                    <div className="grid grid-cols-4 gap-3 mb-5">
-                        <MiniStat 
-                            icon={GitCommit} 
-                            label="Commits" 
+                <div className="p-4 sm:p-5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-5">
+                        <MiniStat
+                            icon={GitCommit}
+                            label="Commits"
                             value={githubStats?.totalCommits || githubStats?.commits || publicContributions?.pushEvents || 0}
                             color="green"
                         />
-                        <MiniStat 
-                            icon={GitPullRequest} 
-                            label="PRs" 
+                        <MiniStat
+                            icon={GitPullRequest}
+                            label="PRs"
                             value={githubStats?.totalPRs || githubStats?.pullRequests || publicContributions?.prEvents || 0}
                             color="blue"
                         />
-                        <MiniStat 
-                            icon={Star} 
-                            label="Stars" 
+                        <MiniStat
+                            icon={Star}
+                            label="Stars"
                             value={githubStats?.total_stars || githubStats?.stars || 0}
                             color="orange"
                         />
-                        <MiniStat 
-                            icon={Users} 
-                            label="Followers" 
+                        <MiniStat
+                            icon={Users}
+                            label="Followers"
                             value={githubStats?.followers || 0}
                             color="purple"
                         />
                     </div>
-                    
+
                     {/* Heatmap */}
                     <div className="mb-5">
                         <div className="flex items-center gap-2 mb-3">
@@ -549,19 +548,19 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                             <GitHubHeatmap data={contributionData} totalContributions={totalContributions} />
                         </div>
                     </div>
-                    
-                    {/* Charts */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-[#161b22] rounded-lg p-4">
+
+                    {/* Charts - stack on mobile */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-[#161b22] rounded-lg p-4 min-h-[260px]">
                             <h3 className="text-sm text-[#7d8590] mb-2">Activity</h3>
                             <ActivityRadar data={activityData} />
                         </div>
-                        <div className="bg-[#161b22] rounded-lg p-4">
+                        <div className="bg-[#161b22] rounded-lg p-4 min-h-[260px]">
                             <h3 className="text-sm text-[#7d8590] mb-2">Top Languages</h3>
                             <LanguageDonut languages={languages} />
                         </div>
                     </div>
-                    
+
                     {/* Total */}
                     <div className="mt-5 text-center py-4 bg-[#161b22] rounded-lg border border-[#21262d]">
                         <div className="flex items-center justify-center gap-2 mb-1">
@@ -576,7 +575,7 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                     </div>
                 </div>
             </div>
-            
+
             {/* Cached Preview */}
             {isOwner && cachedImage && (
                 <div className="bg-[#0d1117] rounded-xl border border-[#21262d] p-4">
@@ -591,9 +590,9 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                             Download
                         </a>
                     </div>
-                    <img 
-                        src={cachedImage} 
-                        alt="Cached stats" 
+                    <img
+                        src={cachedImage}
+                        alt="Cached stats"
                         className="w-full rounded-lg opacity-75 hover:opacity-100 transition-opacity"
                     />
                 </div>
