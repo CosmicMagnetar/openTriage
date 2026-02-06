@@ -282,9 +282,9 @@ const MentorDashboardPanel = () => {
                 ))}
             </div>
 
-            <div className="flex h-[420px]">
+            <div className="flex h-[420px] min-h-0">
                 {/* Left Panel - List */}
-                <div className="w-72 border-r border-[hsl(220,13%,18%)] overflow-y-auto">
+                <div className="w-72 flex-shrink-0 border-r border-[hsl(220,13%,18%)] overflow-y-auto">
                     {activeTab === 'conversations' && (
                         conversations.length > 0 ? (
                             <div className="divide-y divide-[hsl(220,13%,15%)]">
@@ -430,7 +430,7 @@ const MentorDashboardPanel = () => {
                 </div>
 
                 {/* Right Panel - Chat */}
-                <div className="flex-1 flex flex-col bg-[hsl(220,13%,6%)]">
+                <div className="flex-1 flex flex-col bg-[hsl(220,13%,6%)] min-w-0 overflow-hidden">
                     {selectedChat ? (
                         <>
                             {/* Chat Header */}
@@ -448,7 +448,7 @@ const MentorDashboardPanel = () => {
                             </div>
 
                             {/* Messages */}
-                            <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-2.5">
                                 {chatLoading ? (
                                     <div className="flex justify-center items-center h-full">
                                         <div className="flex flex-col items-center gap-2">
@@ -462,11 +462,11 @@ const MentorDashboardPanel = () => {
                                         const isMe = String(msg.sender_id) === String(user?.id);
                                         const isEditing = editingMessageId === msg.id;
                                         return (
-                                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
-                                                <div className={`relative flex items-end gap-1.5 ${isMe ? 'flex-row-reverse' : ''}`}>
+                                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group w-full`}>
+                                                <div className={`relative flex items-end gap-1.5 max-w-[80%] ${isMe ? 'flex-row-reverse' : ''}`}>
                                                     {/* Edit/Delete buttons for own messages */}
                                                     {isMe && !isEditing && (
-                                                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity mb-1">
+                                                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity mb-1 flex-shrink-0">
                                                             <button
                                                                 onClick={() => startEditing(msg)}
                                                                 className="p-1 bg-[hsl(220,13%,15%)] hover:bg-emerald-500/20 text-[hsl(210,11%,50%)] hover:text-emerald-400 rounded transition-colors"
@@ -487,7 +487,7 @@ const MentorDashboardPanel = () => {
                                                             </button>
                                                         </div>
                                                     )}
-                                                    <div className={`max-w-[70%] rounded-xl px-3 py-2 text-sm ${isMe
+                                                    <div className={`rounded-xl px-3 py-2 text-sm min-w-0 ${isMe
                                                         ? 'bg-emerald-600 text-white rounded-br-sm'
                                                         : 'bg-[hsl(220,13%,12%)] text-[hsl(210,11%,90%)] rounded-bl-sm border border-[hsl(220,13%,18%)]'
                                                         }`}>
@@ -524,7 +524,7 @@ const MentorDashboardPanel = () => {
                                                             </div>
                                                         ) : (
                                                             <>
-                                                                <div className={`prose prose-sm max-w-none break-words overflow-hidden ${isMe ? 'prose-invert prose-p:text-white prose-code:text-emerald-100 prose-pre:bg-emerald-600/30' : 'prose-invert prose-p:text-[hsl(210,11%,90%)] prose-code:text-[hsl(142,70%,60%)] prose-pre:bg-[hsl(220,13%,8%)]'} prose-p:my-0 prose-p:leading-relaxed prose-pre:my-1 prose-pre:p-2 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:max-w-full prose-code:text-xs prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none`}>
+                                                                <div className={`prose prose-sm max-w-none break-words overflow-hidden overflow-wrap-anywhere ${isMe ? 'prose-invert prose-p:text-white prose-code:text-emerald-100 prose-pre:bg-emerald-600/30' : 'prose-invert prose-p:text-[hsl(210,11%,90%)] prose-code:text-[hsl(142,70%,60%)] prose-pre:bg-[hsl(220,13%,8%)]'} prose-p:my-0 prose-p:leading-relaxed prose-pre:my-1 prose-pre:p-2 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:max-w-full prose-code:text-xs prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none [word-break:break-word]`}>
                                                                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                                                                 </div>
                                                                 <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-emerald-200' : 'text-[hsl(210,11%,40%)]'}`}>
