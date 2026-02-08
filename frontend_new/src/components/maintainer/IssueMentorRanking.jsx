@@ -19,7 +19,7 @@ const IssueMentorRanking = ({ issue }) => {
   const loadMentorsForIssue = async () => {
     setLoading(true);
     try {
-      const authToken = localStorage.getItem('auth_token');
+      const authToken = localStorage.getItem('token');
       
       if (!authToken) {
         console.warn('No auth token found - user not authenticated');
@@ -78,7 +78,7 @@ const IssueMentorRanking = ({ issue }) => {
         },
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         }
       );
