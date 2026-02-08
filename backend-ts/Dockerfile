@@ -1,5 +1,5 @@
 # ---- Base Stage ----
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # ---- Dependencies Stage ----
 FROM base AS deps
