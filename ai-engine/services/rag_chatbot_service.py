@@ -6,6 +6,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel
+import time
 
 from config.settings import settings
 
@@ -34,9 +35,53 @@ class RAGChatbotService:
     This implementation uses in-memory search as fallback.
     """
     
+    # Cache settings
+    README_CACHE_TTL = 600  # 10 minutes in seconds
+    
     def __init__(self):
         self.use_vector_db = False  # Set True when ChromaDB is available
         self._embeddings_cache = {}
+        self._readme_cache = {}  # {repo_key: {"content": str, "timestamp": float}}
+    
+    def _get_cached_readme(self, repo_name: str) -> Optional[str]:
+        """
+        Get cached README if it exists and hasn't expired.
+        
+        Args:
+            repo_name: Repository name (owner/repo format)
+            
+        Returns:
+            README content if cached and valid, None otherwise
+        """
+        if repo_name not in self._readme_cache:
+            return None
+        
+        cache_entry = self._readme_cache[repo_name]
+        age = time.time() - cache_entry["timestamp"]
+        
+        if age > self.README_CACHE_TTL:
+            # Cache expired, remove it
+            del self._readme_cache[repo_name]
+            logger.info(f"README cache expired for {repo_name} (age: {age:.1f}s)")
+            return None
+        
+        logger.info(f"✅ Serving README from cache for {repo_name} (age: {age:.1f}s)")
+        return cache_entry["content"]
+    
+    def _cache_readme(self, repo_name: str, content: str) -> None:
+        """
+        Cache README content with timestamp.
+        
+        Args:
+            repo_name: Repository name (owner/repo format)
+            content: README content to cache
+        """
+        self._readme_cache[repo_name] = {
+            "content": content,
+            "timestamp": time.time()
+        }
+        logger.info(f"📝 Cached README for {repo_name} ({len(content)} chars)")
+
     
     async def answer_question(
         self,
@@ -74,28 +119,38 @@ class RAGChatbotService:
             
             # If no indexed content, try to fetch README directly from GitHub
             if not has_indexed_content:
-                logger.info(f"No indexed content for {repo_name}, fetching README directly from GitHub...")
-                try:
-                    # Direct HTTP request to GitHub API
-                    owner, repo = repo_name.split('/')
-                    url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/README.md"
-                    
-                    async with httpx.AsyncClient(timeout=10) as client:
-                        response = await client.get(url)
-                        if response.status_code == 200:
-                            readme_content = response.text
-                            logger.info(f"Successfully fetched README for {repo_name} ({len(readme_content)} chars)")
-                        else:
-                            # Try master branch instead
-                            url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/README.md"
+                logger.info(f"No indexed content for {repo_name}, checking cache and fetching README if needed...")
+                
+                # Stage 1: Check cache first
+                cached_readme = self._get_cached_readme(repo_name)
+                if cached_readme:
+                    readme_content = cached_readme
+                else:
+                    # Cache miss - fetch from GitHub
+                    try:
+                        owner, repo = repo_name.split('/')
+                        url = f"https://raw.githubusercontent.com/{owner}/{repo}/main/README.md"
+                        
+                        async with httpx.AsyncClient(timeout=10) as client:
                             response = await client.get(url)
                             if response.status_code == 200:
                                 readme_content = response.text
-                                logger.info(f"Successfully fetched README (master) for {repo_name} ({len(readme_content)} chars)")
+                                # Cache the fetched content
+                                self._cache_readme(repo_name, readme_content)
+                                logger.info(f"Successfully fetched README for {repo_name} ({len(readme_content)} chars)")
                             else:
-                                logger.warning(f"README not found at {url}")
-                except Exception as e:
-                    logger.error(f"Error fetching README for {repo_name}: {e}")
+                                # Try master branch instead
+                                url = f"https://raw.githubusercontent.com/{owner}/{repo}/master/README.md"
+                                response = await client.get(url)
+                                if response.status_code == 200:
+                                    readme_content = response.text
+                                    # Cache the fetched content
+                                    self._cache_readme(repo_name, readme_content)
+                                    logger.info(f"Successfully fetched README (master) for {repo_name} ({len(readme_content)} chars)")
+                                else:
+                                    logger.warning(f"README not found at {url}")
+                    except Exception as e:
+                        logger.error(f"Error fetching README for {repo_name}: {e}")
         
         # Search for relevant documents (from indexed chunks)
         relevant_docs = await self.search_documents(question, repo_name, top_k)
