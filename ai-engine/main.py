@@ -35,9 +35,15 @@ from services.mentor_matching_service import mentor_matching_service
 from services.hype_generator_service import hype_generator_service
 from services.rag_data_prep import rag_data_prep
 from services.sentiment_analysis_service import sentiment_analysis_service
+from services.mentor_leaderboard_service import mentor_leaderboard_service
 
 # Import models for request/response types
 from models.issue import Issue
+from models.mentor_leaderboard import (
+    MentorLeaderboardEntry,
+    LeaderboardResponse,
+    LeaderboardEdit
+)
 
 
 @asynccontextmanager
@@ -156,6 +162,19 @@ class BatchCommentSentimentRequest(BaseModel):
     """Request for sentiment analysis of multiple comments"""
     comments: List[Dict[str, Any]]
     # Each comment dict should have: id, body, author (optional)
+
+
+class LeaderboardEditRequest(BaseModel):
+    """Request to edit a leaderboard entry"""
+    mentor_id: str
+    edited_by: str  # Maintainer username
+    reason: Optional[str] = None
+    # Can update:
+    custom_notes: Optional[str] = None
+    sentiment_score: Optional[float] = None
+    expertise_score: Optional[float] = None
+    engagement_score: Optional[float] = None
+    best_language: Optional[str] = None
 
 
 # =============================================================================
@@ -602,8 +621,183 @@ async def clear_sentiment_cache(auth: dict = Depends(require_api_key_or_auth)):
 
 
 # =============================================================================
-# Run with: uvicorn main:app --host 0.0.0.0 --port 7860
+# Mentor Leaderboard Endpoints (AI-Powered Rankings with Sentiment)
 # =============================================================================
+
+@app.post("/leaderboard/generate")
+async def generate_leaderboard(
+    exclude_maintainer: Optional[str] = None,
+    auth: dict = Depends(require_api_key_or_auth)
+):
+    """
+    Generate the mentor leaderboard from scratch.
+    
+    This endpoint:
+    1. Fetches all mentor conversations
+    2. Analyzes sentiment of each conversation using DistilBERT
+    3. Detects programming languages mentioned
+    4. Ranks mentors by: Sentiment (35%) + Expertise (40%) + Engagement (25%)
+    
+    Returns ranked mentors with scores for each component.
+    
+    **Parameters:**
+    - exclude_maintainer: User ID of maintainer to exclude from rankings
+    
+    **Returns leaderboard with:**
+    - overall_score: Weighted ranking score (0-100)
+    - sentiment_score: Quality of mentorship interactions
+    - expertise_score: Programming language proficiency
+    - best_language: Top detected language
+    - rank: Current position
+    """
+    try:
+        logger.info(f"Generating leaderboard (exclude_maintainer={exclude_maintainer})...")
+        result = await mentor_leaderboard_service.generate_leaderboard(
+            exclude_maintainer_id=exclude_maintainer
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Leaderboard generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/leaderboard")
+async def get_leaderboard(
+    limit: int = 50,
+    skip: int = 0,
+    auth: dict = Depends(require_api_key_or_auth)
+):
+    """
+    Get the cached mentor leaderboard.
+    
+    Returns top mentors with their rankings.
+    
+    **Query Parameters:**
+    - limit: Number of entries to return (default: 50)
+    - skip: Number to skip for pagination (default: 0)
+    """
+    try:
+        result = await mentor_leaderboard_service.get_leaderboard(
+            limit=limit,
+            skip=skip
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Get leaderboard error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/leaderboard/mentor/{mentor_id}")
+async def get_mentor_leaderboard_entry(
+    mentor_id: str,
+    auth: dict = Depends(require_api_key_or_auth)
+):
+    """
+    Get leaderboard entry for a specific mentor.
+    
+    Returns their ranking, scores, language proficiency, and edit history.
+    """
+    try:
+        entry = await mentor_leaderboard_service.get_entry(mentor_id)
+        if not entry:
+            raise HTTPException(status_code=404, detail=f"Mentor {mentor_id} not in leaderboard")
+        return entry
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get mentor entry error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/leaderboard/edit")
+async def edit_leaderboard_entry(
+    request: LeaderboardEditRequest,
+    auth: dict = Depends(require_api_key_or_auth)
+):
+    """
+    Edit a leaderboard entry (maintainer only).
+    
+    Allows manual adjustments to mentor rankings. All edits are tracked.
+    
+    **Editable fields:**
+    - custom_notes: Custom notes about this mentor
+    - sentiment_score: Adjust sentiment component (0-100)
+    - expertise_score: Adjust expertise component (0-100)
+    - engagement_score: Adjust engagement component (0-100)
+    - best_language: Override detected language
+    
+    **All edits are recorded in:**
+    - edit_history: List of all changes with timestamp and reason
+    - is_custom_edited: Flag marking entry as manually tweaked
+    - last_edited_by: Who made the edit
+    """
+    try:
+        # Build update dict from request
+        updates = {
+            "edited_by": request.edited_by,
+            "reason": request.reason
+        }
+        
+        if request.custom_notes is not None:
+            updates["custom_notes"] = request.custom_notes
+        if request.sentiment_score is not None:
+            updates["score_sentiment"] = request.sentiment_score
+        if request.expertise_score is not None:
+            updates["score_expertise"] = request.expertise_score
+        if request.engagement_score is not None:
+            updates["score_engagement"] = request.engagement_score
+        if request.best_language is not None:
+            updates["best_language"] = request.best_language
+        
+        entry = await mentor_leaderboard_service.edit_entry(
+            request.mentor_id,
+            **updates
+        )
+        return entry
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Edit leaderboard error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/leaderboard/export")
+async def export_leaderboard(
+    format: str = "json",
+    auth: dict = Depends(require_api_key_or_auth)
+):
+    """
+    Export leaderboard in various formats.
+    
+    **Formats:**
+    - json: Full JSON with all fields
+    - csv: Simplified CSV for spreadsheets
+    """
+    try:
+        if format not in ["json", "csv"]:
+            raise HTTPException(status_code=400, detail="Format must be 'json' or 'csv'")
+        
+        data = await mentor_leaderboard_service.export_leaderboard(format)
+        
+        if format == "csv":
+            return {
+                "format": "csv",
+                "data": data,
+                "message": "Copy this data into a CSV file"
+            }
+        
+        return {
+            "format": "json",
+            "data": data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Export leaderboard error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 
 if __name__ == "__main__":
     import uvicorn
