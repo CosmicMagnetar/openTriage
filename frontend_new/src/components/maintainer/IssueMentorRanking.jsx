@@ -3,7 +3,6 @@ import { Trophy, TrendingUp, Code2, MessageSquare, RefreshCw, AlertCircle, UserP
 import axios from 'axios';
 import { toast } from 'sonner';
 
-const API_BASE = `${import.meta.env.VITE_AI_ENGINE_URL || 'http://localhost:7860'}`;
 const BACKEND_API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
 const IssueMentorRanking = ({ issue }) => {
@@ -28,10 +27,10 @@ const IssueMentorRanking = ({ issue }) => {
         return;
       }
 
-      console.log('Fetching leaderboard from:', API_BASE);
+      console.log('Fetching leaderboard from:', `${BACKEND_API}/leaderboard`);
       
-      // Get the full leaderboard
-      const response = await axios.get(`${API_BASE}/leaderboard?limit=100`, {
+      // Get the full leaderboard through TypeScript backend proxy
+      const response = await axios.get(`${BACKEND_API}/leaderboard?limit=100`, {
         headers: {
           Authorization: `Bearer ${apiKey}`,
         },
@@ -53,6 +52,7 @@ const IssueMentorRanking = ({ issue }) => {
       setMentors(rankedMentors);
     } catch (error) {
       console.error('Error loading mentors:', error);
+      console.error('Make sure AI engine is running and VITE_BACKEND_URL is set correctly');
       setMentors([]);
     } finally {
       setLoading(false);
