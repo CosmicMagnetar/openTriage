@@ -5,14 +5,16 @@
  * Enables searching README content and other documents without hitting the backend.
  */
 
-import { create, insert, search } from "orama";
+import Orama from 'orama';
+
+const { create: createIndex, insert: insertDoc, search: searchDocs } = Orama;
 
 /**
  * Create an Orama instance for searching README content
  * @returns {Promise<import('orama').Orama>}
  */
 export async function createReadmeIndex() {
-  return await create({
+  return await createIndex({
     schema: {
       title: "string",
       content: "string",
@@ -58,7 +60,7 @@ export async function indexReadmeSections(
       console.log(
         `  → Section: "${docData.section}", content length: ${docData.content.length}`,
       );
-      const id = await insert(index, docData);
+      const id = await insertDoc(index, docData);
       docIds.push(id);
     } catch (error) {
       console.error(`Failed to index section "${section.title}":`, error);
@@ -98,7 +100,7 @@ export async function searchReadme(
       repository,
     );
 
-    const results = await search(index, searchOptions);
+    const results = await searchDocs(index, searchOptions);
     console.log(`📊 Orama returned ${results.hits?.length || 0} hits`);
 
     // Transform results to a cleaner format
@@ -135,7 +137,7 @@ export async function searchReadme(
  */
 export async function getIndexedRepositories(index) {
   try {
-    const results = await search(index, {
+    const results = await searchDocs(index, {
       term: "*",
       limit: 1000,
     });
@@ -161,7 +163,7 @@ export async function getIndexedRepositories(index) {
 export async function getIndexStats(index) {
   try {
     // Search for all documents using wildcard
-    const results = await search(index, {
+    const results = await searchDocs(index, {
       term: "*",
       limit: 1,
     });
