@@ -5,6 +5,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { ragApi } from '../../services/api';
 import ReactMarkdown from 'react-markdown';
+import useRagStageUpdates from '../../hooks/useRagStageUpdates';
+import RagStatusBar from '../ui/RagStatusBar';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -23,9 +25,13 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
   const [isIndexing, setIsIndexing] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState('all');
   const [sessionId] = useState(() => `contributor-session-${Date.now()}`);
+  const [ragSessionId, setRagSessionId] = useState(null);
   const [ablyConnected, setAblyConnected] = useState(false);
   const [ablyError, setAblyError] = useState(null);
   const messagesEndRef = useRef(null);
+
+  // Socket.io – listen for RAG pipeline stage updates
+  const { stage, label, progress, isConnected: socketConnected } = useRagStageUpdates(ragSessionId);
 
   // Fetch issues if not provided (for global usage)
   useEffect(() => {
@@ -160,7 +166,11 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
       let relatedIssues = [];
 
       if (selectedRepo !== 'all') {
-        const response = await ragApi.askQuestion(userMessage, selectedRepo);
+        // Generate a unique RAG session ID and start listening for stage updates
+        const currentRagSession = `rag-${Date.now()}`;
+        setRagSessionId(currentRagSession);
+
+        const response = await ragApi.askQuestion(userMessage, selectedRepo, 5, null, currentRagSession);
         // Handle potential undefined/null response safely
         if (!response || response.error) {
           throw new Error(response?.error || 'AI service is unavailable');
@@ -330,6 +340,18 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
             )}
           </div>
         </div>
+
+        {/* RAG Pipeline Status Bar */}
+        {loading && selectedRepo !== 'all' && (
+          <div className="px-4 pt-2">
+            <RagStatusBar
+              stage={stage}
+              label={label}
+              progress={progress}
+              isConnected={socketConnected}
+            />
+          </div>
+        )}
 
         {/* Messages */}
         <div className="flex-1 overflow-auto p-4 space-y-4">

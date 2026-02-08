@@ -40,9 +40,11 @@ COPY --from=builder /app/public ./public
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Copy standalone build output
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy build output, node_modules, and custom server
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/server.js ./server.js
 
 # Ensure the app directory is writable by user 1000 (Hugging Face requirement)
 RUN chown -R nextjs:nodejs /app
@@ -51,5 +53,5 @@ USER nextjs
 
 EXPOSE 7860
 
-# Start the Next.js server
+# Start the custom server (Next.js + Socket.io)
 CMD ["node", "server.js"]

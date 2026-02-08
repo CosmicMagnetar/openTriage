@@ -128,6 +128,7 @@ export const ragApi = {
     repoName = null,
     topK = 5,
     githubAccessToken = null,
+    sessionId = null,
   ) =>
     apiRequest("/api/rag/chat", {
       method: "POST",
@@ -136,6 +137,7 @@ export const ragApi = {
         repo_name: repoName,
         top_k: topK,
         github_access_token: githubAccessToken,
+        session_id: sessionId,
       }),
     }),
 

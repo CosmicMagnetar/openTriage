@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node server.js",
     "build": "next build",
-    "start": "next start -H 0.0.0.0 -p ${PORT:-7860}",
+    "start": "node server.js",
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -17,9 +17,9 @@
     "migrate:data": "tsx scripts/migrate-data.ts"
   },
   "dependencies": {
-    "ably": "^2.6.0",
     "@libsql/client": "^0.17.0",
     "@octokit/rest": "^22.0.1",
+    "ably": "^2.6.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "jsonwebtoken": "^9.0.3",
@@ -27,6 +27,7 @@
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "socket.io": "^4.8.3",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
