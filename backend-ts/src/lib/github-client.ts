@@ -150,6 +150,31 @@ export async function createIssueComment(
 }
 
 /**
+ * Add assignee(s) to an issue or pull request
+ */
+export async function addIssueAssignees(
+    octokit: Octokit,
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    assignees: string[]
+) {
+    try {
+        const response = await octokit.issues.addAssignees({
+            owner,
+            repo,
+            issue_number: issueNumber,
+            assignees,
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error(`Error adding assignees to ${owner}/${repo}#${issueNumber}:`, error);
+        throw error;
+    }
+}
+
+/**
  * Fetch contribution statistics using GitHub GraphQL API
  * More accurate and efficient than REST API for stats
  */
