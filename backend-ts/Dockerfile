@@ -8,7 +8,9 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+# Install ALL dependencies (including devDependencies like typescript)
+# needed for the build step
+RUN npm ci
 
 # ---- Build Stage ----
 FROM base AS builder
@@ -20,6 +22,9 @@ COPY . .
 
 # Build the Next.js application
 RUN npm run build
+
+# Remove devDependencies after build
+RUN npm prune --omit=dev
 
 # ---- Production Stage ----
 FROM base AS runner
