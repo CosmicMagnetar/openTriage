@@ -5,6 +5,8 @@ Lift-and-shift deployment of the original Python AI backend.
 All service logic is preserved exactly as-is from the original codebase.
 
 Designed for Hugging Face Spaces deployment.
+
+Build: 2026-02-09 v2.1 - Fixed import issues, added README cache
 """
 
 import logging
@@ -49,7 +51,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="OpenTriage AI Engine",
     description="Full-featured AI backend for issue triage, RAG chatbot, mentor matching, and hype generation",
-    version="2.0.0",
+    version="2.1.0",
     lifespan=lifespan
 )
 
