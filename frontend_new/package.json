@@ -41,6 +41,7 @@
         "html2canvas": "^1.4.1",
         "lucide-react": "^0.344.0",
         "next-themes": "^0.2.1",
+        "orama": "2.0.6",
         "react": "^18.2.0",
         "react-day-picker": "^8.10.0",
         "react-dom": "^18.2.0",

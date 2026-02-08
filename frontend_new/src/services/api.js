@@ -159,6 +159,77 @@ export const ragApi = {
     ),
 };
 
+// ============ Local Search API (using Orama) ============
+
+/**
+ * Local search wrapper that integrates with Orama indices.
+ * Use this to search README content indexed in the browser without hitting the backend.
+ *
+ * @param {Object} oramaIndex - Orama index object with `performSearch`, `indexReadme` methods
+ * @returns {Object} search API similar to ragApi.searchDocuments but local
+ */
+export function createLocalSearchApi(oramaIndex) {
+  if (!oramaIndex) {
+    console.warn("Orama index not provided to createLocalSearchApi");
+    return null;
+  }
+
+  return {
+    /**
+     * Search indexed README content locally
+     * @param {string} query - Search query
+     * @param {string} repoName - Repository name (owner/repo format, optional)
+     * @param {number} limit - Max results
+     * @returns {Promise<Array>}
+     */
+    searchDocuments: async (query, repoName = null, limit = 10) => {
+      const results = await oramaIndex.performSearch(query, limit, repoName);
+      return results;
+    },
+
+    /**
+     * Index a repository's README locally
+     * @param {string} repoName - Repository name (owner/repo format)
+     * @param {string} githubToken - Optional GitHub token for private repos
+     * @returns {Promise<Object>}
+     */
+    indexRepository: async (repoName, githubToken = null) => {
+      const [owner, repo] = repoName.split("/");
+      if (!owner || !repo) {
+        throw new Error("Repository name must be in format: owner/repo");
+      }
+
+      const result = await oramaIndex.indexReadme(owner, repo, githubToken);
+      return result;
+    },
+
+    /**
+     * Clear a repository from the local index
+     * @param {string} repoName - Repository name (owner/repo format)
+     * @returns {Promise<boolean>}
+     */
+    clearRepository: async (repoName) => {
+      const [owner, repo] = repoName.split("/");
+      if (!owner || !repo) {
+        throw new Error("Repository name must be in format: owner/repo");
+      }
+      return await oramaIndex.clearRepository(owner, repo);
+    },
+
+    /**
+     * Get indexed repositories
+     * @returns {Array<string>}
+     */
+    getIndexedRepos: () => oramaIndex.indexedRepos,
+
+    /**
+     * Get index statistics
+     * @returns {Object}
+     */
+    getStats: () => oramaIndex.stats,
+  };
+}
+
 // ============ Mentorship Chat API ============
 
 export const chatApi = {
