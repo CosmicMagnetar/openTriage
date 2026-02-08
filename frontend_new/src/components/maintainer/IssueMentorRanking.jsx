@@ -29,30 +29,47 @@ const IssueMentorRanking = ({ issue }) => {
 
       console.log('Fetching leaderboard from:', `${BACKEND_API}/leaderboard`);
       
-      // Get the full leaderboard through TypeScript backend proxy
-      const response = await axios.get(`${BACKEND_API}/leaderboard?limit=100`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
+      try {
+        // Try to get the real leaderboard through TypeScript backend proxy
+        const response = await axios.get(`${BACKEND_API}/leaderboard?limit=100`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
 
-      console.log('Leaderboard response:', response.data);
+        console.log('Leaderboard response:', response.data);
 
-      let rankedMentors = response.data.entries || [];
+        let rankedMentors = response.data.entries || [];
 
-      // Filter by language relevance if we can detect it from the issue
-      if (issue.repoName || issue.codeSnippets) {
-        // Keep all mentors but sort by current ranking
-        rankedMentors = rankedMentors
-          .sort((a, b) => b.overall_score - a.overall_score)
-          .slice(0, 5); // Top 5 mentors
+        // Filter by language relevance if we can detect it from the issue
+        if (issue.repoName || issue.codeSnippets) {
+          // Keep all mentors but sort by current ranking
+          rankedMentors = rankedMentors
+            .sort((a, b) => b.overall_score - a.overall_score)
+            .slice(0, 5); // Top 5 mentors
+        }
+
+        console.log('Ranked mentors:', rankedMentors);
+        setMentors(rankedMentors);
+      } catch (error) {
+        if (error.response?.status === 404) {
+          console.log('Main leaderboard endpoint not available. Trying test endpoint...');
+          // Fallback to test data if main endpoint not deployed
+          const testResponse = await axios.get(`${BACKEND_API}/leaderboard/test`);
+          console.log('Using test leaderboard data:', testResponse.data);
+          setMentors(testResponse.data.entries || []);
+        } else {
+          throw error;
+        }
       }
-
-      console.log('Ranked mentors:', rankedMentors);
-      setMentors(rankedMentors);
     } catch (error) {
       console.error('Error loading mentors:', error);
-      console.error('Make sure AI engine is running and VITE_BACKEND_URL is set correctly');
+      
+      if (error.response?.status === 401) {
+        console.warn('Not authenticated - cannot fetch mentors');
+      } else {
+        console.error('Make sure backend is deployed and AI engine is running');
+      }
       setMentors([]);
     } finally {
       setLoading(false);
@@ -131,7 +148,7 @@ const IssueMentorRanking = ({ issue }) => {
       ) : mentors.length === 0 ? (
         <div className="text-center py-4 text-[hsl(210,11%,50%)]">
           <AlertCircle className="inline-block mr-2" size={16} />
-          No mentor data available yet. Make sure mentors have conversations in this repository.
+          No mentor data available. The leaderboard endpoint may not be deployed yet, or no mentor conversations exist.
         </div>
       ) : (
         <div className="space-y-3">
