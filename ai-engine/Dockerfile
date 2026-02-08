@@ -1,6 +1,6 @@
 # OpenTriage AI Engine - Full Backend
 # Hugging Face Spaces Deployment
-# Cache bust: 2026-02-09-v3 - Force rebuild with fixed imports
+# Cache bust: 2026-02-09-v4 - Force rebuild with mentor leaderboard and fixed pydantic
 
 FROM python:3.10-slim
 
