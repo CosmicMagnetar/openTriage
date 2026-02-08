@@ -5,7 +5,7 @@
  * Enables searching README content and other documents without hitting the backend.
  */
 
-import Orama from 'orama';
+import Orama from "orama";
 
 const { create: createIndex, insert: insertDoc, search: searchDocs } = Orama;
 
