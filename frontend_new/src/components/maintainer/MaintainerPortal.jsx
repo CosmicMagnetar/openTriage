@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Megaphone, FileText, Plus, Edit2, Trash2, Cookie, Users, X, Trophy } from 'lucide-react';
+import { Megaphone, FileText, Plus, Edit2, Trash2, Cookie, Users, X } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 import HypeGenerator from './HypeGenerator';
 import CookieLickingPanel from './CookieLickingPanel';
 import MentorDashboardPanel from './MentorDashboardPanel';
-import MentorLeaderboardPage from './MentorLeaderboardPage';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -49,7 +48,6 @@ const MaintainerPortal = () => {
 
     const tabs = [
         { id: 'hype', label: 'Hype Generator', icon: Megaphone, color: 'purple' },
-        { id: 'leaderboard', label: 'Mentor Leaderboard', icon: Trophy, color: 'yellow' },
         { id: 'claims', label: 'Claims Monitor', icon: Cookie, color: 'amber' },
         { id: 'templates', label: 'Templates', icon: FileText, color: 'blue' },
         { id: 'mentorship', label: 'Mentorship', icon: Users, color: 'pink' }
@@ -57,7 +55,6 @@ const MaintainerPortal = () => {
 
     const activeColors = {
         purple: 'border-purple-400 text-purple-400',
-        yellow: 'border-yellow-400 text-yellow-400',
         amber: 'border-amber-400 text-amber-400',
         blue: 'border-[hsl(217,91%,60%)] text-[hsl(217,91%,65%)]',
         pink: 'border-pink-400 text-pink-400'
@@ -90,7 +87,6 @@ const MaintainerPortal = () => {
 
             {/* Content Area */}
             {activeTab === 'hype' && <HypeGenerator />}
-            {activeTab === 'leaderboard' && <MentorLeaderboardPage />}
             {activeTab === 'claims' && <CookieLickingPanel />}
             {activeTab === 'mentorship' && <MentorDashboardPanel />}
 

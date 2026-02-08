@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { AISuggestTextarea } from '../ui/AISuggestTextarea';
 import { mergePullRequest, closeIssueOrPR } from '../../services/githubService';
 import PrivateResourceChannel from '../shared/PrivateResourceChannel';
+import IssueMentorRanking from './IssueMentorRanking';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
@@ -349,6 +350,9 @@ const IssueDetailPanel = () => {
               </div>
             </div>
           )}
+
+          {/* Mentor Rankings for This Issue */}
+          <IssueMentorRanking issue={selectedIssue} />
 
           {/* Comments */}
           {(selectedIssue.owner && selectedIssue.repo) && (
