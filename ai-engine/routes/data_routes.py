@@ -4,6 +4,9 @@ Data Routes for AI Engine
 These routes handle data operations (contributor dashboard, messaging, auth)
 that require MongoDB access. They are added here since the ai-engine is
 what's deployed on Hugging Face Spaces.
+
+FIXED: Removed websocket_manager import that was causing ModuleNotFoundError
+Build timestamp: 2026-02-09 18:42:00 UTC
 """
 
 import logging
