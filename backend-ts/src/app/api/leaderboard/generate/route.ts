@@ -23,15 +23,8 @@ export async function POST(request: NextRequest) {
         
         console.log(`Generating leaderboard via: ${aiEngineUrl}/leaderboard/generate`);
 
-        // Get API key from request headers
-        const apiKey = request.headers.get("Authorization")?.replace("Bearer ", "");
-        
-        if (!apiKey) {
-            return NextResponse.json(
-                { error: "Missing API key" },
-                { status: 401 }
-            );
-        }
+        // Use a default API key for the AI engine (or could be passed via env)
+        const aiApiKey = process.env.AI_ENGINE_API_KEY || "default-key";
 
         // Proxy request to Python AI engine
         const response = await fetch(
@@ -39,7 +32,7 @@ export async function POST(request: NextRequest) {
             {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${apiKey}`,
+                    "Authorization": `Bearer ${aiApiKey}`,
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ excludeMaintainer }),

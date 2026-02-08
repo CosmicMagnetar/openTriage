@@ -6,9 +6,18 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
     try {
+        const user = await getCurrentUser(request);
+        if (!user) {
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
+        }
+
         const { searchParams } = new URL(request.url);
         const limit = searchParams.get("limit") || "100";
         const offset = searchParams.get("offset") || "0";
@@ -18,15 +27,8 @@ export async function GET(request: NextRequest) {
         
         console.log(`Proxying leaderboard request to: ${aiEngineUrl}/leaderboard?limit=${limit}&offset=${offset}`);
 
-        // Get API key from request headers
-        const apiKey = request.headers.get("Authorization")?.replace("Bearer ", "");
-        
-        if (!apiKey) {
-            return NextResponse.json(
-                { error: "Missing API key" },
-                { status: 401 }
-            );
-        }
+        // Use a default API key for the AI engine (or could be passed via env)
+        const aiApiKey = process.env.AI_ENGINE_API_KEY || "default-key";
 
         // Proxy request to Python AI engine
         const response = await fetch(
@@ -34,7 +36,7 @@ export async function GET(request: NextRequest) {
             {
                 method: "GET",
                 headers: {
-                    "Authorization": `Bearer ${apiKey}`,
+                    "Authorization": `Bearer ${aiApiKey}`,
                     "Content-Type": "application/json",
                 },
             }

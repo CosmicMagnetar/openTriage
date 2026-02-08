@@ -19,10 +19,10 @@ const IssueMentorRanking = ({ issue }) => {
   const loadMentorsForIssue = async () => {
     setLoading(true);
     try {
-      const apiKey = localStorage.getItem('api_key') || '';
+      const authToken = localStorage.getItem('auth_token');
       
-      if (!apiKey) {
-        console.warn('No AI API key found');
+      if (!authToken) {
+        console.warn('No auth token found - user not authenticated');
         setMentors([]);
         return;
       }
@@ -32,7 +32,7 @@ const IssueMentorRanking = ({ issue }) => {
       // Get the full leaderboard through TypeScript backend proxy
       const response = await axios.get(`${BACKEND_API}/leaderboard?limit=100`, {
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${authToken}`,
         },
       });
 
