@@ -34,6 +34,7 @@ from services.rag_chatbot_service import rag_chatbot_service
 from services.mentor_matching_service import mentor_matching_service
 from services.hype_generator_service import hype_generator_service
 from services.rag_data_prep import rag_data_prep
+from services.sentiment_analysis_service import sentiment_analysis_service
 
 # Import models for request/response types
 from models.issue import Issue
@@ -141,6 +142,20 @@ class RAGDataPrepRequest(BaseModel):
     doc_types: Optional[List[str]] = ["issue", "pr", "comment"]
     repo_names: Optional[List[str]] = None
     collection_name: str = "rag_chunks"
+
+
+class CommentSentimentRequest(BaseModel):
+    """Request for sentiment analysis of a single comment"""
+    comment_id: str
+    body: str
+    author: Optional[str] = "unknown"
+    force_recalc: bool = False
+
+
+class BatchCommentSentimentRequest(BaseModel):
+    """Request for sentiment analysis of multiple comments"""
+    comments: List[Dict[str, Any]]
+    # Each comment dict should have: id, body, author (optional)
 
 
 # =============================================================================
@@ -487,6 +502,102 @@ async def get_rag_chunks(batch_size: int = 100, skip_embedded: bool = True):
         return {"chunks": chunks, "count": len(chunks)}
     except Exception as e:
         logger.error(f"RAG chunks error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Sentiment Analysis Endpoints (Stage 3 Integration)
+# =============================================================================
+
+@app.post("/sentiment/analyze")
+async def analyze_comment_sentiment(request: CommentSentimentRequest):
+    """
+    Analyze sentiment of a single PR comment using DistilBERT.
+    
+    Returns:
+    - sentiment_label: "POSITIVE" or "NEGATIVE"
+    - sentiment_score: Confidence (0.0-1.0)
+    - prominent_language: Detected language category (technical, positive, negative, etc.)
+    
+    Used in Stage 3 RAG prompt: "The reviewers' sentiment is {sentiment_label}...
+    with focus on {prominent_language} aspects"
+    """
+    try:
+        result = sentiment_analysis_service.analyze_comment(
+            comment_id=request.comment_id,
+            comment_text=request.body,
+            author=request.author,
+            force_recalc=request.force_recalc
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Sentiment analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/sentiment/analyze-batch")
+async def analyze_batch_sentiment(request: BatchCommentSentimentRequest):
+    """
+    Analyze sentiment for multiple comments at once.
+    
+    Each comment should have:
+    - id: Comment identifier
+    - body: Comment text
+    - author: (optional) Comment author
+    
+    Returns List of sentiment results + summary stats
+    """
+    try:
+        results = sentiment_analysis_service.analyze_batch(request.comments)
+        
+        # Get summary overview
+        summary = sentiment_analysis_service.get_summary(results)
+        
+        return {
+            "comments": results,
+            "summary": summary,
+            "total_analyzed": len(results)
+        }
+    except Exception as e:
+        logger.error(f"Batch sentiment analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/sentiment/summary")
+async def get_sentiment_summary(repo_name: Optional[str] = None):
+    """
+    Get sentiment summary for comments (if you have them cached).
+    
+    For Stage 3 prompt input, this helps determine:
+    - Is the review tone supportive or critical?
+    - Are reviewers focused on technical debt or new features?
+    """
+    try:
+        # In a real implementation, fetch comments from DB for this repo
+        # For now, return cache stats
+        cache_stats = sentiment_analysis_service.get_cache_stats()
+        
+        return {
+            "cache_status": cache_stats,
+            "message": "Sentiment analysis service is ready. Send /sentiment/analyze-batch with comments to get summary."
+        }
+    except Exception as e:
+        logger.error(f"Sentiment summary error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/sentiment/clear-cache")
+async def clear_sentiment_cache(auth: dict = Depends(require_api_key_or_auth)):
+    """
+    Clear the sentiment analysis cache (admin only).
+    
+    Useful if you've updated keywords or want fresh analysis.
+    """
+    try:
+        sentiment_analysis_service.clear_cache()
+        return {"message": "Sentiment analysis cache cleared", "status": "success"}
+    except Exception as e:
+        logger.error(f"Cache clear error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

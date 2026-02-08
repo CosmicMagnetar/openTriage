@@ -48,5 +48,11 @@ PyJWT>=2.8.0
 redis>=5.0.0
 
 # Turso (libsql) Database - try both package names
+libsql-client>=0.5.0
+
+# Sentiment Analysis - Local Hugging Face models (DistilBERT)
+transformers>=4.40.0
+torch>=2.1.0  # CPU version is fine, auto-installs CPU build if GPU not detected
+sentencepiece>=0.1.99
 libsql-experimental>=0.0.55
 libsql_client
