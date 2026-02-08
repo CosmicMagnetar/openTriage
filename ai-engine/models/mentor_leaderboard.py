@@ -2,7 +2,7 @@
 Mentor Leaderboard Models - AI-powered ranking with sentiment analysis.
 """
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone
 from enum import Enum
 import uuid
@@ -58,8 +58,8 @@ class LeaderboardEdit(BaseModel):
     
     # What was changed
     field: str  # Which field was edited
-    old_value: any
-    new_value: any
+    old_value: Any
+    new_value: Any
     reason: Optional[str] = None
     
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
