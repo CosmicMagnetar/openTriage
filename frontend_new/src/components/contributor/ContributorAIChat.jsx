@@ -7,10 +7,15 @@ import { ragApi } from '../../services/api';
 import ReactMarkdown from 'react-markdown';
 import useRagStageUpdates from '../../hooks/useRagStageUpdates';
 import RagStatusBar from '../ui/RagStatusBar';
+import useOramaIndex from '../../hooks/useOramaIndex';
+import useAuthStore from '../../stores/authStore';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
 const ContributorAIChat = ({ onClose, issues: propIssues }) => {
+  const { token } = useAuthStore();
+  const oramaIndex = useOramaIndex();
+  
   const [internalIssues, setInternalIssues] = useState([]);
   const issues = propIssues || internalIssues;
 
@@ -66,25 +71,36 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Auto-index when repo changes
+  // Auto-index README with Orama when repo changes
   useEffect(() => {
     const indexRepo = async () => {
       if (selectedRepo !== 'all') {
         setIsIndexing(true);
         const toastId = toast.loading(`Reading ${selectedRepo} documentation...`);
         try {
-          await ragApi.indexRepository(selectedRepo);
-          toast.success('Documentation loaded!', { id: toastId });
+          // Parse owner/repo format
+          const [owner, repo] = selectedRepo.split('/');
+          if (!owner || !repo) {
+            throw new Error(`Invalid repo format: ${selectedRepo}`);
+          }
+
+          // Index README locally with Orama (no backend call!)
+          const result = await oramaIndex.indexReadme(owner, repo, token);
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to index README');
+          }
+
+          toast.success(`Documentation loaded! (${result.sectionsIndexed} sections indexed)`, { id: toastId });
           setMessages(prev => [
             ...prev,
             {
               role: 'assistant',
-              content: `I've read the documentation for **${selectedRepo}**. Ask me anything about the codebase!`
+              content: `I've read the documentation for **${selectedRepo}** (${result.sectionsIndexed} sections). Ask me anything about the codebase! 🚀`
             }
           ]);
         } catch (error) {
-          console.error('Indexing failed:', error);
-          toast.error('Failed to load documentation', { id: toastId });
+          console.error('Orama indexing failed:', error);
+          toast.error(`Failed to load documentation: ${error.message}`, { id: toastId });
         } finally {
           setIsIndexing(false);
         }
@@ -92,7 +108,7 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
     };
 
     indexRepo();
-  }, [selectedRepo]);
+  }, [selectedRepo, token, oramaIndex]);
 
   // Ably Connection State Listener
   useConnectionStateListener((stateChange) => {
@@ -166,19 +182,29 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
       let relatedIssues = [];
 
       if (selectedRepo !== 'all') {
-        // Generate a unique RAG session ID and start listening for stage updates
+        // Use local Orama search (instant, no backend call!)
+        const searchResults = await oramaIndex.performSearch(userMessage, 5, selectedRepo);
+        
+        if (!searchResults || searchResults.length === 0) {
+          responseContent = `I searched the documentation for "${userMessage}" but didn't find a direct match. Try asking with different words or phrasing. Here are some tips:\n\n- Check the README's table of contents\n- Ask about setup, installation, or usage\n- Try searching for specific features or APIs`;
+        } else {
+          // Format top search results as readable response
+          const topResults = searchResults.slice(0, 3);
+          const formattedResults = topResults.map(r => `**${r.section}**\n${r.content.substring(0, 200)}${r.content.length > 200 ? '...' : ''}`).join('\n\n');
+          responseContent = `Based on the documentation, here's what I found:\n\n${formattedResults}`;
+          
+          // Convert Orama results to sources format for display
+          sources = searchResults.map(r => ({
+            title: r.section,
+            source: r.section,
+            url: r.sourceUrl
+          }));
+        }
+      } else {
+        // Global chat - use backend with RAG pipeline monitoring
         const currentRagSession = `rag-${Date.now()}`;
         setRagSessionId(currentRagSession);
 
-        const response = await ragApi.askQuestion(userMessage, selectedRepo, 5, null, currentRagSession);
-        // Handle potential undefined/null response safely
-        if (!response || response.error) {
-          throw new Error(response?.error || 'AI service is unavailable');
-        }
-        responseContent = response.answer || response.response || response.message || 'I received your question but couldn\'t generate a proper response. Please try again.';
-        sources = response.sources || [];
-        relatedIssues = response.related_issues || [];
-      } else {
         const context = {
           totalContributions: issues.length,
           pullRequests: issues.filter(i => i.isPR).length,
@@ -320,10 +346,15 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
                   setIsIndexing(true);
                   const toastId = toast.loading('Refreshing documentation...');
                   try {
-                    await ragApi.indexRepository(selectedRepo);
-                    toast.success('Documentation updated!', { id: toastId });
+                    const [owner, repo] = selectedRepo.split('/');
+                    const result = await oramaIndex.indexReadme(owner, repo, token);
+                    if (result.success) {
+                      toast.success('Documentation refreshed!', { id: toastId });
+                    } else {
+                      toast.error(result.error, { id: toastId });
+                    }
                   } catch (error) {
-                    toast.error('Failed to update', { id: toastId });
+                    toast.error('Failed to refresh', { id: toastId });
                   } finally {
                     setIsIndexing(false);
                   }
