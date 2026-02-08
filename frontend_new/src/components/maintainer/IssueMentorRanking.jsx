@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, TrendingUp, Code2, MessageSquare, RefreshCw, AlertCircle } from 'lucide-react';
+import { Trophy, TrendingUp, Code2, MessageSquare, RefreshCw, AlertCircle, UserPlus, Loader } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
 const API_BASE = `${import.meta.env.VITE_AI_ENGINE_URL || 'http://localhost:7860'}`;
+const BACKEND_API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
 const IssueMentorRanking = ({ issue }) => {
   const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [assigningId, setAssigningId] = useState(null);
 
   useEffect(() => {
     if (issue) {
@@ -43,6 +45,55 @@ const IssueMentorRanking = ({ issue }) => {
       setMentors([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const assignMentorToIssue = async (mentor) => {
+    if (!issue.owner || !issue.repo || !issue.number) {
+      toast.error('Missing required issue information');
+      return;
+    }
+
+    setAssigningId(mentor.mentor_id);
+    try {
+      // Call backend to assign via GitHub API
+      const response = await axios.post(
+        `${BACKEND_API}/issues/${issue.id}/assign`,
+        {
+          assignee: mentor.mentor_username,
+          owner: issue.owner,
+          repo: issue.repo,
+          number: issue.number,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+          },
+        }
+      );
+
+      toast.success(
+        <div>
+          <p>✅ Assigned {mentor.mentor_username} to {issue.isPR ? 'PR' : 'Issue'} #{issue.number}</p>
+          {response.data.url && (
+            <a
+              href={response.data.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[hsl(217,91%,65%)] underline text-sm"
+            >
+              View on GitHub →
+            </a>
+          )}
+        </div>
+      );
+    } catch (error) {
+      console.error('Error assigning mentor:', error);
+      
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to assign';
+      toast.error(`Assignment failed: ${errorMsg}`);
+    } finally {
+      setAssigningId(null);
     }
   };
 
@@ -147,6 +198,21 @@ const IssueMentorRanking = ({ issue }) => {
                   </div>
                   <span className="text-xs text-[hsl(210,11%,50%)]">Sessions</span>
                 </div>
+
+                {/* Assign Button */}
+                <button
+                  onClick={() => assignMentorToIssue(mentor)}
+                  disabled={assigningId === mentor.mentor_id}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,55%)] disabled:bg-[hsl(220,13%,20%)] disabled:text-[hsl(210,11%,40%)] text-black rounded-lg text-sm font-medium transition-colors"
+                  title={`Assign ${mentor.mentor_username} to this ${issue.isPR ? 'PR' : 'Issue'}`}
+                >
+                  {assigningId === mentor.mentor_id ? (
+                    <Loader size={14} className="animate-spin" />
+                  ) : (
+                    <UserPlus size={14} />
+                  )}
+                  {assigningId === mentor.mentor_id ? 'Assigning...' : 'Assign'}
+                </button>
               </div>
             </div>
           ))}
@@ -155,7 +221,7 @@ const IssueMentorRanking = ({ issue }) => {
 
       <p className="text-xs text-[hsl(210,11%,40%)] mt-3 p-2 bg-[hsl(220,13%,8%)] rounded">
         💡 Tip: Mentors ranked by sentiment quality (35%), expertise (40%), and engagement (25%).
-        Consider mentioning the top-ranked mentor for faster, higher-quality guidance.
+        Click "Assign" to directly assign a mentor to this {issue.isPR ? 'PR' : 'Issue'} via GitHub.
       </p>
     </div>
   );
