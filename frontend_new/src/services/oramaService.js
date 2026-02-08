@@ -41,23 +41,31 @@ export async function indexReadmeSections(
   sourceUrl,
 ) {
   const docIds = [];
+  const repoKey = `${owner}/${repo}`;
+
+  console.log(`📝 Indexing ${sections.length} sections for ${repoKey}`);
 
   for (const section of sections) {
     try {
-      const id = await insert(index, {
+      const docData = {
         title: section.title || "Untitled",
         content: section.content || "",
         section: section.title || "Untitled",
         level: section.level || 0,
-        repository: `${owner}/${repo}`,
+        repository: repoKey,
         sourceUrl: sourceUrl || "",
-      });
+      };
+      console.log(
+        `  → Section: "${docData.section}", content length: ${docData.content.length}`,
+      );
+      const id = await insert(index, docData);
       docIds.push(id);
     } catch (error) {
       console.error(`Failed to index section "${section.title}":`, error);
     }
   }
 
+  console.log(`✅ Successfully indexed ${docIds.length} sections`);
   return docIds;
 }
 
@@ -83,19 +91,18 @@ export async function searchReadme(
       limit,
     };
 
-    // If filtering by repo, add where clause
-    if (repository) {
-      searchOptions.where = {
-        repository: {
-          eq: repository,
-        },
-      };
-    }
+    // Note: Orama 2.0.6 may have issues with where clauses
+    // Using post-search filtering as a workaround
+    console.log(
+      `🔎 Searching (repository filter will be applied post-search):`,
+      repository,
+    );
 
     const results = await search(index, searchOptions);
+    console.log(`📊 Orama returned ${results.hits?.length || 0} hits`);
 
     // Transform results to a cleaner format
-    return (results.hits || []).map((hit) => ({
+    let hits = (results.hits || []).map((hit) => ({
       id: hit.id,
       title: hit.document?.title || "Untitled",
       content: hit.document?.content || "",
@@ -104,6 +111,17 @@ export async function searchReadme(
       sourceUrl: hit.document?.sourceUrl || "",
       score: hit.score || 0,
     }));
+
+    // Apply repository filter post-search (workaround for Orama 2.0.6 where clause issue)
+    if (repository) {
+      console.log(
+        `🔍 Filtering ${hits.length} results for repository: "${repository}"`,
+      );
+      hits = hits.filter((hit) => hit.repository === repository);
+      console.log(`✅ After filter: ${hits.length} results`);
+    }
+
+    return hits;
   } catch (error) {
     console.error("Search failed:", error);
     return [];

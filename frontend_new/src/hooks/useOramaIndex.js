@@ -65,24 +65,33 @@ export default function useOramaIndex() {
         const index = await ensureIndexInitialized();
         const repoKey = `${owner}/${repo}`;
 
+        console.log(`🔄 Starting index process for ${repoKey}...`);
+
         // Note: Orama 2.0.6 doesn't have a remove/delete function,
         // so we don't clear old entries. Multiple repos can coexist in the index.
 
         // Fetch README
+        console.log(`📥 Fetching README for ${repoKey}...`);
         const readmeData = await fetchReadme(owner, repo, githubToken);
         if (!readmeData) {
           throw new Error(`Could not find README for ${owner}/${repo}`);
         }
+        console.log(
+          `✅ README fetched: ${readmeData.filename} (${readmeData.content.length} chars)`,
+        );
 
         // Parse into sections
+        console.log(`📑 Parsing sections...`);
         const sections = parseReadmeToSections(readmeData.content);
         if (sections.length === 0) {
           throw new Error(
             `README is empty or could not be parsed: ${readmeData.filename}`,
           );
         }
+        console.log(`✅ Parsed ${sections.length} sections`);
 
         // Index sections
+        console.log(`🗂️ Indexing sections into Orama...`);
         await indexReadmeSections(
           index,
           owner,
@@ -95,6 +104,7 @@ export default function useOramaIndex() {
         setIndexedRepos((prev) => new Set(prev).add(repoKey));
         const newStats = await getIndexStats(index);
         setStats(newStats);
+        console.log(`📊 Index stats:`, newStats);
 
         return {
           success: true,
@@ -127,17 +137,30 @@ export default function useOramaIndex() {
   const performSearch = useCallback(
     async (query, limit = 10, repository = null) => {
       if (!indexRef.current) {
+        console.warn("Orama index not initialized for search");
         return [];
       }
 
       try {
         setError(null);
+        console.log(
+          `🔍 Searching Orama with query: "${query}", repo filter: "${repository}", docCount: ${stats.docCount}`,
+        );
         const results = await searchReadme(
           indexRef.current,
           query,
           limit,
           repository,
         );
+        console.log(`✅ Search returned ${results.length} results`);
+
+        if (results.length > 0) {
+          console.log("📌 Top result:", {
+            section: results[0].section,
+            repository: results[0].repository,
+            score: results[0].score,
+          });
+        }
         return results;
       } catch (err) {
         setError(err.message || String(err));
@@ -145,7 +168,7 @@ export default function useOramaIndex() {
         return [];
       }
     },
-    [],
+    [stats],
   );
 
   /**
