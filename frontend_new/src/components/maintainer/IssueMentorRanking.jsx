@@ -22,12 +22,22 @@ const IssueMentorRanking = ({ issue }) => {
     try {
       const apiKey = localStorage.getItem('api_key') || '';
       
+      if (!apiKey) {
+        console.warn('No AI API key found');
+        setMentors([]);
+        return;
+      }
+
+      console.log('Fetching leaderboard from:', API_BASE);
+      
       // Get the full leaderboard
       const response = await axios.get(`${API_BASE}/leaderboard?limit=100`, {
         headers: {
           Authorization: `Bearer ${apiKey}`,
         },
       });
+
+      console.log('Leaderboard response:', response.data);
 
       let rankedMentors = response.data.entries || [];
 
@@ -39,6 +49,7 @@ const IssueMentorRanking = ({ issue }) => {
           .slice(0, 5); // Top 5 mentors
       }
 
+      console.log('Ranked mentors:', rankedMentors);
       setMentors(rankedMentors);
     } catch (error) {
       console.error('Error loading mentors:', error);
@@ -97,8 +108,6 @@ const IssueMentorRanking = ({ issue }) => {
     }
   };
 
-  if (!mentors || mentors.length === 0) return null;
-
   return (
     <div className="mt-6 p-4 bg-[hsl(220,13%,12%)] border border-[hsl(220,13%,20%)] rounded-lg">
       <div className="flex items-center gap-2 mb-4">
@@ -117,12 +126,12 @@ const IssueMentorRanking = ({ issue }) => {
       {loading ? (
         <div className="text-center py-4 text-[hsl(210,11%,50%)]">
           <RefreshCw className="animate-spin inline-block mr-2" size={16} />
-          Loading rankings...
+          Loading mentor rankings...
         </div>
       ) : mentors.length === 0 ? (
         <div className="text-center py-4 text-[hsl(210,11%,50%)]">
           <AlertCircle className="inline-block mr-2" size={16} />
-          No mentors available
+          No mentor data available yet. Make sure mentors have conversations in this repository.
         </div>
       ) : (
         <div className="space-y-3">
@@ -222,6 +231,10 @@ const IssueMentorRanking = ({ issue }) => {
       <p className="text-xs text-[hsl(210,11%,40%)] mt-3 p-2 bg-[hsl(220,13%,8%)] rounded">
         💡 Tip: Mentors ranked by sentiment quality (35%), expertise (40%), and engagement (25%).
         Click "Assign" to directly assign a mentor to this {issue.isPR ? 'PR' : 'Issue'} via GitHub.
+        <br />
+        <span className="text-[hsl(210,11%,35%)] text-xs mt-1 inline-block">
+          {!issue.owner ? '⚠️ Issue data incomplete' : 'Ready to assign'}
+        </span>
       </p>
     </div>
   );
