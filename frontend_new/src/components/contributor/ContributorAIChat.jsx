@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useChannel, useConnectionStateListener } from 'ably/react';
+import { ChannelProvider, useChannel, useConnectionStateListener } from 'ably/react';
 import { X, Send, Bot, User, ChevronDown, BookOpen, ExternalLink, AlertCircle, RefreshCw, Loader2, WifiOff } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -12,7 +12,7 @@ import useAuthStore from '../../stores/authStore';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 
-const ContributorAIChat = ({ onClose, issues: propIssues }) => {
+const ContributorAIChatInner = ({ onClose, issues: propIssues, selectedRepo, setSelectedRepo, channelName }) => {
   const { token } = useAuthStore();
   const oramaIndex = useOramaIndex();
   const { indexReadme: oramaIndexReadme } = oramaIndex;
@@ -23,13 +23,14 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: `Hi! I'm your Project Assistant.\n\n**Select a specific repository** above to chat about its documentation and code.\n\nOr keep it on **"All Repositories"** for general advice about open source!`
+      content: selectedRepo === 'all'
+        ? `Hi! I'm your Project Assistant.\n\n**Select a specific repository** above to chat about its documentation and code.\n\nOr keep it on **"All Repositories"** for general advice about open source!`
+        : `Joined **${selectedRepo}** chat. Ask questions about the codebase!`
     }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isIndexing, setIsIndexing] = useState(false);
-  const [selectedRepo, setSelectedRepo] = useState('all');
   const [sessionId] = useState(() => `contributor-session-${Date.now()}`);
   const [ragSessionId, setRagSessionId] = useState(null);
   const [ablyConnected, setAblyConnected] = useState(false);
@@ -133,9 +134,6 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
     }
   });
 
-  // Ably Channel Logic - wrapped with error handling
-  const [channelName, setChannelName] = useState('chat:global');
-
   // Safe channel message handler
   const handleChannelMessage = useCallback((message) => {
     if (message?.data) {
@@ -158,19 +156,6 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
       setAblyError('Real-time features unavailable. Using direct mode.');
     }
   }, [channelResult]);
-
-  // Clean/Switch Channel on Repo Change
-  useEffect(() => {
-    const newChannel = selectedRepo === 'all' ? 'chat:global' : `chat:${selectedRepo.replace('/', '-')}`;
-    setChannelName(newChannel);
-    // Add welcome message for the new context
-    setMessages([{
-      role: 'assistant',
-      content: selectedRepo === 'all'
-        ? `Joined **Global Chat**. Ask general questions or chat with others!`
-        : `Joined **${selectedRepo}** chat. Ask questions about the codebase!`
-    }]);
-  }, [selectedRepo]);
 
   const handleSend = async () => {
     if (!input.trim() || loading || isIndexing) return;
@@ -359,7 +344,7 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
                   const toastId = toast.loading('Refreshing documentation...');
                   try {
                     const [owner, repo] = selectedRepo.split('/');
-                    const result = await oramaIndex.indexReadme(owner, repo, token);
+                    const result = await oramaIndex.indexReadme(owner, repo, null);
                     if (result.success) {
                       toast.success('Documentation refreshed!', { id: toastId });
                     } else {
@@ -529,6 +514,25 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+const ContributorAIChat = ({ onClose, issues: propIssues }) => {
+  const [selectedRepo, setSelectedRepo] = useState('all');
+  const channelName = selectedRepo === 'all'
+    ? 'chat:global'
+    : `chat:${selectedRepo.replace('/', '-')}`;
+
+  return (
+    <ChannelProvider channelName={channelName} key={channelName}>
+      <ContributorAIChatInner
+        onClose={onClose}
+        issues={propIssues}
+        selectedRepo={selectedRepo}
+        setSelectedRepo={setSelectedRepo}
+        channelName={channelName}
+      />
+    </ChannelProvider>
   );
 };
 
