@@ -56,6 +56,42 @@ app.prepare().then(() => {
       socket.leave(`rag:${sessionId}`);
     });
 
+    // Agent session — same room scheme so agent thoughts stream to the client
+    socket.on("join_agent_session", (sessionId) => {
+      socket.join(`rag:${sessionId}`);
+      console.log(`[Socket.io] ${socket.id} joined agent session ${sessionId}`);
+    });
+
+    socket.on("leave_agent_session", (sessionId) => {
+      socket.leave(`rag:${sessionId}`);
+    });
+
+    // HITL — the frontend sends the human's reply to a guidance request
+    socket.on("human_reply", ({ sessionId, reply }) => {
+      console.log(
+        `[Socket.io] human_reply for session ${sessionId}: ${(reply || "").slice(0, 80)}`,
+      );
+
+      // Resolve the pending guidance Promise in the agent
+      const pendingMap = globalThis.__pendingGuidance;
+      if (pendingMap && typeof pendingMap.get === "function") {
+        const pending = pendingMap.get(sessionId);
+        if (pending && typeof pending.resolve === "function") {
+          pending.resolve({
+            sessionId,
+            thoughtId: pending.request?.thoughtId ?? 0,
+            reply: reply || "No reply provided.",
+            timestamp: new Date().toISOString(),
+          });
+          pendingMap.delete(sessionId);
+        } else {
+          console.warn(
+            `[Socket.io] No pending guidance for session ${sessionId}`,
+          );
+        }
+      }
+    });
+
     socket.on("disconnect", (reason) => {
       console.log(`[Socket.io] Client disconnected: ${socket.id} (${reason})`);
     });
