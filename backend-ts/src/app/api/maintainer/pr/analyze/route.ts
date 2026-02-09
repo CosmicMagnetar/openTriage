@@ -1,14 +1,21 @@
 /**
- * PR Analysis Endpoint
- * 
+ * PR Analysis Endpoint (v2)
+ *
  * POST /api/maintainer/pr/analyze
- * Analyze a pull request using AI
+ *
+ * Upgraded from the naive prompt-stuffing approach to use:
+ *   - QualityAssessmentService  → bug risk scoring + few-shot review
+ *   - EfficientRetrievalChain   → hybrid search + re-ranking + map-reduce
+ *   - Linked-issue resolution   → cross-references the GitHub Issue
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createGitHubClient } from "@/lib/github-client";
-import { chat } from "@/lib/ai-client";
+import {
+    QualityAssessmentService,
+    EfficientRetrievalChain,
+} from "@/services/ai";
 
 export async function POST(request: NextRequest) {
     try {
@@ -18,103 +25,57 @@ export async function POST(request: NextRequest) {
         }
 
         if (!user.githubAccessToken) {
-            return NextResponse.json({ error: "GitHub access token not found" }, { status: 401 });
+            return NextResponse.json(
+                { error: "GitHub access token not found" },
+                { status: 401 }
+            );
         }
 
         const body = await request.json();
         const { owner, repo, prNumber } = body;
 
         if (!owner || !repo || !prNumber) {
-            return NextResponse.json({ error: "owner, repo, and prNumber are required" }, { status: 400 });
+            return NextResponse.json(
+                { error: "owner, repo, and prNumber are required" },
+                { status: 400 }
+            );
         }
 
         const octokit = createGitHubClient(user.githubAccessToken);
+        const chain = new EfficientRetrievalChain();
+        const quality = new QualityAssessmentService(chain);
 
-        // Fetch PR details
-        const { data: pr } = await octokit.pulls.get({
+        // The QualityAssessmentService handles everything:
+        //   - Fetches PR + diff from GitHub
+        //   - Computes bug risk score (deterministic heuristic)
+        //   - Resolves linked issue (#NNN) from PR body
+        //   - Retrieves few-shot examples via hybrid search
+        //   - Map-reduces large diffs
+        //   - Generates structured review via LLM
+        const analysis = await quality.analyzePR(
+            octokit,
             owner,
             repo,
-            pull_number: prNumber,
-        });
-
-        // Fetch PR files
-        const { data: files } = await octokit.pulls.listFiles({
-            owner,
-            repo,
-            pull_number: prNumber,
-            per_page: 50,
-        });
-
-        // Build context for AI analysis
-        const filesSummary = files.slice(0, 10).map(f =>
-            `- ${f.filename} (+${f.additions}/-${f.deletions}): ${f.status}`
-        ).join('\n');
-
-        const prompt = `Analyze this pull request and provide a code review:
-
-**PR Title:** ${pr.title}
-**Description:** ${pr.body || 'No description'}
-**Author:** ${pr.user?.login}
-**Files Changed:** ${files.length}
-**Additions:** ${pr.additions}
-**Deletions:** ${pr.deletions}
-
-**Modified Files:**
-${filesSummary}
-
-Provide a JSON response with:
-{
-  "verdict": "APPROVE" | "REQUEST_CHANGES" | "COMMENT",
-  "qualityScore": 1-10,
-  "summary": "Brief summary of the PR",
-  "issues": ["List of potential issues"],
-  "suggestions": ["List of improvement suggestions"],
-  "security": "Any security concerns or 'No issues detected'"
-}`;
-
-        const aiResponse = await chat(prompt, [], { role: "code_reviewer" });
-        const responseText = typeof aiResponse.data === 'string'
-            ? aiResponse.data
-            : (aiResponse.data as { response?: string })?.response || "";
-
-        // Try to parse AI response as JSON
-        let analysis;
-        try {
-            // Extract JSON from response if wrapped in markdown
-            const jsonMatch = responseText?.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                analysis = JSON.parse(jsonMatch[0]);
-            } else {
-                analysis = {
-                    verdict: "COMMENT",
-                    qualityScore: 7,
-                    summary: responseText || "Analysis completed",
-                    issues: [],
-                    suggestions: [],
-                    security: "No issues detected"
-                };
-            }
-        } catch {
-            analysis = {
-                verdict: "COMMENT",
-                qualityScore: 7,
-                summary: responseText || "Analysis completed",
-                issues: [],
-                suggestions: [],
-                security: "No issues detected"
-            };
-        }
+            prNumber
+            // pastReviews can be passed here once a review store exists
+        );
 
         return NextResponse.json({
-            prNumber,
-            filesChanged: files.length,
-            additions: pr.additions,
-            deletions: pr.deletions,
-            analysis,
+            prNumber: analysis.prNumber,
+            bugRisk: analysis.bugRisk,
+            verdict: analysis.verdict,
+            summary: analysis.summary,
+            issues: analysis.issues,
+            suggestions: analysis.suggestions,
+            security: analysis.security,
+            fewShotExamplesUsed: analysis.fewShotContext.length,
+            linkedIssue: analysis.linkedIssue ?? null,
         });
-
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("POST /api/maintainer/pr/analyze error:", error);
-        return NextResponse.json({ error: "Failed to analyze PR" }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to analyze PR" },
+            { status: 500 }
+        );
     }
 }
