@@ -52,10 +52,11 @@ const Settings = () => {
                                 <p className="text-sm text-[hsl(210,11%,50%)]">GitHub ID: {user?.githubId}</p>
                             </div>
                         </div>
-
-            {/* AI Configuration - Bento Panel */}
-            <AISettingsPanel />
+                    </div>
                 </div>
+
+                {/* AI Configuration - Bento Panel */}
+                <AISettingsPanel />
 
                 {/* Role Switching */}
                 <div className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg overflow-hidden">
