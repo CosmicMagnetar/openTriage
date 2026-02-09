@@ -64,6 +64,38 @@ export async function updateIssueState(id: string, state: string) {
     await db.update(issues).set({ state }).where(eq(issues.id, id));
 }
 
+export async function getIssueByNumberAndRepo(number: number, repoId: string) {
+    const result = await db.select().from(issues)
+        .where(and(eq(issues.number, number), eq(issues.repoId, repoId)))
+        .limit(1);
+    return result[0] || null;
+}
+
+/**
+ * Delete duplicate issue/PR rows, keeping only the oldest entry per number+repoId.
+ * Returns the count of deleted duplicates.
+ */
+export async function cleanupDuplicateIssues() {
+    const allIssues = await db.select().from(issues).orderBy(asc(issues.createdAt));
+    const kept = new Map<string, string>(); // key -> id to keep
+    const toDelete: string[] = [];
+
+    for (const issue of allIssues) {
+        const key = `${issue.repoId}:${issue.number}`;
+        if (kept.has(key)) {
+            toDelete.push(issue.id);
+        } else {
+            kept.set(key, issue.id);
+        }
+    }
+
+    for (const id of toDelete) {
+        await db.delete(issues).where(eq(issues.id, id));
+    }
+
+    return toDelete.length;
+}
+
 // =============================================================================
 // Issue Listing with Pagination
 // =============================================================================
@@ -119,13 +151,15 @@ export async function getIssues(filters: IssueFilters, page = 1, limit = 10) {
         .where(whereClause)
         .orderBy(desc(issues.createdAt));
 
-    // Deduplicate by githubIssueId — the DB may contain duplicate rows for the
-    // same GitHub issue/PR because the primary key is a UUID and
-    // onConflictDoNothing() never triggers. Keep the first (most recent) entry.
-    const seen = new Set<number>();
+    // Deduplicate by number+repoId — the true unique identifier for a PR/issue.
+    // Duplicates exist because: (1) the primary key is a UUID so onConflictDoNothing()
+    // never triggers, and (2) GitHub's Pulls API and Issues API return different `.id`
+    // values for the same PR, so githubIssueId-based checks miss duplicates.
+    const seen = new Set<string>();
     const deduped = rawResults.filter(issue => {
-        if (seen.has(issue.githubIssueId)) return false;
-        seen.add(issue.githubIssueId);
+        const key = `${issue.repoId}:${issue.number}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
         return true;
     });
 

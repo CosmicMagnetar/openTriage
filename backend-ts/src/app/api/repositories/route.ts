@@ -168,10 +168,10 @@ export async function POST(request: NextRequest) {
                 });
 
                 for (const pr of prs.data) {
-                    // Check if PR already exists
+                    // Check if PR already exists by number+repoId (unique identifier)
                     const existingPR = await db.select({ id: issues.id })
                         .from(issues)
-                        .where(eq(issues.githubIssueId, pr.id))
+                        .where(and(eq(issues.number, pr.number), eq(issues.repoId, repoId)))
                         .limit(1);
 
                     if (!existingPR[0]) {
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
 
                     const existingIssue = await db.select({ id: issues.id })
                         .from(issues)
-                        .where(eq(issues.githubIssueId, issue.id))
+                        .where(and(eq(issues.number, issue.number), eq(issues.repoId, repoId)))
                         .limit(1);
 
                     if (!existingIssue[0]) {

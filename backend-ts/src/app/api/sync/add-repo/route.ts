@@ -94,10 +94,10 @@ export async function POST(request: NextRequest) {
         let updated = 0;
 
         for (const pr of userPRs) {
-            // Check if PR already exists
+            // Check if PR already exists by number+repoId (true unique identifier)
             const existing = await db.select({ id: issues.id, state: issues.state, title: issues.title })
                 .from(issues)
-                .where(eq(issues.githubIssueId, pr.id))
+                .where(and(eq(issues.number, pr.number), eq(issues.repoId, repoId)))
                 .limit(1);
 
             if (existing[0]) {

@@ -167,11 +167,25 @@ async function syncRepository(
         }
 
         // Get current issues in DB for this repo
-        const dbIssues = await getIssuesByRepoId(repoId);
-        const dbIssuesByGithubId = new Map(dbIssues.map(i => [i.githubIssueId, i]));
+        const rawDbIssues = await getIssuesByRepoId(repoId);
+        // Deduplicate DB issues by number (same PR may have been inserted multiple times)
+        const dbIssuesByNumber = new Map<number, typeof rawDbIssues[0]>();
+        const duplicateIds: string[] = [];
+        for (const i of rawDbIssues) {
+            if (dbIssuesByNumber.has(i.number)) {
+                duplicateIds.push(i.id); // mark as duplicate for cleanup
+            } else {
+                dbIssuesByNumber.set(i.number, i);
+            }
+        }
+        // Clean up existing duplicates in DB
+        for (const id of duplicateIds) {
+            await db.delete(issues).where(eq(issues.id, id));
+        }
+        const dbIssues = Array.from(dbIssuesByNumber.values());
 
-        // Track GitHub IDs we've seen from the open list
-        const openGithubIds = new Set<number>();
+        // Track GitHub issue numbers we've seen from the open list
+        const openNumbers = new Set<number>();
         // Track potential mentors to update roles
         const potentialMentors = new Set<string>();
 
@@ -201,7 +215,7 @@ async function syncRepository(
 
         // Process open items
         for (const ghItem of openItems) {
-            openGithubIds.add(ghItem.id);
+            openNumbers.add(ghItem.number);
             checkMentorStatus(ghItem);
             
             // Skip items that don't match role filter
@@ -210,7 +224,7 @@ async function syncRepository(
             }
             
             const isPR = !!ghItem.pull_request;
-            const existingIssue = dbIssuesByGithubId.get(ghItem.id);
+            const existingIssue = dbIssuesByNumber.get(ghItem.number);
 
             if (existingIssue) {
                 // Update if state changed or other fields
@@ -285,7 +299,7 @@ async function syncRepository(
         // =========================================================================
         for (const dbIssue of dbIssues) {
             // If issue is in DB but NOT in GitHub's open list, it's closed - delete it
-            if (!openGithubIds.has(dbIssue.githubIssueId)) {
+            if (!openNumbers.has(dbIssue.number)) {
                 await db.delete(issues)
                     .where(eq(issues.id, dbIssue.id));
                 deleted++;
@@ -461,13 +475,26 @@ export async function runContributorSync(
         ]);
 
         const allGitHubItems = [...prsResponse.data.items, ...issuesResponse.data.items];
-        const githubItemIds = new Set<number>();
 
         // Get existing issues for this contributor from DB
-        const existingIssues = await db.select()
+        const rawExistingIssues = await db.select()
             .from(issues)
             .where(eq(issues.authorName, username));
-        const existingByGithubId = new Map(existingIssues.map(i => [i.githubIssueId, i]));
+        // Deduplicate by number+repoId, keeping first occurrence
+        const existingByKey = new Map<string, typeof rawExistingIssues[0]>();
+        const contribDupIds: string[] = [];
+        for (const i of rawExistingIssues) {
+            const key = `${i.repoId}:${i.number}`;
+            if (existingByKey.has(key)) {
+                contribDupIds.push(i.id);
+            } else {
+                existingByKey.set(key, i);
+            }
+        }
+        for (const id of contribDupIds) {
+            await db.delete(issues).where(eq(issues.id, id));
+        }
+        const existingIssues = Array.from(existingByKey.values());
 
         // Cache for repo lookups/creates
         const repoCache = new Map<string, string>();
@@ -505,10 +532,11 @@ export async function runContributorSync(
             return newRepoId;
         };
 
+        // Track seen numbers per repo for reconciliation
+        const openKeys = new Set<string>();
+
         // Process each GitHub item
         for (const item of allGitHubItems) {
-            githubItemIds.add(item.id);
-            
             const repoUrl = item.repository_url || "";
             const repoMatch = repoUrl.match(/repos\/([^/]+)\/([^/]+)/);
             const owner = repoMatch?.[1] || "";
@@ -516,7 +544,12 @@ export async function runContributorSync(
             const repoName = `${owner}/${repo}`;
             const isPR = !!item.pull_request;
 
-            const existing = existingByGithubId.get(item.id);
+            // Get or create the repository entry (needed for key lookup)
+            const repoId = await getOrCreateRepo(owner, repo, repoName);
+            const key = `${repoId}:${item.number}`;
+            openKeys.add(key);
+
+            const existing = existingByKey.get(key);
 
             if (existing) {
                 // Update if changed
@@ -531,9 +564,6 @@ export async function runContributorSync(
                     stats.issuesUpdated++;
                 }
             } else {
-                // Get or create the repository entry
-                const repoId = await getOrCreateRepo(owner, repo, repoName);
-                
                 // Create new issue
                 const newId = uuidv4();
                 await db.insert(issues).values({
@@ -559,7 +589,8 @@ export async function runContributorSync(
 
         // Delete issues that are no longer open on GitHub
         for (const existing of existingIssues) {
-            if (!githubItemIds.has(existing.githubIssueId)) {
+            const key = `${existing.repoId}:${existing.number}`;
+            if (!openKeys.has(key)) {
                 await db.delete(issues).where(eq(issues.id, existing.id));
                 stats.issuesDeleted++;
             }
@@ -840,10 +871,13 @@ export async function syncContributorPRsDirect(
                 const userPRs = prs.data.filter(pr => pr.user?.login === username);
                 
                 for (const pr of userPRs) {
-                    // Check if PR already exists in DB
+                    // Get or create the repository entry first (needed for number+repoId check)
+                    const repoId = repoInfo.repoId || await getOrCreateRepo(repoInfo.owner, repoInfo.repo, repoName);
+                    
+                    // Check if PR already exists by number+repoId (true unique identifier)
                     const existing = await db.select({ id: issues.id, state: issues.state })
                         .from(issues)
-                        .where(eq(issues.githubIssueId, pr.id))
+                        .where(and(eq(issues.number, pr.number), eq(issues.repoId, repoId)))
                         .limit(1);
 
                     if (existing[0]) {
@@ -855,9 +889,6 @@ export async function syncContributorPRsDirect(
                             result.updated++;
                         }
                     } else {
-                        // Get or create the repository entry
-                        const repoId = repoInfo.repoId || await getOrCreateRepo(repoInfo.owner, repoInfo.repo, repoName);
-                        
                         // Create new PR entry
                         const newId = uuidv4();
                         await db.insert(issues).values({
