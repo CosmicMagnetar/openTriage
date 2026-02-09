@@ -137,23 +137,41 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
       let relatedIssues = [];
 
       if (selectedRepo !== 'all') {
-        // Per-repo: use Orama local search on README
+        // Per-repo RAG: Retrieve relevant README sections, then Generate via LLM
         const searchResults = await oramaIndex.performSearch(userMessage, 5, selectedRepo);
 
-        if (!searchResults || searchResults.length === 0) {
-          responseContent = `I couldn't find anything relevant in the documentation. Try asking about specific features, setup, or usage.`;
-        } else {
-          const topResults = searchResults.slice(0, 3);
-          const formattedResults = topResults.map(r => {
-            const maxLen = 500;
-            const text = r.content.length > maxLen
-              ? r.content.substring(0, maxLen).replace(/\s+\S*$/, '') + '...'
-              : r.content;
-            return `### ${r.section}\n${text}`;
-          }).join('\n\n---\n\n');
-          responseContent = formattedResults;
+        // Build context from retrieved documentation sections
+        const docContext = searchResults && searchResults.length > 0
+          ? searchResults.map(r => `## ${r.section}\n${r.content}`).join('\n\n')
+          : '';
 
-          sources = searchResults.map(r => ({
+        // Build the augmented prompt with retrieved context
+        const augmentedMessage = docContext
+          ? `I'm looking at the repository **${selectedRepo}**. Here is the relevant documentation I found:\n\n---\n${docContext}\n---\n\nBased on this documentation, please answer the following question conversationally and helpfully:\n\n${userMessage}`
+          : `I'm looking at the repository **${selectedRepo}** but couldn't find specific documentation sections. Please answer as best you can:\n\n${userMessage}`;
+
+        // Build chat history for multi-turn context (last 6 messages)
+        const history = messages
+          .filter(m => !m.isError)
+          .slice(-6)
+          .map(m => ({ role: m.role, content: m.content }));
+
+        // Send to AI backend (OpenRouter LLM) with README as context
+        const response = await axios.post(`${API}/chat`, {
+          message: augmentedMessage,
+          sessionId: sessionId,
+          history,
+          context: {
+            selectedRepo,
+            repositories: repositories,
+            role: 'contributor'
+          }
+        });
+
+        responseContent = response.data?.response || response.data?.answer || 'I received your question but couldn\'t generate a proper response.';
+
+        if (searchResults && searchResults.length > 0) {
+          sources = searchResults.slice(0, 3).map(r => ({
             title: r.section,
             source: r.section,
             url: r.sourceUrl
@@ -173,9 +191,16 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
           role: 'contributor'
         };
 
+        // Build chat history for multi-turn context (last 6 messages)
+        const history = messages
+          .filter(m => !m.isError)
+          .slice(-6)
+          .map(m => ({ role: m.role, content: m.content }));
+
         const response = await axios.post(`${API}/chat`, {
           message: userMessage,
           sessionId: sessionId,
+          history,
           context: context
         });
         responseContent = response.data?.response || response.data?.answer || 'I received your question but couldn\'t generate a proper response.';
