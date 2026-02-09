@@ -10,6 +10,7 @@ import PublicProfilePage from '../contributor/PublicProfilePage';
 import Settings from '../Settings';
 import { IssueDetailPage } from './issue-detail';
 import AIChat from './AIChat';
+import AIDisabledBanner from '../settings/AIDisabledBanner';
 
 const MaintainerLayout = () => {
   const [showChat, setShowChat] = useState(false);
@@ -20,8 +21,10 @@ const MaintainerLayout = () => {
       <Sidebar />
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <Routes>
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <AIDisabledBanner />
+        <div className="flex-1 overflow-hidden">
+          <Routes>
           <Route index element={<DashboardPage />} />
           <Route path="prs" element={<PRManagementPage />} />
           <Route path="hub" element={<MaintainerPortal />} />
@@ -31,6 +34,7 @@ const MaintainerLayout = () => {
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
+        </div>
       </div>
 
       {/* Floating AI Chat Button - Global */}

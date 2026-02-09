@@ -124,7 +124,7 @@ export default function useOramaIndex() {
         setIsLoading(false);
       }
     },
-    [ensureIndexInitialized, indexedRepos],
+    [ensureIndexInitialized],
   );
 
   /**
@@ -168,7 +168,7 @@ export default function useOramaIndex() {
         return [];
       }
     },
-    [stats],
+    [],
   );
 
   /**
@@ -176,36 +176,33 @@ export default function useOramaIndex() {
    * Note: Orama 2.0.6 doesn't support selective deletion,
    * so this clears the entire index and reinitializes it.
    */
-  const clearRepository = useCallback(
-    async (owner, repo) => {
-      const repoKey = `${owner}/${repo}`;
-      if (!indexedRepos.has(repoKey)) {
-        return false;
-      }
+  const clearRepository = useCallback(async (owner, repo) => {
+    const repoKey = `${owner}/${repo}`;
+    if (!indexedRepos.has(repoKey)) {
+      return false;
+    }
 
-      try {
-        setError(null);
-        // Clear all indices (Orama 2.0.6 doesn't support selective deletion)
-        indexRef.current = await createReadmeIndex();
+    try {
+      setError(null);
+      // Clear all indices (Orama 2.0.6 doesn't support selective deletion)
+      indexRef.current = await createReadmeIndex();
 
-        // Rebuild index with all except the deleted repo
-        const remainingRepos = Array.from(indexedRepos).filter(
-          (r) => r !== repoKey,
-        );
+      // Rebuild index with all except the deleted repo
+      const remainingRepos = Array.from(indexedRepos).filter(
+        (r) => r !== repoKey,
+      );
 
-        // Reset the indexed repos - caller will need to re-index if desired
-        setIndexedRepos(new Set(remainingRepos));
-        setStats({ docCount: 0 });
+      // Reset the indexed repos - caller will need to re-index if desired
+      setIndexedRepos(new Set(remainingRepos));
+      setStats({ docCount: 0 });
 
-        return true;
-      } catch (err) {
-        setError(err.message || String(err));
-        console.error("Clear error:", err);
-        return false;
-      }
-    },
-    [indexedRepos],
-  );
+      return true;
+    } catch (err) {
+      setError(err.message || String(err));
+      console.error("Clear error:", err);
+      return false;
+    }
+  }, []);
 
   /**
    * Clear all indexed content

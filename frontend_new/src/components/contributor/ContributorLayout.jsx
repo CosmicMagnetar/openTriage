@@ -10,6 +10,7 @@ import MessagesPage from './MessagesPage';
 import Settings from '../Settings';
 import ContributorAIChat from './ContributorAIChat';
 import DiscoveryPage from './DiscoveryPage';
+import AIDisabledBanner from '../settings/AIDisabledBanner';
 
 // Context for managing chat states globally
 const ChatContext = createContext();
@@ -66,7 +67,9 @@ const ContributorLayout = () => {
     <ChatContext.Provider value={chatContextValue}>
       <div className="w-full h-screen bg-[hsl(220,13%,5%)] flex overflow-hidden relative">
         <ContributorSidebar />
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <AIDisabledBanner />
+          <div className="flex-1 overflow-hidden">
           <Routes>
             <Route index element={<MyIssuesDashboard />} />
             <Route path="profile" element={<ProfilePage />} />
@@ -77,6 +80,7 @@ const ContributorLayout = () => {
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<MyIssuesDashboard />} />
           </Routes>
+          </div>
         </div>
 
         {/* Global AI Chat */}

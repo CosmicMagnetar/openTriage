@@ -15,6 +15,7 @@ const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 const ContributorAIChat = ({ onClose, issues: propIssues }) => {
   const { token } = useAuthStore();
   const oramaIndex = useOramaIndex();
+  const { indexReadme: oramaIndexReadme } = oramaIndex;
   
   const [internalIssues, setInternalIssues] = useState([]);
   const issues = propIssues || internalIssues;
@@ -33,6 +34,8 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
   const [ragSessionId, setRagSessionId] = useState(null);
   const [ablyConnected, setAblyConnected] = useState(false);
   const [ablyError, setAblyError] = useState(null);
+  const ablyErrorRef = useRef(false);
+  const indexedRepoRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   // Socket.io – listen for RAG pipeline stage updates
@@ -73,42 +76,51 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
 
   // Auto-index README with Orama when repo changes
   useEffect(() => {
+    if (selectedRepo === 'all') return;
+    // Guard: skip if this repo is already indexed
+    if (indexedRepoRef.current === selectedRepo) return;
+
+    let cancelled = false;
     const indexRepo = async () => {
-      if (selectedRepo !== 'all') {
-        setIsIndexing(true);
-        const toastId = toast.loading(`Reading ${selectedRepo} documentation...`);
-        try {
-          // Parse owner/repo format
-          const [owner, repo] = selectedRepo.split('/');
-          if (!owner || !repo) {
-            throw new Error(`Invalid repo format: ${selectedRepo}`);
-          }
-
-          // Index README locally with Orama (no backend call!)
-          const result = await oramaIndex.indexReadme(owner, repo, token);
-          if (!result.success) {
-            throw new Error(result.error || 'Failed to index README');
-          }
-
-          toast.success(`Documentation loaded! (${result.sectionsIndexed} sections indexed)`, { id: toastId });
-          setMessages(prev => [
-            ...prev,
-            {
-              role: 'assistant',
-              content: `I've read the documentation for **${selectedRepo}** (${result.sectionsIndexed} sections). Ask me anything about the codebase! 🚀`
-            }
-          ]);
-        } catch (error) {
-          console.error('Orama indexing failed:', error);
-          toast.error(`Failed to load documentation: ${error.message}`, { id: toastId });
-        } finally {
-          setIsIndexing(false);
+      setIsIndexing(true);
+      const toastId = toast.loading(`Reading ${selectedRepo} documentation...`);
+      try {
+        const [owner, repo] = selectedRepo.split('/');
+        if (!owner || !repo) {
+          throw new Error(`Invalid repo format: ${selectedRepo}`);
         }
+
+        // Pass null for githubToken — the app JWT is not a GitHub PAT
+        const result = await oramaIndexReadme(owner, repo, null);
+        if (cancelled) return;
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to index README');
+        }
+
+        // Mark this repo as indexed so we don't re-index on re-renders
+        indexedRepoRef.current = selectedRepo;
+
+        toast.success(`Documentation loaded! (${result.sectionsIndexed} sections indexed)`, { id: toastId });
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: `I've read the documentation for **${selectedRepo}** (${result.sectionsIndexed} sections). Ask me anything about the codebase!`
+          }
+        ]);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Orama indexing failed:', error);
+        toast.error(`Failed to load documentation: ${error.message}`, { id: toastId });
+      } finally {
+        if (!cancelled) setIsIndexing(false);
       }
     };
 
     indexRepo();
-  }, [selectedRepo, token, oramaIndex]);
+    return () => { cancelled = true; };
+  }, [selectedRepo, oramaIndexReadme]);
 
   // Ably Connection State Listener
   useConnectionStateListener((stateChange) => {
@@ -133,19 +145,19 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
 
   // Use channel with error boundary and rewind for history
   // Rewind fetches the last 50 messages when subscribing
-  let channel = null;
-  try {
-    const channelResult = useChannel(
-      { channelName, options: { params: { rewind: '50' } } },
-      handleChannelMessage
-    );
-    channel = channelResult?.channel;
-  } catch (err) {
-    // Ably not configured - fall back to direct API mode
-    if (!ablyError) {
+  const channelResult = useChannel(
+    { channelName, options: { params: { rewind: '50' } } },
+    handleChannelMessage
+  );
+  const channel = channelResult?.channel ?? null;
+
+  // Track Ably errors via effect (not during render)
+  useEffect(() => {
+    if (!channelResult?.channel && !ablyErrorRef.current) {
+      ablyErrorRef.current = true;
       setAblyError('Real-time features unavailable. Using direct mode.');
     }
-  }
+  }, [channelResult]);
 
   // Clean/Switch Channel on Repo Change
   useEffect(() => {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { User, Shield, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import useAuthStore from '../stores/authStore';
+import AISettingsPanel from './settings/AISettingsPanel';
 
 const Settings = () => {
     const { user, role, updateRole } = useAuthStore();
@@ -51,7 +52,9 @@ const Settings = () => {
                                 <p className="text-sm text-[hsl(210,11%,50%)]">GitHub ID: {user?.githubId}</p>
                             </div>
                         </div>
-                    </div>
+
+            {/* AI Configuration - Bento Panel */}
+            <AISettingsPanel />
                 </div>
 
                 {/* Role Switching */}
