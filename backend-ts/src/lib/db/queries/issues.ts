@@ -114,18 +114,23 @@ export async function getIssues(filters: IssueFilters, page = 1, limit = 10) {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const results = await db.select()
+    const rawResults = await db.select()
         .from(issues)
         .where(whereClause)
-        .orderBy(desc(issues.createdAt))
-        .limit(limit)
-        .offset(offset);
+        .orderBy(desc(issues.createdAt));
 
-    const totalResult = await db.select({ count: count() })
-        .from(issues)
-        .where(whereClause);
+    // Deduplicate by githubIssueId — the DB may contain duplicate rows for the
+    // same GitHub issue/PR because the primary key is a UUID and
+    // onConflictDoNothing() never triggers. Keep the first (most recent) entry.
+    const seen = new Set<number>();
+    const deduped = rawResults.filter(issue => {
+        if (seen.has(issue.githubIssueId)) return false;
+        seen.add(issue.githubIssueId);
+        return true;
+    });
 
-    const total = totalResult[0]?.count || 0;
+    const total = deduped.length;
+    const results = deduped.slice(offset, offset + limit);
 
     return {
         issues: results,
