@@ -520,8 +520,8 @@ const ContributorAIChatInner = ({ onClose, issues: propIssues, selectedRepo, set
 const ContributorAIChat = ({ onClose, issues: propIssues }) => {
   const [selectedRepo, setSelectedRepo] = useState('all');
   const channelName = selectedRepo === 'all'
-    ? 'chat:global'
-    : `chat:${selectedRepo.replace('/', '-')}`;
+    ? 'OpenTriage-Global-Chat'
+    : `OpenTriage-Chat-${selectedRepo.replace('/', '-')}`;
 
   return (
     <ChannelProvider channelName={channelName} key={channelName}>

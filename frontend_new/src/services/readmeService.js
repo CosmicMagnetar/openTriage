@@ -22,7 +22,12 @@ export async function fetchReadme(owner, repo, githubToken = null) {
       Accept: "application/vnd.github+json",
     };
 
-    if (githubToken) {
+    // Only attach token if it looks like a GitHub token (starts with ghp_, gho_, github_pat_, etc.)
+    // Avoid sending non-GitHub tokens (e.g. app JWTs) which cause 401
+    if (
+      githubToken &&
+      /^(ghp_|gho_|ghu_|ghs_|ghr_|github_pat_)/.test(githubToken)
+    ) {
       headers.Authorization = `Bearer ${githubToken}`;
     }
 
@@ -33,8 +38,12 @@ export async function fetchReadme(owner, repo, githubToken = null) {
     );
 
     if (!response.ok) {
-      // If not found, try raw.githubusercontent.com as fallback
+      // If not found via API, try raw.githubusercontent.com as fallback
       if (response.status === 404) {
+        return await fetchReadmeFromRaw(owner, repo);
+      }
+      // For auth errors, skip and try raw (works for public repos)
+      if (response.status === 401 || response.status === 403) {
         return await fetchReadmeFromRaw(owner, repo);
       }
       throw new Error(`GitHub API error: ${response.status}`);
@@ -51,8 +60,10 @@ export async function fetchReadme(owner, repo, githubToken = null) {
       downloadUrl: data.download_url,
     };
   } catch (error) {
-    console.error(`Failed to fetch README for ${owner}/${repo}:`, error);
-    // Fallback to raw GitHub
+    // Only log once, not for every fallback attempt
+    console.warn(
+      `README fetch via API failed for ${owner}/${repo}, trying raw fallback`,
+    );
     return await fetchReadmeFromRaw(owner, repo);
   }
 }
@@ -63,39 +74,35 @@ export async function fetchReadme(owner, repo, githubToken = null) {
  */
 async function fetchReadmeFromRaw(owner, repo) {
   try {
-    const filenames = ["README.md", "README.markdown", "README.txt", "README"];
+    // Try the most common filename first (README.md covers ~95% of repos)
+    // Only fall back to other names if main/master branches exist but the file doesn't
+    const branches = ["main", "master"];
+    const filenames = ["README.md", "readme.md"];
 
-    for (const filename of filenames) {
-      const url = `${RAW_GITHUB_BASE}/${owner}/${repo}/main/${filename}`;
-      const response = await fetch(url);
-
-      if (response.ok) {
-        const content = await response.text();
-        return {
-          content,
-          filename,
-          htmlUrl: `https://github.com/${owner}/${repo}/blob/main/${filename}`,
-          downloadUrl: url,
-        };
-      }
-
-      // Try master branch if main doesn't exist
-      const masterUrl = `${RAW_GITHUB_BASE}/${owner}/${repo}/master/${filename}`;
-      const masterResponse = await fetch(masterUrl);
-      if (masterResponse.ok) {
-        const content = await masterResponse.text();
-        return {
-          content,
-          filename,
-          htmlUrl: `https://github.com/${owner}/${repo}/blob/master/${filename}`,
-          downloadUrl: masterUrl,
-        };
+    for (const branch of branches) {
+      for (const filename of filenames) {
+        try {
+          const url = `${RAW_GITHUB_BASE}/${owner}/${repo}/${branch}/${filename}`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const content = await response.text();
+            return {
+              content,
+              filename,
+              htmlUrl: `https://github.com/${owner}/${repo}/blob/${branch}/${filename}`,
+              downloadUrl: url,
+            };
+          }
+        } catch {
+          // Network error for this attempt, try next
+        }
       }
     }
 
+    // Repo likely has no README at all
     return null;
   } catch (error) {
-    console.error(`Fallback README fetch failed for ${owner}/${repo}:`, error);
+    console.warn(`Fallback README fetch failed for ${owner}/${repo}`);
     return null;
   }
 }

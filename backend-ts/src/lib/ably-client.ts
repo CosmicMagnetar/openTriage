@@ -147,6 +147,7 @@ export async function createTokenRequest(clientId: string): Promise<Ably.TokenRe
         capability: {
             [ABLY_CHANNELS.EVENTS]: ['subscribe'],
             [ABLY_CHANNELS.GLOBAL_CHAT]: ['subscribe', 'publish'],
+            'OpenTriage-Chat-*': ['subscribe', 'publish'],
         },
     });
 }
