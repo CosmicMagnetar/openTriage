@@ -141,11 +141,17 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
         const searchResults = await oramaIndex.performSearch(userMessage, 5, selectedRepo);
 
         if (!searchResults || searchResults.length === 0) {
-          responseContent = `I searched the documentation for "${userMessage}" but didn't find a direct match. Try asking with different words or phrasing. Here are some tips:\n\n- Check the README's table of contents\n- Ask about setup, installation, or usage\n- Try searching for specific features or APIs`;
+          responseContent = `I couldn't find anything relevant in the documentation. Try asking about specific features, setup, or usage.`;
         } else {
           const topResults = searchResults.slice(0, 3);
-          const formattedResults = topResults.map(r => `**${r.section}**\n${r.content.substring(0, 200)}${r.content.length > 200 ? '...' : ''}`).join('\n\n');
-          responseContent = `Based on the documentation, here's what I found:\n\n${formattedResults}`;
+          const formattedResults = topResults.map(r => {
+            const maxLen = 500;
+            const text = r.content.length > maxLen
+              ? r.content.substring(0, maxLen).replace(/\s+\S*$/, '') + '...'
+              : r.content;
+            return `### ${r.section}\n${text}`;
+          }).join('\n\n---\n\n');
+          responseContent = formattedResults;
 
           sources = searchResults.map(r => ({
             title: r.section,

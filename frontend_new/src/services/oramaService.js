@@ -79,7 +79,33 @@ const STOP_WORDS = new Set([
 ]);
 
 /**
+ * Very simple suffix-stripping stemmer.
+ * Handles the most common English suffixes so "installation" → "instal",
+ * "running" → "run", "projects" → "project", etc.
+ */
+function stem(word) {
+  return word
+    .replace(/ies$/, "y")
+    .replace(/tion$/, "t")
+    .replace(/sion$/, "s")
+    .replace(/ment$/, "")
+    .replace(/ness$/, "")
+    .replace(/able$/, "")
+    .replace(/ible$/, "")
+    .replace(/ful$/, "")
+    .replace(/ing$/, "")
+    .replace(/ous$/, "")
+    .replace(/ive$/, "")
+    .replace(/ly$/, "")
+    .replace(/ed$/, "")
+    .replace(/er$/, "")
+    .replace(/es$/, "")
+    .replace(/s$/, "");
+}
+
+/**
  * Tokenize text into lowercase words, removing punctuation & stop words.
+ * Returns both raw and stemmed forms for broader matching.
  */
 function tokenize(text) {
   return text
@@ -87,6 +113,13 @@ function tokenize(text) {
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 1 && !STOP_WORDS.has(w));
+}
+
+/**
+ * Produce stemmed token set (de-duplicated) for matching.
+ */
+function stemTokens(tokens) {
+  return [...new Set(tokens.map(stem).filter((s) => s.length > 1))];
 }
 
 /**
@@ -118,13 +151,14 @@ class SearchIndex {
     const id = `doc-${this._nextId++}`;
     const tokens = tokenize(doc.content);
     const titleTokens = tokenize(doc.title);
-    const allTokens = [...tokens, ...titleTokens];
+    const stemmedTokens = stemTokens([...tokens, ...titleTokens]);
+    const allTokens = [...tokens, ...titleTokens, ...stemmedTokens];
 
-    const entry = { ...doc, id, tokens, titleTokens };
+    const entry = { ...doc, id, tokens, titleTokens, stemmedTokens };
     const idx = this.documents.length;
     this.documents.push(entry);
 
-    // Build inverted index
+    // Build inverted index (raw + stemmed forms)
     const seen = new Set();
     for (const t of allTokens) {
       if (!seen.has(t)) {
@@ -144,16 +178,21 @@ class SearchIndex {
    */
   search(query, limit = 10, repository = null) {
     const queryTokens = tokenize(query);
-    if (queryTokens.length === 0) return [];
+    const queryStemmed = stemTokens(queryTokens);
+    // Merge raw + stemmed query terms for broader recall
+    const allQueryTerms = [...new Set([...queryTokens, ...queryStemmed])];
 
     const queryBigrams = bigrams(queryTokens);
     const N = this.documents.length;
     if (N === 0) return [];
 
-    // Collect candidate doc indices from inverted index
+    // If ALL query tokens were stop-words, go straight to fallback
+    if (allQueryTerms.length === 0) {
+      return this._fallbackByRepo(repository, limit);
+    }
     const candidates = new Set();
-    for (const qt of queryTokens) {
-      // Also check prefix matches for partial words
+    for (const qt of allQueryTerms) {
+      // Exact, prefix, and reverse-prefix matching
       for (const [term, docSet] of this.invertedIndex) {
         if (term === qt || term.startsWith(qt) || qt.startsWith(term)) {
           for (const di of docSet) candidates.add(di);
@@ -171,20 +210,25 @@ class SearchIndex {
 
       let score = 0;
 
-      // ── Token frequency in content ──
-      for (const qt of queryTokens) {
+      // ── Token frequency in content (raw + stemmed) ──
+      for (const qt of allQueryTerms) {
         const tf = doc.tokens.filter(
           (t) => t === qt || t.startsWith(qt),
         ).length;
-        if (tf > 0) {
+        // Also count stemmed matches
+        const stf = (doc.stemmedTokens || []).filter(
+          (t) => t === qt || t.startsWith(qt),
+        ).length;
+        const totalTf = tf + stf * 0.5; // stemmed matches worth half
+        if (totalTf > 0) {
           const df = this.invertedIndex.get(qt)?.size || 1;
           const idf = Math.log(1 + N / df);
-          score += tf * idf;
+          score += totalTf * idf;
         }
       }
 
       // ── Title boost (3×) ──
-      for (const qt of queryTokens) {
+      for (const qt of allQueryTerms) {
         if (doc.titleTokens.some((t) => t === qt || t.startsWith(qt))) {
           score += 3;
         }
@@ -222,7 +266,38 @@ class SearchIndex {
 
     // Sort by score descending, return top N
     scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, limit);
+    const results = scored.slice(0, limit);
+
+    // ── Fallback: if strict matching found nothing, return all sections ──
+    // Handles generic/overview queries like "explain this project",
+    // "what is this", "tell me about it" where tokens don't match verbatim.
+    if (results.length === 0) {
+      return this._fallbackByRepo(repository, limit);
+    }
+
+    return results;
+  }
+
+  /**
+   * Fallback: return all sections for a repository, ordered by position.
+   * Used when the query is too generic to match specific tokens.
+   */
+  _fallbackByRepo(repository, limit) {
+    const docs = repository
+      ? this.documents.filter((d) => d.repository === repository)
+      : this.documents;
+
+    return docs
+      .map((d, i) => ({
+        title: d.title,
+        content: d.content,
+        section: d.title,
+        repository: d.repository,
+        sourceUrl: d.sourceUrl,
+        level: d.level,
+        score: 1 / (i + 1),
+      }))
+      .slice(0, limit);
   }
 
   /** Return the total number of indexed documents. */
