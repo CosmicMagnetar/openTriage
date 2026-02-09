@@ -1,8 +1,8 @@
 import { Calendar, User, Tag, GitPullRequest } from 'lucide-react';
-import useIssueStore from '../../stores/issueStore';
+import { useNavigate } from 'react-router-dom';
 
 const IssueCard = ({ issue }) => {
-  const { setSelectedIssue } = useIssueStore();
+  const navigate = useNavigate();
   const triage = issue.triage;
 
   const classificationColors = {
@@ -19,7 +19,7 @@ const IssueCard = ({ issue }) => {
   return (
     <div
       data-testid={`issue-card-${issue.number}`}
-      onClick={() => setSelectedIssue(issue)}
+      onClick={() => navigate(`/dashboard/issue/${issue.id}`)}
       className="bg-[hsl(220,13%,8%)] border border-[hsl(220,13%,15%)] rounded-lg p-5 hover:border-[hsl(142,70%,45%,0.4)] transition-colors cursor-pointer"
     >
       <div className="flex items-start justify-between gap-4">

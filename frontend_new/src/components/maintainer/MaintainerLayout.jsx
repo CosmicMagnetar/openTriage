@@ -8,12 +8,10 @@ import MaintainerPortal from './MaintainerPortal';
 import MaintainerProfilePage from './MaintainerProfilePage';
 import PublicProfilePage from '../contributor/PublicProfilePage';
 import Settings from '../Settings';
-import IssueDetailPanel from './IssueDetailPanel';
+import { IssueDetailPage } from './issue-detail';
 import AIChat from './AIChat';
-import useIssueStore from '../../stores/issueStore';
 
 const MaintainerLayout = () => {
-  const { selectedIssue } = useIssueStore();
   const [showChat, setShowChat] = useState(false);
 
   return (
@@ -29,13 +27,11 @@ const MaintainerLayout = () => {
           <Route path="hub" element={<MaintainerPortal />} />
           <Route path="profile" element={<MaintainerProfilePage />} />
           <Route path="user/:username" element={<PublicProfilePage />} />
+          <Route path="issue/:issueId" element={<IssueDetailPage />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<DashboardPage />} />
         </Routes>
       </div>
-
-      {/* Issue Detail Panel */}
-      {selectedIssue && <IssueDetailPanel />}
 
       {/* Floating AI Chat Button - Global */}
       <button
