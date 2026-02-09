@@ -137,14 +137,15 @@ export default function useOramaIndex() {
   const performSearch = useCallback(
     async (query, limit = 10, repository = null) => {
       if (!indexRef.current) {
-        console.warn("Orama index not initialized for search");
+        console.warn("Search index not initialized");
         return [];
       }
 
       try {
         setError(null);
+        const docCount = indexRef.current.docCount ?? 0;
         console.log(
-          `🔍 Searching Orama with query: "${query}", repo filter: "${repository}", docCount: ${stats.docCount}`,
+          `🔍 Searching: "${query}", repo: "${repository}", docs: ${docCount}`,
         );
         const results = await searchReadme(
           indexRef.current,
@@ -157,8 +158,7 @@ export default function useOramaIndex() {
         if (results.length > 0) {
           console.log("📌 Top result:", {
             section: results[0].section,
-            repository: results[0].repository,
-            score: results[0].score,
+            score: results[0].score?.toFixed(2),
           });
         }
         return results;
@@ -173,28 +173,24 @@ export default function useOramaIndex() {
 
   /**
    * Clear a specific repository from the index
-   * Note: Orama 2.0.6 doesn't support selective deletion,
-   * so this clears the entire index and reinitializes it.
    */
   const clearRepository = useCallback(async (owner, repo) => {
     const repoKey = `${owner}/${repo}`;
-    if (!indexedRepos.has(repoKey)) {
-      return false;
-    }
 
     try {
       setError(null);
-      // Clear all indices (Orama 2.0.6 doesn't support selective deletion)
-      indexRef.current = await createReadmeIndex();
+      if (indexRef.current) {
+        // Selectively remove docs for this repo only
+        indexRef.current.removeByRepo(repoKey);
+        const newStats = await getIndexStats(indexRef.current);
+        setStats(newStats);
+      }
 
-      // Rebuild index with all except the deleted repo
-      const remainingRepos = Array.from(indexedRepos).filter(
-        (r) => r !== repoKey,
-      );
-
-      // Reset the indexed repos - caller will need to re-index if desired
-      setIndexedRepos(new Set(remainingRepos));
-      setStats({ docCount: 0 });
+      setIndexedRepos((prev) => {
+        const next = new Set(prev);
+        next.delete(repoKey);
+        return next;
+      });
 
       return true;
     } catch (err) {

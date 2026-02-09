@@ -1,32 +1,272 @@
 /**
- * Orama Search Service
+ * Lightweight Full-Text Search Service
  *
- * Wrapper around Orama for client-side full-text search.
- * Enables searching README content and other documents without hitting the backend.
- *
- * NOTE: Currently stubbed - the orama npm package is a charting library, not search.
- * Update this when migrating to @orama/core or an alternative search solution.
+ * In-memory search engine for README content.
+ * Provides TF-IDF-like scoring with title boosting, bigram matching, and
+ * repository filtering — no external dependencies required.
  */
 
-// import { create as createIndex, insert as insertDoc, search as searchDocs } from "orama";
+// ── Tokenizer helpers ──────────────────────────────────────────────
+
+const STOP_WORDS = new Set([
+  "a",
+  "an",
+  "the",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "of",
+  "with",
+  "by",
+  "is",
+  "it",
+  "this",
+  "that",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "will",
+  "would",
+  "could",
+  "should",
+  "may",
+  "might",
+  "can",
+  "shall",
+  "not",
+  "no",
+  "so",
+  "if",
+  "about",
+  "up",
+  "out",
+  "from",
+  "as",
+  "into",
+  "its",
+  "my",
+  "me",
+  "i",
+  "you",
+  "your",
+  "we",
+  "our",
+  "he",
+  "she",
+  "they",
+  "them",
+  "what",
+  "which",
+  "who",
+  "how",
+  "when",
+  "where",
+  "why",
+]);
 
 /**
- * Create an Orama instance for searching README content
- * @returns {Promise<import('orama').Orama>}
+ * Tokenize text into lowercase words, removing punctuation & stop words.
  */
-export async function createReadmeIndex() {
-  // Stubbed - returns a dummy index
-  return { schema: {} };
+function tokenize(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 1 && !STOP_WORDS.has(w));
 }
 
 /**
- * Index README sections into Orama
- * @param {import('orama').Orama} index - Orama instance
- * @param {string} owner - Repository owner
- * @param {string} repo - Repository name
- * @param {Array<{title, content, level}>} sections - README sections
- * @param {string} sourceUrl - URL to the README
- * @returns {Promise<string[]>} - Array of document IDs
+ * Generate bigrams from a token array for phrase matching.
+ */
+function bigrams(tokens) {
+  const out = [];
+  for (let i = 0; i < tokens.length - 1; i++) {
+    out.push(`${tokens[i]} ${tokens[i + 1]}`);
+  }
+  return out;
+}
+
+// ── Index class ────────────────────────────────────────────────────
+
+class SearchIndex {
+  constructor() {
+    /** @type {Array<{id: string, title: string, content: string, repository: string, section: string, sourceUrl: string, level: number, tokens: string[], titleTokens: string[]}>} */
+    this.documents = [];
+    /** @type {Map<string, Set<number>>} token → set of doc indices */
+    this.invertedIndex = new Map();
+    this._nextId = 0;
+  }
+
+  /**
+   * Add a document to the index.
+   */
+  insert(doc) {
+    const id = `doc-${this._nextId++}`;
+    const tokens = tokenize(doc.content);
+    const titleTokens = tokenize(doc.title);
+    const allTokens = [...tokens, ...titleTokens];
+
+    const entry = { ...doc, id, tokens, titleTokens };
+    const idx = this.documents.length;
+    this.documents.push(entry);
+
+    // Build inverted index
+    const seen = new Set();
+    for (const t of allTokens) {
+      if (!seen.has(t)) {
+        seen.add(t);
+        if (!this.invertedIndex.has(t)) {
+          this.invertedIndex.set(t, new Set());
+        }
+        this.invertedIndex.get(t).add(idx);
+      }
+    }
+
+    return id;
+  }
+
+  /**
+   * Search documents with TF-IDF-like relevance scoring.
+   */
+  search(query, limit = 10, repository = null) {
+    const queryTokens = tokenize(query);
+    if (queryTokens.length === 0) return [];
+
+    const queryBigrams = bigrams(queryTokens);
+    const N = this.documents.length;
+    if (N === 0) return [];
+
+    // Collect candidate doc indices from inverted index
+    const candidates = new Set();
+    for (const qt of queryTokens) {
+      // Also check prefix matches for partial words
+      for (const [term, docSet] of this.invertedIndex) {
+        if (term === qt || term.startsWith(qt) || qt.startsWith(term)) {
+          for (const di of docSet) candidates.add(di);
+        }
+      }
+    }
+
+    // Score each candidate
+    const scored = [];
+    for (const di of candidates) {
+      const doc = this.documents[di];
+
+      // Optional repo filter
+      if (repository && doc.repository !== repository) continue;
+
+      let score = 0;
+
+      // ── Token frequency in content ──
+      for (const qt of queryTokens) {
+        const tf = doc.tokens.filter(
+          (t) => t === qt || t.startsWith(qt),
+        ).length;
+        if (tf > 0) {
+          const df = this.invertedIndex.get(qt)?.size || 1;
+          const idf = Math.log(1 + N / df);
+          score += tf * idf;
+        }
+      }
+
+      // ── Title boost (3×) ──
+      for (const qt of queryTokens) {
+        if (doc.titleTokens.some((t) => t === qt || t.startsWith(qt))) {
+          score += 3;
+        }
+      }
+
+      // ── Bigram bonus (phrase proximity) ──
+      const contentLower = doc.content.toLowerCase();
+      for (const bg of queryBigrams) {
+        if (contentLower.includes(bg)) {
+          score += 2;
+        }
+      }
+
+      // ── Exact substring match bonus ──
+      const queryLower = query.toLowerCase();
+      if (contentLower.includes(queryLower)) {
+        score += 5;
+      }
+      if (doc.title.toLowerCase().includes(queryLower)) {
+        score += 8;
+      }
+
+      if (score > 0) {
+        scored.push({
+          title: doc.title,
+          content: doc.content,
+          section: doc.title,
+          repository: doc.repository,
+          sourceUrl: doc.sourceUrl,
+          level: doc.level,
+          score,
+        });
+      }
+    }
+
+    // Sort by score descending, return top N
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, limit);
+  }
+
+  /** Return the total number of indexed documents. */
+  get docCount() {
+    return this.documents.length;
+  }
+
+  /** Clear all documents for a given repository. */
+  removeByRepo(repository) {
+    // Rebuild everything without that repo
+    const kept = this.documents.filter((d) => d.repository !== repository);
+    this.documents = [];
+    this.invertedIndex.clear();
+    this._nextId = 0;
+    for (const doc of kept) {
+      this.insert(doc);
+    }
+  }
+
+  /** Clear the entire index. */
+  clear() {
+    this.documents = [];
+    this.invertedIndex.clear();
+    this._nextId = 0;
+  }
+}
+
+// ── Public API (same signatures the hook expects) ──────────────────
+
+/**
+ * Create a new search index.
+ */
+export async function createReadmeIndex() {
+  return new SearchIndex();
+}
+
+/**
+ * Index README sections.
+ * @param {SearchIndex} index
+ * @param {string} owner
+ * @param {string} repo
+ * @param {Array<{title: string, content: string, level: number}>} sections
+ * @param {string} sourceUrl
+ * @returns {Promise<string[]>} inserted document IDs
  */
 export async function indexReadmeSections(
   index,
@@ -35,18 +275,34 @@ export async function indexReadmeSections(
   sections,
   sourceUrl,
 ) {
-  // Stubbed - returns dummy IDs
-  console.log(`📝 Orama indexing stubbed for ${owner}/${repo}`);
-  return sections.map((_, i) => `doc-${i}`);
+  const repository = `${owner}/${repo}`;
+
+  // Remove any previous docs for this repo so re-indexing doesn't duplicate
+  index.removeByRepo(repository);
+
+  const ids = sections.map((sec) =>
+    index.insert({
+      title: sec.title,
+      content: sec.content,
+      repository,
+      section: sec.title,
+      sourceUrl,
+      level: sec.level,
+    }),
+  );
+
+  console.log(
+    `📝 Indexed ${ids.length} sections for ${repository} (total docs: ${index.docCount})`,
+  );
+  return ids;
 }
 
 /**
- * Search README content using Orama
- * @param {import('orama').Orama} index - Orama instance
- * @param {string} query - Search query
- * @param {number} limit - Max results (default 10)
- * @param {string} repository - Filter by repository (optional)
- * @returns {Promise<Array<{title, content, section, score}>>}
+ * Search README content.
+ * @param {SearchIndex} index
+ * @param {string} query
+ * @param {number} limit
+ * @param {string|null} repository
  */
 export async function searchReadme(
   index,
@@ -54,27 +310,21 @@ export async function searchReadme(
   limit = 10,
   repository = null,
 ) {
-  // Stubbed - returns empty results
-  console.log(`🔎 Orama search stubbed for query: "${query}"`);
-  return [];
+  return index.search(query, limit, repository);
 }
 
 /**
- * Get list of indexed repositories
- * (Note: Orama 2.0.6 doesn't have a built-in "get all unique values" function,
- *  so we track this separately in the hook)
+ * Get list of indexed repositories.
+ * @param {SearchIndex} index
  */
 export async function getIndexedRepositories(index) {
-  // Stubbed - returns empty array
-  return [];
+  return [...new Set(index.documents.map((d) => d.repository))];
 }
 
 /**
- * Get index statistics
- * @param {import('orama').Orama} index - Orama instance
- * @returns {Promise<{docCount: number}>}
+ * Get index statistics.
+ * @param {SearchIndex} index
  */
 export async function getIndexStats(index) {
-  // Stubbed - returns empty stats
-  return { docCount: 0 };
+  return { docCount: index.docCount };
 }
