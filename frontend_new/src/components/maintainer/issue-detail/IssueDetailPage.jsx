@@ -26,7 +26,7 @@ const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
  *   │  Sticky Header (breadcrumbs + actions)       │
  *   ├───────────────────────┬──────────────────────┤
  *   │  Main Column (70%)    │  Side Column (30%)   │
- *   │  - Title & Status     │  - Leaderboard       │
+ *   │  - Title & Status     │  - Leaderboard (AI)  │
  *   │  - Description        │  - Resources         │
  *   │  - AI Triage          │  - Metadata          │
  *   │  - Conversation       │                      │
@@ -93,6 +93,21 @@ const IssueDetailPage = () => {
       toast.error(err.message || `Failed to close ${itemType}`);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  // Assign a contributor from the ranking widget
+  const handleAssign = async (username) => {
+    if (!issue?.id || !username) return;
+    try {
+      await axios.post(`${API}/issues/${issue.id}/assign-multiple`, {
+        assignees: [username],
+      });
+      toast.success(`${username} assigned to ${issue.isPR ? 'PR' : 'issue'} #${issue.number}`);
+      refetchIssue();
+    } catch (err) {
+      console.error('Failed to assign:', err);
+      toast.error(err.response?.data?.error || 'Failed to assign contributor');
     }
   };
 
@@ -264,7 +279,7 @@ const IssueDetailPage = () => {
 
         {/* ── Side Column (30%) — sticky sidebar ────── */}
         <div className="w-[30%] overflow-y-auto p-5 space-y-4 custom-scrollbar">
-          <MaintainerLeaderboardWidget issue={issue} />
+          <MaintainerLeaderboardWidget issue={issue} onAssign={handleAssign} />
           <ResourceSharingWidget issue={issue} />
           <MetadataWidget issue={issue} />
         </div>
