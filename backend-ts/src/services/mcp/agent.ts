@@ -582,6 +582,8 @@ ${goal.type === "issue_triage" ? "Classify the issue and suggest appropriate lab
             pendingGuidanceMap.set(this.sessionId, {
                 resolve: (response: HITLResponse) => {
                     clearTimeout(timer);
+                    // Cleanup to prevent memory leak
+                    pendingGuidanceMap.delete(this.sessionId);
                     resolve(response.reply);
                 },
                 request,

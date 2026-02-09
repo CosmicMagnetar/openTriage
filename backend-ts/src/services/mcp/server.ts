@@ -42,16 +42,39 @@ const CACHEABLE_TOOLS = new Set([
     "fetch_repo_file",
 ]);
 
+/** PR-related tools whose cache keys should include head_sha */
+const PR_TOOLS = new Set([
+    "get_pr_details",
+    "get_pr_diff",
+    "get_pr_files",
+    "get_pr_commits",
+    "get_pr_reviews",
+    "get_pr_comments",
+]);
+
 /**
  * Build a deterministic cache key from tool name + arguments.
- * Keys look like: `get_pr_diff:owner/repo#42` or `fetch_repo_file:owner/repo:src/main.ts@abc123`
+ *
+ * For PR-related tools the key includes `head_sha` (when available) so
+ * that force-pushes / new commits automatically invalidate the cache.
+ *
+ * Keys look like:
+ *   `get_pr_diff:owner/repo#42@abc1234`
+ *   `fetch_repo_file:owner/repo:src/main.ts@main`
  */
-function buildCacheKey(toolName: string, args: Record<string, unknown>): string {
+function buildCacheKey(
+    toolName: string,
+    args: Record<string, unknown>,
+    headSha?: string
+): string {
     const owner = args.owner as string | undefined;
     const repo = args.repo as string | undefined;
     const base = owner && repo ? `${toolName}:${owner}/${repo}` : toolName;
 
-    if (args.pr_number != null) return `${base}#${args.pr_number}`;
+    if (args.pr_number != null) {
+        const sha = headSha ? `@${(headSha as string).slice(0, 8)}` : "";
+        return `${base}#${args.pr_number}${sha}`;
+    }
     if (args.issue_number != null) return `${base}#issue-${args.issue_number}`;
     if (args.path != null) return `${base}:${args.path}@${args.ref ?? "main"}`;
     return `${base}:${JSON.stringify(args)}`;
@@ -63,6 +86,8 @@ export class MCPServer {
     private callCount = 0;
     private sessionId: string | null = null;
     private toolCache = new TTLCache<MCPToolResult>(CACHE_TTL_MS);
+    /** Cached head SHA for PR-scoped cache keys */
+    private headShaCache = new Map<string, string>();
 
     constructor(
         githubAccessToken: string,
@@ -125,11 +150,20 @@ export class MCPServer {
 
         // ── Semantic cache check ──
         const isCacheable = CACHEABLE_TOOLS.has(call.toolName);
-        const cacheKey = isCacheable ? buildCacheKey(call.toolName, call.arguments) : "";
+        const prKey = call.arguments.pr_number != null
+            ? `${call.arguments.owner}/${call.arguments.repo}#${call.arguments.pr_number}`
+            : null;
+        const headSha = prKey ? this.headShaCache.get(prKey) : undefined;
+        const cacheKey = isCacheable
+            ? buildCacheKey(call.toolName, call.arguments, headSha)
+            : "";
 
         if (isCacheable) {
             const cached = this.toolCache.get(cacheKey);
             if (cached) {
+                console.log(
+                    `[MCP Cache] HIT  ${call.toolName}  key=${cacheKey}`
+                );
                 this.emitProgress({
                     stage: 1,
                     label: `Cache HIT for ${call.toolName} (skipped API call)`,
@@ -141,6 +175,9 @@ export class MCPServer {
                 });
                 return { ...cached, durationMs: 0 };
             }
+            console.log(
+                `[MCP Cache] MISS ${call.toolName}  key=${cacheKey}`
+            );
         }
 
         if (this.callCount >= this.config.maxToolCalls) {
@@ -186,7 +223,22 @@ export class MCPServer {
 
             // ── Cache successful results for deterministic tools ──
             if (isCacheable) {
+                // If this was get_pr_details, extract head SHA for future cache keys
+                if (
+                    call.toolName === "get_pr_details" &&
+                    prKey &&
+                    data &&
+                    typeof data === "object"
+                ) {
+                    const sha = (data as Record<string, unknown>).headSha;
+                    if (typeof sha === "string" && sha.length >= 7) {
+                        this.headShaCache.set(prKey, sha);
+                    }
+                }
                 this.toolCache.set(cacheKey, result);
+                console.log(
+                    `[MCP Cache] SET  ${call.toolName}  key=${cacheKey}`
+                );
             }
 
             return result;

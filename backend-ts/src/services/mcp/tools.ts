@@ -54,6 +54,7 @@ const getPRDetails: MCPTool = {
             author: pr.user?.login ?? "unknown",
             state: pr.state,
             head: pr.head.ref,
+            headSha: pr.head.sha,
             base: pr.base.ref,
             additions: pr.additions,
             deletions: pr.deletions,
