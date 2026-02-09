@@ -8,6 +8,9 @@
 const GITHUB_API_BASE = "https://api.github.com";
 const RAW_GITHUB_BASE = "https://raw.githubusercontent.com";
 
+/** Cache repos confirmed to have no README — avoid repeat requests */
+const noReadmeCache = new Set();
+
 /**
  * Fetch README content from a repository
  * @param {string} owner - Repository owner (username or org)
@@ -16,6 +19,13 @@ const RAW_GITHUB_BASE = "https://raw.githubusercontent.com";
  * @returns {Promise<{content: string, filename: string, htmlUrl: string} | null>}
  */
 export async function fetchReadme(owner, repo, githubToken = null) {
+  const repoKey = `${owner}/${repo}`;
+
+  // Skip if we already know this repo has no README
+  if (noReadmeCache.has(repoKey)) {
+    return null;
+  }
+
   try {
     // Try to get the README via GitHub API (more reliable, gives us metadata)
     const headers = {
@@ -31,18 +41,20 @@ export async function fetchReadme(owner, repo, githubToken = null) {
       headers.Authorization = `Bearer ${githubToken}`;
     }
 
-    // GitHub API endpoint to get README
+    // GitHub API endpoint to get README — this checks ALL branches & filenames
     const response = await fetch(
       `${GITHUB_API_BASE}/repos/${owner}/${repo}/readme`,
       { headers },
     );
 
     if (!response.ok) {
-      // If not found via API, try raw.githubusercontent.com as fallback
       if (response.status === 404) {
-        return await fetchReadmeFromRaw(owner, repo);
+        // GitHub API 404 is definitive — repo has no README on any branch
+        console.warn(`No README found for ${repoKey}`);
+        noReadmeCache.add(repoKey);
+        return null;
       }
-      // For auth errors, skip and try raw (works for public repos)
+      // For auth errors (no token / bad token), try raw (works for public repos)
       if (response.status === 401 || response.status === 403) {
         return await fetchReadmeFromRaw(owner, repo);
       }
@@ -60,9 +72,9 @@ export async function fetchReadme(owner, repo, githubToken = null) {
       downloadUrl: data.download_url,
     };
   } catch (error) {
-    // Only log once, not for every fallback attempt
+    // Network error — try raw fallback once
     console.warn(
-      `README fetch via API failed for ${owner}/${repo}, trying raw fallback`,
+      `README fetch via API failed for ${repoKey}, trying raw fallback`,
     );
     return await fetchReadmeFromRaw(owner, repo);
   }
@@ -73,36 +85,40 @@ export async function fetchReadme(owner, repo, githubToken = null) {
  * (works for public repos without authentication)
  */
 async function fetchReadmeFromRaw(owner, repo) {
+  const repoKey = `${owner}/${repo}`;
   try {
-    // Try the most common filename first (README.md covers ~95% of repos)
-    // Only fall back to other names if main/master branches exist but the file doesn't
-    const branches = ["main", "master"];
-    const filenames = ["README.md", "readme.md"];
-
-    for (const branch of branches) {
-      for (const filename of filenames) {
-        try {
-          const url = `${RAW_GITHUB_BASE}/${owner}/${repo}/${branch}/${filename}`;
-          const response = await fetch(url);
-          if (response.ok) {
-            const content = await response.text();
-            return {
-              content,
-              filename,
-              htmlUrl: `https://github.com/${owner}/${repo}/blob/${branch}/${filename}`,
-              downloadUrl: url,
-            };
-          }
-        } catch {
-          // Network error for this attempt, try next
-        }
-      }
+    // Only try main branch + README.md first (covers ~90% of repos)
+    const primaryUrl = `${RAW_GITHUB_BASE}/${owner}/${repo}/main/README.md`;
+    const primaryRes = await fetch(primaryUrl);
+    if (primaryRes.ok) {
+      const content = await primaryRes.text();
+      return {
+        content,
+        filename: "README.md",
+        htmlUrl: `https://github.com/${owner}/${repo}/blob/main/README.md`,
+        downloadUrl: primaryUrl,
+      };
     }
 
-    // Repo likely has no README at all
+    // One more try: master branch
+    const masterUrl = `${RAW_GITHUB_BASE}/${owner}/${repo}/master/README.md`;
+    const masterRes = await fetch(masterUrl);
+    if (masterRes.ok) {
+      const content = await masterRes.text();
+      return {
+        content,
+        filename: "README.md",
+        htmlUrl: `https://github.com/${owner}/${repo}/blob/master/README.md`,
+        downloadUrl: masterUrl,
+      };
+    }
+
+    // Neither worked — cache and give up
+    console.warn(`No README found for ${repoKey} via raw fallback`);
+    noReadmeCache.add(repoKey);
     return null;
   } catch (error) {
-    console.warn(`Fallback README fetch failed for ${owner}/${repo}`);
+    console.warn(`Raw README fetch failed for ${repoKey}`);
     return null;
   }
 }

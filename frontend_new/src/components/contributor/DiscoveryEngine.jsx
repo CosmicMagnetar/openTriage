@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
     Search, RefreshCw, ExternalLink, GitFork, MessageSquare,
     Filter, Code, Flame, Clock, Tag, AlertCircle, X, Sparkles,
@@ -23,13 +23,23 @@ const COMMON_LABELS = [
 ];
 
 /**
- * DiscoveryEngine - GitHub Issue Discovery with clean UI
+ * DiscoveryEngine - GitHub Issue Discovery with search bar + local filtering.
+ * Caches API results per filter combo for 5 minutes to avoid rate-limit exhaustion.
  */
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const issueCache = new Map(); // key → { data, timestamp }
+
+function cacheKey(labels, language, sort) {
+    return `${labels.join(',')}|${language}|${sort}`;
+}
+
 const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
     const { token } = useAuthStore();
     const [issues, setIssues] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('all');
     const [selectedLabels, setSelectedLabels] = useState(['good first issue']);
     const [customLabel, setCustomLabel] = useState('');
@@ -43,24 +53,40 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
             return JSON.parse(localStorage.getItem('savedIssues') || '[]');
         } catch { return []; }
     });
-    const debounceRef = useRef(null);
+    const hasFetchedRef = useRef(false);
 
     const defaultLanguages = ['JavaScript', 'Python', 'TypeScript', 'Go', 'Rust', 'Java', 'C++', 'Ruby', 'PHP', 'Swift'];
     const languages = userLanguages.length > 0 ? userLanguages : defaultLanguages;
 
-    const debouncedFetch = useCallback(() => {
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-            fetchIssues();
-        }, 500);
+    // Fetch only on filter changes, with caching to avoid burning rate limit
+    useEffect(() => {
+        const key = cacheKey(selectedLabels, selectedLanguage, sortBy);
+        const cached = issueCache.get(key);
+
+        if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+            // Use cached data, no API call
+            setIssues(cached.data.items);
+            setTotalCount(cached.data.total_count);
+            setLastFetched(new Date(cached.timestamp));
+            if (cached.data.rate_limit) setRateLimitInfo(cached.data.rate_limit);
+            return;
+        }
+
+        fetchIssues();
     }, [selectedLanguage, sortBy, selectedLabels]);
 
-    useEffect(() => {
-        debouncedFetch();
-        return () => {
-            if (debounceRef.current) clearTimeout(debounceRef.current);
-        };
-    }, [selectedLanguage, sortBy, selectedLabels]);
+    // Local filtering: filter fetched issues by search query (no API call)
+    const filteredIssues = useMemo(() => {
+        if (!searchQuery.trim()) return issues;
+        const q = searchQuery.toLowerCase();
+        return issues.filter(issue => {
+            const { owner, repo } = parseRepoInfo(issue.repository_url);
+            const repoStr = `${owner}/${repo}`.toLowerCase();
+            const title = (issue.title || '').toLowerCase();
+            const labels = (issue.labels || []).map(l => l.name.toLowerCase()).join(' ');
+            return title.includes(q) || repoStr.includes(q) || labels.includes(q);
+        });
+    }, [issues, searchQuery]);
 
     const toggleLabel = (labelValue) => {
         setSelectedLabels(prev => {
@@ -90,7 +116,21 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
         });
     };
 
-    const fetchIssues = async () => {
+    const fetchIssues = async (force = false) => {
+        const key = cacheKey(selectedLabels, selectedLanguage, sortBy);
+
+        // Check cache unless forced refresh
+        if (!force) {
+            const cached = issueCache.get(key);
+            if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+                setIssues(cached.data.items);
+                setTotalCount(cached.data.total_count);
+                setLastFetched(new Date(cached.timestamp));
+                if (cached.data.rate_limit) setRateLimitInfo(cached.data.rate_limit);
+                return;
+            }
+        }
+
         setLoading(true);
         setError(null);
 
@@ -165,6 +205,16 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
             if (data.rate_limit) {
                 setRateLimitInfo(data.rate_limit);
             }
+
+            // Cache results
+            issueCache.set(key, {
+                data: {
+                    items: data.items || [],
+                    total_count: data.total_count || 0,
+                    rate_limit: data.rate_limit || rateLimitInfo,
+                },
+                timestamp: Date.now(),
+            });
         } catch (err) {
             setError(err.message);
         } finally {
@@ -194,12 +244,33 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
 
     return (
         <div className={`bg-[hsl(220,13%,8%)] rounded-xl border border-[hsl(220,13%,15%)] overflow-hidden ${className}`}>
-            {/* Simple Header Bar */}
-            <div className="px-4 py-2.5 border-b border-[hsl(220,13%,15%)] flex items-center justify-between">
-                <span className="text-sm text-[hsl(210,11%,50%)]">
-                    <span className="text-[hsl(210,11%,85%)] font-medium">{totalCount.toLocaleString()}</span> issues found
+            {/* Header Bar with Search */}
+            <div className="px-4 py-2.5 border-b border-[hsl(220,13%,15%)] flex items-center gap-3">
+                {/* Search bar — filters locally, no API call */}
+                <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[hsl(210,11%,40%)]" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search issues by title, repo, or label..."
+                        className="w-full pl-8 pr-3 py-1.5 text-sm bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,18%)] rounded-md text-[hsl(210,11%,85%)] placeholder-[hsl(210,11%,35%)] focus:outline-none focus:border-[hsl(142,70%,45%)] transition-colors"
+                    />
+                    {searchQuery && (
+                        <button
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-[hsl(210,11%,40%)] hover:text-[hsl(210,11%,70%)]"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+
+                <span className="text-xs text-[hsl(210,11%,50%)] whitespace-nowrap">
+                    <span className="text-[hsl(210,11%,85%)] font-medium">{filteredIssues.length}</span>{searchQuery ? ` / ${issues.length}` : ''} issues
                 </span>
-                <div className="flex items-center gap-2">
+
+                <div className="flex items-center gap-1.5">
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${showFilters
@@ -211,9 +282,9 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                         Filters
                     </button>
                     <button
-                        onClick={fetchIssues}
+                        onClick={() => fetchIssues(true)}
                         disabled={loading}
-                        className="p-1.5 bg-[hsl(220,13%,12%)] text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,18%)] rounded-md transition-colors border border-[hsl(220,13%,20%)]"
+                        className="p-1.5 bg-[hsl(220,13%,12%)] text-[hsl(210,11%,50%)] hover:text-[hsl(210,11%,75%)] hover:bg-[hsl(220,13%,18%)] rounded-md transition-colors border border-[hsl(220,13%,20%)]" title="Force refresh (ignores cache)"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                     </button>
@@ -406,9 +477,17 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
                         <p className="text-sm text-[#8b949e]">No issues found</p>
                         <p className="text-xs text-[#6e7681] mt-1">Try different filters</p>
                     </div>
+                ) : filteredIssues.length === 0 ? (
+                    <div className="px-5 py-12 text-center">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#21262d] mb-3">
+                            <Search className="w-6 h-6 text-[#6e7681]" />
+                        </div>
+                        <p className="text-sm text-[#8b949e]">No issues match "{searchQuery}"</p>
+                        <p className="text-xs text-[#6e7681] mt-1">Try a different search term</p>
+                    </div>
                 ) : (
                     <div className="divide-y divide-[#21262d]">
-                        {issues.map((issue) => {
+                        {filteredIssues.map((issue) => {
                             const { owner, repo } = parseRepoInfo(issue.repository_url);
                             const isSaved = isIssueSaved(issue.id);
 
@@ -507,7 +586,10 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
             {/* Footer */}
             <div className="px-5 py-2.5 border-t border-[#21262d] bg-[#0d1117] flex items-center justify-between">
                 <p className="text-[10px] text-[#6e7681]">
-                    GitHub Search API
+                    {rateLimitInfo?.remaining != null
+                        ? `API: ${rateLimitInfo.remaining}/${rateLimitInfo.limit} requests left`
+                        : 'GitHub Search API'}
+                    {lastFetched && ` · Cached ${formatTimeAgo(lastFetched.toISOString())}`}
                 </p>
                 {savedIssues.length > 0 && (
                     <span className="flex items-center gap-1 text-[10px] text-[#58a6ff]">
