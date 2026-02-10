@@ -61,7 +61,8 @@ export const issues = sqliteTable("issues", {
     githubIssueId: integer("github_issue_id").notNull(),
     number: integer("number").notNull(),
     title: text("title").notNull(),
-    body: text("body"),
+    body: text("body"),  // Full body fetched on-demand via /api/issues/:id/details
+    bodySummary: text("body_summary"),  // First 200 chars of body for display optimization
     authorName: text("author_name").notNull(),
     repoId: text("repo_id").notNull().references(() => repositories.id),
     repoName: text("repo_name").notNull(),
@@ -71,6 +72,8 @@ export const issues = sqliteTable("issues", {
     state: text("state").notNull().default("open"),
     isPR: integer("is_pr", { mode: "boolean" }).notNull().default(false),
     authorAssociation: text("author_association"),  // OWNER, MEMBER, COLLABORATOR, etc.
+    headSha: text("head_sha"),  // For PRs: track the commit SHA to detect force-pushes
+    updatedAt: text("updated_at"),  // Track last GitHub update time for efficient syncing
     createdAt: text("created_at").notNull(),
 });
 
@@ -82,6 +85,8 @@ export const triageData = sqliteTable("triage_data", {
     summary: text("summary").notNull(),
     suggestedLabel: text("suggested_label").notNull(),
     sentiment: text("sentiment").notNull(),  // Sentiment enum
+    bugRiskScore: integer("bug_risk_score"),  // 0-10 risk from Quality Assessment
+    toxicityFlag: integer("toxicity_flag", { mode: "boolean" }).default(false),  // From Bilingual Moderation
     analyzedAt: text("analyzed_at").notNull(),
 });
 
