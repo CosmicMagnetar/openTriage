@@ -17,11 +17,15 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        console.log("[My Issues] User:", user.username);
+
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get("page") || "1");
         const limit = parseInt(searchParams.get("limit") || "10");
         const isPRParam = searchParams.get("isPR");
         const repoParam = searchParams.get("repo");
+
+        console.log("[My Issues] Query params - page:", page, "limit:", limit);
 
         // Build filters
         const filters: { authorName: string; isPR?: boolean; repoName?: string } = { 
@@ -41,10 +45,14 @@ export async function GET(request: NextRequest) {
         }
 
         // Get issues from database with filters
+        console.log("[My Issues] Calling getIssuesWithTriage...");
         const issuesData = await getIssuesWithTriage(filters, page, limit);
+
+        console.log("[My Issues] Got %d issues from database", issuesData.issues.length);
 
         // If database has results, return them
         if (issuesData.total > 0) {
+            console.log("[My Issues] Returning %d results from database", issuesData.issues.length);
             return NextResponse.json({
                 items: issuesData.issues,
                 total: issuesData.total,
@@ -151,8 +159,13 @@ export async function GET(request: NextRequest) {
             pages: 0,
             limit,
         });
-    } catch (error) {
-        console.error("Contributor my-issues error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    } catch (error: any) {
+        console.error("[My Issues] Error:", error);
+        console.error("[My Issues] Error stack:", error?.stack);
+        console.error("[My Issues] Error message:", error?.message);
+        return NextResponse.json({ 
+            error: "Internal server error",
+            details: error?.message || "Unknown error"
+        }, { status: 500 });
     }
 }

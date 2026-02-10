@@ -19,21 +19,46 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        console.log("[Dashboard Summary] User:", user.username);
+
         // Fetch GitHub contributions in parallel with local data
+        console.log("[Dashboard Summary] Starting parallel queries...");
         const [allItems, trackedRepos, userRecord, githubData] = await Promise.all([
             // Get all issues/PRs by this contributor from the database
-            db.select().from(issues).where(eq(issues.authorName, user.username)),
+            (async () => {
+                console.log("[Dashboard Summary] Fetching issues...");
+                const items = await db.select().from(issues).where(eq(issues.authorName, user.username));
+                console.log("[Dashboard Summary] Found %d issues", items.length);
+                return items;
+            })(),
             // Get tracked repos
-            db.select({ repoFullName: userRepositories.repoFullName })
-                .from(userRepositories)
-                .where(eq(userRepositories.userId, user.id)),
+            (async () => {
+                console.log("[Dashboard Summary] Fetching tracked repos...");
+                const repos = await db.select({ repoFullName: userRepositories.repoFullName })
+                    .from(userRepositories)
+                    .where(eq(userRepositories.userId, user.id));
+                console.log("[Dashboard Summary] Found %d tracked repos", repos.length);
+                return repos;
+            })(),
             // Get user's GitHub token
-            db.select({ githubAccessToken: users.githubAccessToken })
-                .from(users)
-                .where(eq(users.id, user.id))
-                .limit(1),
+            (async () => {
+                console.log("[Dashboard Summary] Fetching user token...");
+                const userData = await db.select({ githubAccessToken: users.githubAccessToken })
+                    .from(users)
+                    .where(eq(users.id, user.id))
+                    .limit(1);
+                console.log("[Dashboard Summary] User token fetch complete");
+                return userData;
+            })(),
             // Fetch GitHub contributions (will use cache or make API call)
-            fetchGitHubContributions(user.username, null).catch(() => null)
+            (async () => {
+                console.log("[Dashboard Summary] Fetching GitHub contributions...");
+                const ghData = await fetchGitHubContributions(user.username, null).catch(err => {
+                    console.log("[Dashboard Summary] GitHub fetch failed:", err);
+                    return null;
+                });
+                return ghData;
+            })()
         ]);
 
         // Calculate metrics from database records
@@ -73,9 +98,12 @@ export async function GET(request: NextRequest) {
 
     } catch (error: any) {
         console.error("Contributor dashboard-summary error:", error);
+        console.error("Error stack:", error?.stack);
+        console.error("Error message:", error?.message);
 
         return NextResponse.json({
-            error: "Failed to fetch dashboard data. Please try again."
+            error: "Failed to fetch dashboard data. Please try again.",
+            details: error?.message || "Unknown error"
         }, { status: 500 });
     }
 }

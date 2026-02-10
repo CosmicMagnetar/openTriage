@@ -202,6 +202,8 @@ export async function getIssuesWithTriage(filters: IssueFilters, page = 1, limit
     const offset = Math.max(0, (page - 1) * limit);
     const safePage = Math.max(1, page);
 
+    console.log("[getIssuesWithTriage] Starting query with filters:", filters, "page:", page, "limit:", limit);
+
     // Build conditions (identical to getIssues)
     const conditions = [];
     if (filters.repoId) conditions.push(eq(issues.repoId, filters.repoId));
@@ -234,6 +236,8 @@ export async function getIssuesWithTriage(filters: IssueFilters, page = 1, limit
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
+    console.log("[getIssuesWithTriage] Built where clause, fetching count...");
+
     // Get total count
     const countResult = await db.select({ count: count() })
         .from(issues)
@@ -241,8 +245,11 @@ export async function getIssuesWithTriage(filters: IssueFilters, page = 1, limit
     const total = countResult[0]?.count || 0;
     const totalPages = Math.ceil(total / limit);
 
+    console.log("[getIssuesWithTriage] Total count:", total, "totalPages:", totalPages);
+
     // ✅ Single JOIN query: issues LEFT JOIN triageData
     // Database executes this in one round-trip, no N+1
+    console.log("[getIssuesWithTriage] Executing JOIN query...");
     const results = await db.select({
         issue: issues,
         triage: triageData,
@@ -253,6 +260,8 @@ export async function getIssuesWithTriage(filters: IssueFilters, page = 1, limit
         .orderBy(desc(issues.createdAt))
         .limit(limit)
         .offset(offset);
+
+    console.log("[getIssuesWithTriage] Query returned %d results", results.length);
 
     // Transform [ {issue, triage}, {issue, triage}, ... ] into [ {issue, triage}, ... ]
     const issuesWithTriage = results.map(row => ({
