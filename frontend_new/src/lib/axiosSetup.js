@@ -13,8 +13,19 @@ export function setupAxiosInterceptors() {
   axios.interceptors.request.use(
     (config) => {
       const token = localStorage.getItem("token");
+      console.log(
+        "[Axios] Request to:",
+        config.url,
+        "- Token present:",
+        !!token,
+      );
+      if (!token) {
+        console.warn("[Axios] ⚠️ WARNING: No token found in localStorage!");
+        console.log("[Axios] localStorage keys:", Object.keys(localStorage));
+      }
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log("[Axios] ✅ Authorization header added");
       }
       return config;
     },
@@ -34,6 +45,7 @@ export function setupAxiosInterceptors() {
         window.location.href = "/login";
       } else if (error.response?.status === 403) {
         console.warn("[Axios] Received 403 Forbidden");
+        console.error("[Axios] Response data:", error.response?.data);
       }
       return Promise.reject(error);
     },
