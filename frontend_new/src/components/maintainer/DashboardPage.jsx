@@ -59,12 +59,16 @@ const DashboardPage = () => {
     }
 
     try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      
       const [summaryRes, issuesRes, reposRes] = await Promise.all([
-        axios.get(`${API}/maintainer/dashboard-summary`),
+        axios.get(`${API}/maintainer/dashboard-summary`, { headers }),
         axios.get(`${API}/maintainer/issues`, {
-          params: { page: currentPage, limit: ITEMS_PER_PAGE }
+          params: { page: currentPage, limit: ITEMS_PER_PAGE },
+          headers
         }),
-        axios.get(`${API}/repositories`)
+        axios.get(`${API}/repositories`, { headers })
       ]);
       setFetchError(null); // Clear error on success
       setSummary(summaryRes.data);
@@ -132,7 +136,9 @@ const DashboardPage = () => {
     setLastSyncStats(null);
     
     try {
-      const response = await axios.post(`${API}/sync/run`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.post(`${API}/sync/run`, {}, { headers });
       const { stats } = response.data;
       
       setLastSyncStats(stats);
@@ -462,7 +468,9 @@ const AddRepoModal = ({ onClose, onSuccess }) => {
   useEffect(() => {
     const fetchRepos = async () => {
       try {
-        const response = await axios.get(`${API}/maintainer/github/repos`);
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const response = await axios.get(`${API}/maintainer/github/repos`, { headers });
         setGithubRepos(response.data.repos || []);
       } catch (error) {
         console.error('Failed to fetch GitHub repos:', error);
@@ -484,7 +492,9 @@ const AddRepoModal = ({ onClose, onSuccess }) => {
 
     setLoading(true);
     try {
-      await axios.post(`${API}/repositories`, { repoFullName: repoToAdd });
+      const token = localStorage.getItem('token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await axios.post(`${API}/repositories`, { repoFullName: repoToAdd }, { headers });
       onSuccess();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Failed to add repository');

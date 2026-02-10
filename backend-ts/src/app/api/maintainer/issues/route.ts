@@ -11,10 +11,16 @@ import { getIssues, getIssuesWithTriage, IssueFilters } from "@/lib/db/queries/i
 
 export async function GET(request: NextRequest) {
     try {
+        console.log("[Maintainer Issues] Request received");
         const user = await getCurrentUser(request);
+        console.log("[Maintainer Issues] getCurrentUser result:", user ? `User: ${user.username}, Role: ${user.role}` : "No user");
+        
         if (!user) {
+            console.log("[Maintainer Issues] No user found - returning 401");
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        console.log("[Maintainer Issues] Fetching issues for userId:", user.id);
 
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get("page") || "1");

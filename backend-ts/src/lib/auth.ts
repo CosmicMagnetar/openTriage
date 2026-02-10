@@ -41,22 +41,29 @@ export async function getCurrentUser(request: NextRequest) {
     
     // Try Authorization header first
     const authHeader = request.headers.get("Authorization");
+    console.log("[getCurrentUser] Authorization header:", authHeader ? "Present" : "Missing");
     if (authHeader && authHeader.startsWith("Bearer ")) {
         token = authHeader.substring(7);
+        console.log("[getCurrentUser] Found token in Authorization header");
     }
     
     // Fallback to query param for SSE connections
     if (!token) {
         const url = new URL(request.url);
         token = url.searchParams.get("token");
+        if (token) {
+            console.log("[getCurrentUser] Found token in query params");
+        }
     }
 
     if (!token) {
+        console.log("[getCurrentUser] No token found in header or query params");
         return null;
     }
 
     try {
         const payload = verifyJwtToken(token);
+        console.log("[getCurrentUser] Token verified, user_id:", payload.user_id);
 
         // Fetch full user from database
         const userRecords = await db
@@ -66,11 +73,14 @@ export async function getCurrentUser(request: NextRequest) {
             .limit(1);
 
         if (userRecords.length === 0) {
+            console.log("[getCurrentUser] User not found in database for user_id:", payload.user_id);
             return null;
         }
 
+        console.log("[getCurrentUser] User found:", userRecords[0].username);
         return userRecords[0];
-    } catch {
+    } catch (error: any) {
+        console.error("[getCurrentUser] Token verification failed:", error?.message);
         return null;
     }
 }

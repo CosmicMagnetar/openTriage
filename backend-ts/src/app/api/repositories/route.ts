@@ -19,15 +19,21 @@ import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
     try {
+        console.log("[Repositories API] Request received");
         const { searchParams } = new URL(request.url);
         let userId = searchParams.get("userId");
+        console.log("[Repositories API] userId param:", userId);
 
         // If no userId provided, try to get the current authenticated user
         if (!userId) {
+            console.log("[Repositories API] No userId param, trying to get current user...");
             const currentUser = await getCurrentUser(request);
+            console.log("[Repositories API] getCurrentUser result:", currentUser ? `User: ${currentUser.username}` : "No user");
             if (currentUser) {
                 userId = currentUser.id;
+                console.log("[Repositories API] Using currentUser id:", userId);
             } else {
+                console.log("[Repositories API] No user found - returning 401");
                 return NextResponse.json(
                     { error: "userId is required or you must be logged in" },
                     { status: 401 }
