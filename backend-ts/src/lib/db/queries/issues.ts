@@ -8,7 +8,7 @@
 
 import { db } from "@/db";
 import { issues, triageData, repositories } from "@/db/schema";
-import { eq, and, desc, asc, count, or, like, sql, leftJoin } from "drizzle-orm";
+import { eq, and, desc, asc, count, or, like, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 // =============================================================================
