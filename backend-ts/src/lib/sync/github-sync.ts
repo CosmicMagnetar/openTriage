@@ -453,7 +453,57 @@ export async function syncSingleRepository(
     options: SyncOptions = {}
 ): Promise<SyncResult> {
     const octokit = new Octokit({ auth: accessToken });
-    return syncRepository(octokit, repoId, owner, repo, options);
+    const result = await syncRepository(octokit, repoId, owner, repo, options);
+    
+    // ===== Auto-trigger RAG indexing after successful sync =====
+    if (result.success && (result.created > 0 || result.updated > 0)) {
+        try {
+            const aiEngineUrl = process.env.AI_ENGINE_URL || "http://localhost:7860";
+            const repoName = `${owner}/${repo}`;
+            
+            // Check if we need to index (avoid redundant indexing)
+            const checkResponse = await fetch(
+                `${aiEngineUrl}/rag/check-index?repo_name=${encodeURIComponent(repoName)}`,
+                {
+                    headers: { 
+                        "X-API-Key": process.env.API_KEY || "",
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+            
+            if (checkResponse.ok) {
+                const checkData = await checkResponse.json();
+                const chunkCount = checkData.chunk_count || 0;
+                
+                if (chunkCount < 100) {
+                    console.log(`[Sync] Triggering RAG indexing for ${repoName} (current chunks: ${chunkCount})`);
+                    
+                    // Fire-and-forget indexing (don't await to avoid blocking sync)
+                    fetch(`${aiEngineUrl}/rag/index`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-API-Key": process.env.API_KEY || "",
+                        },
+                        body: JSON.stringify({
+                            repo_name: repoName,
+                            github_access_token: accessToken,
+                        }),
+                    }).catch((err) => {
+                        console.error(`[Sync] RAG indexing failed for ${repoName}:`, err.message);
+                    });
+                } else {
+                    console.log(`[Sync] Skipping RAG indexing for ${repoName}, already has ${chunkCount} chunks`);
+                }
+            }
+        } catch (err) {
+            // Log but don't fail the sync if RAG indexing check errors
+            console.error("[Sync] RAG index check failed:", err);
+        }
+    }
+    
+    return result;
 }
 
 // =============================================================================

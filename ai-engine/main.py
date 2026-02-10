@@ -412,6 +412,40 @@ async def rag_suggestions(repo_name: Optional[str] = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/rag/check-index")
+async def check_rag_index(
+    repo_name: str,
+    auth: dict = Depends(require_api_key_or_auth)
+):
+    """
+    Check how many chunks are indexed for a repository.
+    
+    Query params:
+        repo_name: Repository name (owner/repo format)
+    
+    Returns:
+        {"repo_name": str, "chunk_count": int}
+    """
+    from config.database import db
+    
+    try:
+        # Count documents in MongoDB rag_chunks collection
+        count = await db.rag_chunks.count_documents({"sourceRepo": repo_name})
+        
+        return {
+            "repo_name": repo_name,
+            "chunk_count": count
+        }
+    except Exception as e:
+        logger.error(f"Failed to check RAG index for {repo_name}: {e}")
+        return {
+            "repo_name": repo_name,
+            "chunk_count": 0,
+            "error": str(e)
+        }
+
+
+
 # =============================================================================
 # Mentor Matching Endpoints
 # =============================================================================
