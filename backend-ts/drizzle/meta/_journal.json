@@ -22,6 +22,13 @@
       "when": 1770196804327,
       "tag": "0002_simple_reavers",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1770728896823,
+      "tag": "0003_add_head_sha_body_summary",
+      "breakpoints": true
     }
   ]
 }

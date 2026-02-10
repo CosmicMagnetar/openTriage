@@ -8,7 +8,7 @@
 
 import { db } from "@/db";
 import { issues, triageData, repositories } from "@/db/schema";
-import { eq, and, desc, asc, count, or, like, sql } from "drizzle-orm";
+import { eq, and, desc, asc, count, or, like, sql, inArray } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 // Define columns to select (excludes bodySummary which doesn't exist in DB yet)
@@ -178,7 +178,7 @@ export async function getIssues(filters: IssueFilters, page = 1, limit = 10) {
         const repoIds = userRepos.map(r => r.id);
 
         if (repoIds.length > 0) {
-            conditions.push(sql`${issues.repoId} IN (${sql.join(repoIds.map(id => sql`'${id}'`), sql`, `)})`);
+            conditions.push(inArray(issues.repoId, repoIds));
         } else {
             return { issues: [], total: 0, page: safePage, limit, totalPages: 0 };
         }
@@ -268,7 +268,7 @@ export async function getIssuesWithTriage(filters: IssueFilters, page = 1, limit
             const repoIds = userRepos.map(r => r.id);
 
             if (repoIds.length > 0) {
-                conditions.push(sql`${issues.repoId} IN (${sql.join(repoIds.map(id => sql`'${id}'`), sql`, `)})`);
+                conditions.push(inArray(issues.repoId, repoIds));
             } else {
                 return { issues: [], total: 0, page: safePage, limit, totalPages: 0 };
             }
@@ -313,7 +313,7 @@ export async function getIssuesWithTriage(filters: IssueFilters, page = 1, limit
         const issueIds = issueResults.map(i => i.id);
         const triageDataResults = await db.select()
             .from(triageData)
-            .where(sql`${triageData.issueId} IN (${sql.join(issueIds.map(id => sql`'${id}'`), sql`, `)})`);
+            .where(inArray(triageData.issueId, issueIds));
 
         console.log("[getIssuesWithTriage] Found %d triage records", triageDataResults.length);
 
@@ -400,20 +400,30 @@ export async function getDashboardStats(userId: string) {
     }
 
     const repoIds = userRepos.map(r => r.id);
-    const repoCondition = sql`${issues.repoId} IN (${sql.join(repoIds.map(id => sql`${id}`), sql`, `)})`;
 
     const openIssues = await db.select({ count: count() })
         .from(issues)
-        .where(and(repoCondition, eq(issues.state, "open"), eq(issues.isPR, false)));
+        .where(and(
+            inArray(issues.repoId, repoIds),
+            eq(issues.state, "open"),
+            eq(issues.isPR, false)
+        ));
 
     const openPRs = await db.select({ count: count() })
         .from(issues)
-        .where(and(repoCondition, eq(issues.state, "open"), eq(issues.isPR, true)));
+        .where(and(
+            inArray(issues.repoId, repoIds),
+            eq(issues.state, "open"),
+            eq(issues.isPR, true)
+        ));
 
     // Count triaged issues
     const allOpenIssueIds = await db.select({ id: issues.id })
         .from(issues)
-        .where(and(repoCondition, eq(issues.state, "open")));
+        .where(and(
+            inArray(issues.repoId, repoIds),
+            eq(issues.state, "open")
+        ));
 
     let triaged = 0;
     for (const issue of allOpenIssueIds) {
