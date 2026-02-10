@@ -71,7 +71,25 @@ export async function deleteIssueByGithubId(githubIssueId: number): Promise<void
 // =============================================================================
 
 export async function getIssuesByRepoId(repoId: string) {
-    return db.select().from(issues).where(eq(issues.repoId, repoId));
+    return db.select({
+        id: issues.id,
+        githubIssueId: issues.githubIssueId,
+        number: issues.number,
+        title: issues.title,
+        body: issues.body,
+        authorName: issues.authorName,
+        repoId: issues.repoId,
+        repoName: issues.repoName,
+        owner: issues.owner,
+        repo: issues.repo,
+        htmlUrl: issues.htmlUrl,
+        state: issues.state,
+        isPR: issues.isPR,
+        authorAssociation: issues.authorAssociation,
+        headSha: issues.headSha,
+        updatedAt: issues.updatedAt,
+        createdAt: issues.createdAt,
+    }).from(issues).where(eq(issues.repoId, repoId));
 }
 
 // =============================================================================

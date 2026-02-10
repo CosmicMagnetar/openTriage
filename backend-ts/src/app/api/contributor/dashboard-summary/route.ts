@@ -11,6 +11,27 @@ import { db } from "@/db";
 import { issues } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+// Define columns to select (excludes bodySummary which doesn't exist in DB yet)
+const issueColumns = {
+    id: issues.id,
+    githubIssueId: issues.githubIssueId,
+    number: issues.number,
+    title: issues.title,
+    body: issues.body,
+    authorName: issues.authorName,
+    repoId: issues.repoId,
+    repoName: issues.repoName,
+    owner: issues.owner,
+    repo: issues.repo,
+    htmlUrl: issues.htmlUrl,
+    state: issues.state,
+    isPR: issues.isPR,
+    authorAssociation: issues.authorAssociation,
+    headSha: issues.headSha,
+    updatedAt: issues.updatedAt,
+    createdAt: issues.createdAt,
+};
+
 export async function GET(request: NextRequest) {
     try {
         const user = await getCurrentUser(request);
@@ -24,7 +45,7 @@ export async function GET(request: NextRequest) {
         // Fetch all contributor data from the database
         try {
             console.log("[Dashboard Summary] Fetching issues for user:", user.username);
-            const allItems = await db.select().from(issues).where(eq(issues.authorName, user.username));
+            const allItems = await db.select(issueColumns).from(issues).where(eq(issues.authorName, user.username));
             console.log("[Dashboard Summary] Found %d items", allItems.length);
 
             // Calculate metrics from database records

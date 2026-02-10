@@ -11,17 +11,38 @@ import { issues, triageData, repositories } from "@/db/schema";
 import { eq, and, desc, asc, count, or, like, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
+// Define columns to select (excludes bodySummary which doesn't exist in DB yet)
+const issueColumns = {
+    id: issues.id,
+    githubIssueId: issues.githubIssueId,
+    number: issues.number,
+    title: issues.title,
+    body: issues.body,
+    authorName: issues.authorName,
+    repoId: issues.repoId,
+    repoName: issues.repoName,
+    owner: issues.owner,
+    repo: issues.repo,
+    htmlUrl: issues.htmlUrl,
+    state: issues.state,
+    isPR: issues.isPR,
+    authorAssociation: issues.authorAssociation,
+    headSha: issues.headSha,
+    updatedAt: issues.updatedAt,
+    createdAt: issues.createdAt,
+};
+
 // =============================================================================
 // Issue CRUD
 // =============================================================================
 
 export async function getIssueById(id: string) {
-    const result = await db.select().from(issues).where(eq(issues.id, id)).limit(1);
+    const result = await db.select(issueColumns).from(issues).where(eq(issues.id, id)).limit(1);
     return result[0] || null;
 }
 
 export async function getIssueByGithubId(githubIssueId: number) {
-    const result = await db.select().from(issues).where(eq(issues.githubIssueId, githubIssueId)).limit(1);
+    const result = await db.select(issueColumns).from(issues).where(eq(issues.githubIssueId, githubIssueId)).limit(1);
     return result[0] || null;
 }
 
@@ -77,7 +98,7 @@ export async function updateIssueState(id: string, state: string) {
 }
 
 export async function getIssueByNumberAndRepo(number: number, repoId: string) {
-    const result = await db.select().from(issues)
+    const result = await db.select(issueColumns).from(issues)
         .where(and(eq(issues.number, number), eq(issues.repoId, repoId)))
         .limit(1);
     return result[0] || null;
@@ -88,7 +109,7 @@ export async function getIssueByNumberAndRepo(number: number, repoId: string) {
  * Returns the count of deleted duplicates.
  */
 export async function cleanupDuplicateIssues() {
-    const allIssues = await db.select().from(issues).orderBy(asc(issues.createdAt));
+    const allIssues = await db.select(issueColumns).from(issues).orderBy(asc(issues.createdAt));
     const kept = new Map<string, string>(); // key -> id to keep
     const toDelete: string[] = [];
 
@@ -142,7 +163,7 @@ export async function getIssues(filters: IssueFilters, page = 1, limit = 10) {
     if (filters.search) {
         conditions.push(or(
             like(issues.title, `%${filters.search}%`),
-            like(issues.bodySummary, `%${filters.search}%`)  // Changed from body to bodySummary for performance
+            like(issues.body, `%${filters.search}%`)
         ));
     }
 
@@ -173,12 +194,30 @@ export async function getIssues(filters: IssueFilters, page = 1, limit = 10) {
     const totalPages = Math.ceil(total / limit);
 
     // ✅ SQL-level LIMIT/OFFSET — never materializes full result
-    const results = await db.select()
+    const results = await db.select({
+        id: issues.id,
+        githubIssueId: issues.githubIssueId,
+        number: issues.number,
+        title: issues.title,
+        body: issues.body,
+        authorName: issues.authorName,
+        repoId: issues.repoId,
+        repoName: issues.repoName,
+        owner: issues.owner,
+        repo: issues.repo,
+        htmlUrl: issues.htmlUrl,
+        state: issues.state,
+        isPR: issues.isPR,
+        authorAssociation: issues.authorAssociation,
+        headSha: issues.headSha,
+        updatedAt: issues.updatedAt,
+        createdAt: issues.createdAt,
+    })
         .from(issues)
         .where(whereClause)
         .orderBy(desc(issues.createdAt))
         .limit(limit)
-        .offset(offset);
+        .offset(offset)
 
     return {
         issues: results,
@@ -215,7 +254,7 @@ export async function getIssuesWithTriage(filters: IssueFilters, page = 1, limit
         if (filters.search) {
             conditions.push(or(
                 like(issues.title, `%${filters.search}%`),
-                like(issues.bodySummary, `%${filters.search}%`)
+                like(issues.body, `%${filters.search}%`)
             ));
         }
 
@@ -250,7 +289,7 @@ export async function getIssuesWithTriage(filters: IssueFilters, page = 1, limit
 
         // Fetch issues using simple query
         console.log("[getIssuesWithTriage] Executing issues query...");
-        const issueResults = await db.select()
+        const issueResults = await db.select(issueColumns)
             .from(issues)
             .where(whereClause)
             .orderBy(desc(issues.createdAt))
