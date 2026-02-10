@@ -16,10 +16,10 @@ import { eq } from "drizzle-orm";
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const issueId = params.id;
+        const { id: issueId } = await context.params;
 
         if (!issueId) {
             return NextResponse.json(
