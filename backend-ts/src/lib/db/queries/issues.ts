@@ -204,78 +204,102 @@ export async function getIssuesWithTriage(filters: IssueFilters, page = 1, limit
 
     console.log("[getIssuesWithTriage] Starting query with filters:", filters, "page:", page, "limit:", limit);
 
-    // Build conditions (identical to getIssues)
-    const conditions = [];
-    if (filters.repoId) conditions.push(eq(issues.repoId, filters.repoId));
-    if (filters.repoName) conditions.push(eq(issues.repoName, filters.repoName));
-    if (filters.authorName) conditions.push(eq(issues.authorName, filters.authorName));
-    if (filters.state) conditions.push(eq(issues.state, filters.state));
-    if (filters.isPR !== undefined) conditions.push(eq(issues.isPR, filters.isPR));
-    if (filters.search) {
-        conditions.push(or(
-            like(issues.title, `%${filters.search}%`),
-            like(issues.bodySummary, `%${filters.search}%`)
-        ));
-    }
-
-    if (filters.userId) {
-        const userRepos = await db.select({ id: repositories.id })
-            .from(repositories)
-            .where(and(
-                eq(repositories.userId, filters.userId),
-                eq(repositories.addedByUser, true)
+    try {
+        // Build conditions (identical to getIssues)
+        const conditions = [];
+        if (filters.repoId) conditions.push(eq(issues.repoId, filters.repoId));
+        if (filters.repoName) conditions.push(eq(issues.repoName, filters.repoName));
+        if (filters.authorName) conditions.push(eq(issues.authorName, filters.authorName));
+        if (filters.state) conditions.push(eq(issues.state, filters.state));
+        if (filters.isPR !== undefined) conditions.push(eq(issues.isPR, filters.isPR));
+        if (filters.search) {
+            conditions.push(or(
+                like(issues.title, `%${filters.search}%`),
+                like(issues.bodySummary, `%${filters.search}%`)
             ));
-        const repoIds = userRepos.map(r => r.id);
-
-        if (repoIds.length > 0) {
-            conditions.push(sql`${issues.repoId} IN (${sql.join(repoIds.map(id => sql`'${id}'`), sql`, `)})`);
-        } else {
-            return { issues: [], total: 0, page: safePage, limit, totalPages: 0 };
         }
+
+        if (filters.userId) {
+            const userRepos = await db.select({ id: repositories.id })
+                .from(repositories)
+                .where(and(
+                    eq(repositories.userId, filters.userId),
+                    eq(repositories.addedByUser, true)
+                ));
+            const repoIds = userRepos.map(r => r.id);
+
+            if (repoIds.length > 0) {
+                conditions.push(sql`${issues.repoId} IN (${sql.join(repoIds.map(id => sql`'${id}'`), sql`, `)})`);
+            } else {
+                return { issues: [], total: 0, page: safePage, limit, totalPages: 0 };
+            }
+        }
+
+        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+        console.log("[getIssuesWithTriage] Built where clause, fetching count...");
+
+        // Get total count
+        const countResult = await db.select({ count: count() })
+            .from(issues)
+            .where(whereClause);
+        const total = countResult[0]?.count || 0;
+        const totalPages = Math.ceil(total / limit);
+
+        console.log("[getIssuesWithTriage] Total count:", total, "totalPages:", totalPages);
+
+        // Fetch issues using simple query
+        console.log("[getIssuesWithTriage] Executing issues query...");
+        const issueResults = await db.select()
+            .from(issues)
+            .where(whereClause)
+            .orderBy(desc(issues.createdAt))
+            .limit(limit)
+            .offset(offset);
+
+        console.log("[getIssuesWithTriage] Query returned %d results", issueResults.length);
+
+        // Fetch triage data for these issues
+        if (issueResults.length === 0) {
+            return {
+                issues: [],
+                total,
+                page: safePage,
+                limit,
+                totalPages,
+            };
+        }
+
+        console.log("[getIssuesWithTriage] Fetching triage data for %d issues", issueResults.length);
+        const issueIds = issueResults.map(i => i.id);
+        const triageDataResults = await db.select()
+            .from(triageData)
+            .where(sql`${triageData.issueId} IN (${sql.join(issueIds.map(id => sql`'${id}'`), sql`, `)})`);
+
+        console.log("[getIssuesWithTriage] Found %d triage records", triageDataResults.length);
+
+        // Create a map of triage data by issueId for quick lookup
+        const triageMap = new Map(triageDataResults.map(t => [t.issueId, t]));
+
+        // Merge issues with their triage data
+        const issuesWithTriage = issueResults.map(issue => ({
+            ...issue,
+            triage: triageMap.get(issue.id) || null,
+        }));
+
+        return {
+            issues: issuesWithTriage,
+            total,
+            page: safePage,
+            limit,
+            totalPages,
+        };
+    } catch (error: any) {
+        console.error("[getIssuesWithTriage] Query failed:", error);
+        console.error("[getIssuesWithTriage] Error message:", error?.message);
+        console.error("[getIssuesWithTriage] Error stack:", error?.stack);
+        throw error;
     }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    console.log("[getIssuesWithTriage] Built where clause, fetching count...");
-
-    // Get total count
-    const countResult = await db.select({ count: count() })
-        .from(issues)
-        .where(whereClause);
-    const total = countResult[0]?.count || 0;
-    const totalPages = Math.ceil(total / limit);
-
-    console.log("[getIssuesWithTriage] Total count:", total, "totalPages:", totalPages);
-
-    // ✅ Single JOIN query: issues LEFT JOIN triageData
-    // Database executes this in one round-trip, no N+1
-    console.log("[getIssuesWithTriage] Executing JOIN query...");
-    const results = await db.select({
-        issue: issues,
-        triage: triageData,
-    })
-        .from(issues)
-        .leftJoin(triageData, eq(triageData.issueId, issues.id))
-        .where(whereClause)
-        .orderBy(desc(issues.createdAt))
-        .limit(limit)
-        .offset(offset);
-
-    console.log("[getIssuesWithTriage] Query returned %d results", results.length);
-
-    // Transform [ {issue, triage}, {issue, triage}, ... ] into [ {issue, triage}, ... ]
-    const issuesWithTriage = results.map(row => ({
-        ...row.issue,
-        triage: row.triage || null,
-    }));
-
-    return {
-        issues: issuesWithTriage,
-        total,
-        page: safePage,
-        limit,
-        totalPages,
-    };
 }
 
 // =============================================================================

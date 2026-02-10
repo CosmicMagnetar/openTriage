@@ -32,25 +32,39 @@ let _db: LibSQLDatabase<typeof schema> | null = null;
 
 function getClient(): Client {
     if (!_client) {
+        // Check environment variables
+        if (!process.env.TURSO_DATABASE_URL) {
+            console.error("[DB] TURSO_DATABASE_URL not set. Using file-only mode.");
+        }
+        if (!process.env.TURSO_AUTH_TOKEN) {
+            console.warn("[DB] TURSO_AUTH_TOKEN not set. Remote sync will not work.");
+        }
+
         // Determine replica path (works on Hugging Face Spaces and local)
         const replicaPath = process.env.REPLICA_DB_PATH || path.join(process.cwd(), "replica.db");
         
         console.log(`[DB] Setting up Turso Embedded Replicas:`);
         console.log(`  • Local replica: ${replicaPath}`);
-        console.log(`  • Remote sync: ${process.env.TURSO_DATABASE_URL?.slice(0, 30)}...`);
+        console.log(`  • Remote sync URL: ${process.env.TURSO_DATABASE_URL?.slice(0, 30)}...`);
         console.log(`  • Sync interval: ${process.env.SYNC_INTERVAL || "60"}s`);
         
-        _client = createClient({
-            // Local embedded replica for fast reads
-            url: `file:${replicaPath}`,
-            // Remote Turso database for syncing
-            syncUrl: process.env.TURSO_DATABASE_URL!,
-            authToken: process.env.TURSO_AUTH_TOKEN,
-            // Sync interval: 60 seconds (adjust as needed)
-            syncInterval: parseInt(process.env.SYNC_INTERVAL || "60"),
-            // Optional: Encryption key for replica (if you want encrypted local storage)
-            encryptionKey: process.env.REPLICA_ENCRYPTION_KEY,
-        });
+        try {
+            _client = createClient({
+                // Local embedded replica for fast reads
+                url: `file:${replicaPath}`,
+                // Remote Turso database for syncing (optional)
+                syncUrl: process.env.TURSO_DATABASE_URL,
+                authToken: process.env.TURSO_AUTH_TOKEN,
+                // Sync interval: 60 seconds (adjust as needed)
+                syncInterval: parseInt(process.env.SYNC_INTERVAL || "60"),
+                // Optional: Encryption key for replica (if you want encrypted local storage)
+                encryptionKey: process.env.REPLICA_ENCRYPTION_KEY,
+            });
+            console.log("[DB] ✅ Client initialized successfully");
+        } catch (error: any) {
+            console.error("[DB] ❌ Failed to initialize client:", error?.message);
+            throw error;
+        }
     }
     return _client;
 }
@@ -99,9 +113,16 @@ export async function getReplicaStatus(): Promise<{
 
 export const db = new Proxy({} as LibSQLDatabase<typeof schema>, {
     get(_target, prop, receiver) {
-        if (!_db) {
-            _db = drizzle(getClient(), { schema });
+        try {
+            if (!_db) {
+                const client = getClient();
+                _db = drizzle(client, { schema });
+                console.log("[DB] ✅ Drizzle instance initialized");
+            }
+            return Reflect.get(_db, prop, receiver);
+        } catch (error: any) {
+            console.error("[DB Proxy] Error:", error?.message);
+            throw error;
         }
-        return Reflect.get(_db, prop, receiver);
     },
 });
