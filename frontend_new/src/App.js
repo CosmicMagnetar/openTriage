@@ -1,22 +1,23 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, lazy, Suspense } from "react";
 import {
   BrowserRouter,
   Routes,
   Route,
   Navigate,
-  useNavigate,
 } from "react-router-dom";
 import useAuthStore from "./stores/authStore";
 import SplashScreen from "./components/SplashScreen";
-import AuthPage from "./components/AuthPage";
 import LandingPage from "./components/LandingPage";
-import RoleSelection from "./components/RoleSelection";
-import MaintainerLayout from "./components/maintainer/MaintainerLayout";
-import ContributorLayout from "./components/contributor/ContributorLayout";
 import { Toaster } from "./components/ui/sonner";
 import { refreshAblyClient } from "./lib/ably";
 import { realtimeMessagingClient } from "./services/realtimeMessaging";
 import "./App.css";
+
+// Lazy-load heavy components that are only needed post-login
+const AuthPage = lazy(() => import("./components/AuthPage"));
+const RoleSelection = lazy(() => import("./components/RoleSelection"));
+const MaintainerLayout = lazy(() => import("./components/maintainer/MaintainerLayout"));
+const ContributorLayout = lazy(() => import("./components/contributor/ContributorLayout"));
 
 function App() {
   const {
@@ -73,8 +74,9 @@ function App() {
       window.location.pathname === "/" || window.location.pathname === "/login";
     const hasStoredToken = localStorage.getItem("token");
 
-    // If no token and on landing page, don't try to load user
+    // If no token and on landing page, skip API call and show landing immediately
     if (!hasStoredToken && !token && isLogoutPath) {
+      useAuthStore.setState({ isLoading: false });
       return;
     }
 
@@ -101,11 +103,13 @@ function App() {
             v7_relativeSplatPath: true,
           }}
         >
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<AuthPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense fallback={<SplashScreen />}>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
         <Toaster />
       </>
@@ -114,7 +118,11 @@ function App() {
 
   // Logged in but no role selected
   if (!role) {
-    return <RoleSelection user={user} onRoleSelected={loadUser} />;
+    return (
+      <Suspense fallback={<SplashScreen />}>
+        <RoleSelection user={user} onRoleSelected={loadUser} />
+      </Suspense>
+    );
   }
 
   // Logged in with role
@@ -126,21 +134,23 @@ function App() {
           v7_relativeSplatPath: true,
         }}
       >
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route
-            path="/dashboard/*"
-            element={
-              role === "MAINTAINER" ? (
-                <MaintainerLayout />
-              ) : (
-                <ContributorLayout />
-              )
-            }
-          />
-          {/* Catch all unauthorized routes - redirect to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<SplashScreen />}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route
+              path="/dashboard/*"
+              element={
+                role === "MAINTAINER" ? (
+                  <MaintainerLayout />
+                ) : (
+                  <ContributorLayout />
+                )
+              }
+            />
+            {/* Catch all unauthorized routes - redirect to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
       <Toaster />
     </>
