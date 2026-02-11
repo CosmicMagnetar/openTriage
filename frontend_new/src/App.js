@@ -1,4 +1,5 @@
 import { useEffect, useCallback, lazy, Suspense } from "react";
+import axios from "axios";
 import {
   BrowserRouter,
   Routes,
@@ -116,13 +117,34 @@ function App() {
     );
   }
 
-  // Logged in but no role selected
+  // Logged in but no role selected - AUTO SELECT CONTRIBUTOR
+  // This effectively removes the manual role selection screen
+  useEffect(() => {
+    if (user && !role && !isLoading) {
+      const autoSelectRole = async () => {
+        try {
+          console.log("Auto-assigning CONTRIBUTOR role...");
+          const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
+          const response = await axios.post(`${API}/auth/select-role`, {
+            role: "CONTRIBUTOR",
+          });
+          const { token } = response.data;
+          if (token) {
+            localStorage.setItem("token", token);
+            axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+            // Reload user to get the new role and proceed to dashboard
+            await loadUser();
+          }
+        } catch (error) {
+          console.error("Auto-role selection failed:", error);
+        }
+      };
+      autoSelectRole();
+    }
+  }, [user, role, isLoading, loadUser]);
+
   if (!role) {
-    return (
-      <Suspense fallback={<SplashScreen />}>
-        <RoleSelection user={user} onRoleSelected={loadUser} />
-      </Suspense>
-    );
+    return <SplashScreen />;
   }
 
   // Logged in with role
