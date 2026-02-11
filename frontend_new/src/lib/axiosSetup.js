@@ -34,16 +34,27 @@ export function setupAxiosInterceptors() {
     },
   );
 
-  // Response interceptor - handle 401/403 errors
+  // Response interceptor - handle network errors and 401/403
   axios.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (error.response?.status === 401) {
+      // Network error — server unreachable (TypeError: Failed to fetch)
+      if (!error.response) {
+        const msg =
+          error.code === "ECONNABORTED"
+            ? "Request timed out. The server may be busy."
+            : "Server is waking up… Please retry in a moment.";
+        console.error("[Axios] Network error:", error.message);
+        // Dynamic import avoids circular dependency with sonner
+        import("sonner").then(({ toast }) => toast.error(msg)).catch(() => {});
+        return Promise.reject(error);
+      }
+
+      if (error.response.status === 401) {
         console.warn("[Axios] Received 401 Unauthorized - clearing token");
         localStorage.removeItem("token");
-        // Redirect to login if needed
         window.location.href = "/login";
-      } else if (error.response?.status === 403) {
+      } else if (error.response.status === 403) {
         console.warn("[Axios] Received 403 Forbidden");
         console.error("[Axios] Response data:", error.response?.data);
       }

@@ -3,7 +3,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { Download, RefreshCw, Save, Flame, Code, GitPullRequest, GitCommit, Star, Activity, Users, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import GitHubHeatmap from './GitHubHeatmap';
-import { profileApi } from '../../services/api';
+import { profileApi, gamificationApi } from '../../services/api';
 
 // IndexedDB helper for offline-first caching
 const DB_NAME = 'OpenTriageStats';
@@ -293,6 +293,7 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
     const [publicContributions, setPublicContributions] = useState(null);
     const [publicLanguages, setPublicLanguages] = useState(null);
     const [apiLanguages, setApiLanguages] = useState(null);
+    const [realCalendarData, setRealCalendarData] = useState(null);
 
     // Fetch languages from our API (works for all users)
     useEffect(() => {
@@ -315,6 +316,22 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         };
 
         fetchLanguages();
+    }, [username]);
+
+    // Fetch real contribution calendar data for the heatmap
+    useEffect(() => {
+        const fetchCalendar = async () => {
+            if (!username) return;
+            try {
+                const calendarResponse = await gamificationApi.getUserCalendar(username, 365);
+                if (calendarResponse?.calendar) {
+                    setRealCalendarData(calendarResponse.calendar);
+                }
+            } catch (err) {
+                console.log('Failed to fetch calendar data:', err);
+            }
+        };
+        fetchCalendar();
     }, [username]);
 
     // Fetch public GitHub data for non-OpenTriage users
@@ -383,30 +400,33 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         if (username) loadCached();
     }, [username]);
 
-    // Generate contribution data
+    // Build heatmap data from real calendar or public events
     const contributionData = (() => {
         const data = new Array(371).fill(0);
+        const today = new Date();
+        const oneYearAgo = new Date(today);
+        oneYearAgo.setFullYear(today.getFullYear() - 1);
 
-        if (isGitHubFallback && publicContributions?.contributionMap) {
-            const today = new Date();
-            const oneYearAgo = new Date(today);
-            oneYearAgo.setFullYear(today.getFullYear() - 1);
-
+        if (realCalendarData && realCalendarData.length > 0) {
+            // Build a date → contributions map from real API data
+            const calMap = new Map(
+                realCalendarData.map(d => [d.date, d.contributions || d.total || 0])
+            );
+            for (let i = 0; i < 371; i++) {
+                const date = new Date(oneYearAgo);
+                date.setDate(date.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                data[i] = calMap.get(dateStr) || 0;
+            }
+        } else if (isGitHubFallback && publicContributions?.contributionMap) {
             for (let i = 0; i < 371; i++) {
                 const date = new Date(oneYearAgo);
                 date.setDate(date.getDate() + i);
                 const dateStr = date.toISOString().split('T')[0];
                 data[i] = publicContributions.contributionMap[dateStr] || 0;
             }
-        } else if (githubStats?.totalContributions) {
-            for (let i = 0; i < 371; i++) {
-                const weekFactor = Math.sin(i / 30) * 0.5 + 0.5;
-                const randomFactor = Math.random();
-                if (randomFactor > 0.3) {
-                    data[i] = Math.floor(randomFactor * weekFactor * 15);
-                }
-            }
         }
+        // No more random dummy data — empty heatmap is shown for users without data
         return data;
     })();
 
