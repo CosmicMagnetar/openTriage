@@ -190,6 +190,26 @@ async def get_contributor_dashboard_summary(user: dict = Depends(get_current_use
     }
 
 
+@router.get("/api/contributor/tracked-repos")
+async def get_tracked_repos(user: dict = Depends(get_current_user)):
+    """Get repositories the user has explicitly tracked."""
+    # Query repositories where userId matches and addedByUser is true
+    tracked_repos = await db.repositories.find(
+        {"userId": user["id"], "addedByUser": True},
+        {"_id": 0, "id": 1, "name": 1, "owner": 1, "createdAt": 1}
+    ).sort("createdAt", -1).to_list(100)
+    
+    # Extract just the repository names for easy consumption
+    repo_names = [repo.get("name") for repo in tracked_repos if repo.get("name")]
+    
+    return {
+        "repositories": repo_names,
+        "count": len(repo_names),
+        "details": tracked_repos  # Include full details for potential future use
+    }
+
+
+
 @router.get("/api/contributor/issues/{issue_id}/comments")
 async def get_issue_comments(issue_id: str, user: dict = Depends(get_current_user)):
     """Get comments for a specific issue from GitHub."""
