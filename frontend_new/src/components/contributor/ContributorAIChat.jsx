@@ -17,6 +17,7 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
 
   const [internalIssues, setInternalIssues] = useState([]);
   const issues = propIssues || internalIssues;
+  const [trackedRepos, setTrackedRepos] = useState([]);
 
   const [messages, setMessages] = useState([
     {
@@ -55,9 +56,30 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
     }
   }, [propIssues]);
 
+  // Fetch tracked repositories
+  useEffect(() => {
+    const fetchTrackedRepos = async () => {
+      try {
+        const t = localStorage.getItem('token');
+        if (!t) return;
+        const response = await axios.get(`${API}/contributor/tracked-repos`, {
+          headers: { Authorization: `Bearer ${t}` }
+        });
+        setTrackedRepos(response.data?.repositories || []);
+      } catch (error) {
+        console.error('Failed to fetch tracked repos:', error);
+        // Silently fail - tracked repos are optional
+      }
+    };
+    fetchTrackedRepos();
+  }, []);
+
   const repositories = useMemo(() => {
-    return [...new Set(issues.map(i => i.repoName).filter(Boolean))].sort();
-  }, [issues]);
+    // Combine repos from issues and tracked repos
+    const issueRepos = issues.map(i => i.repoName).filter(Boolean);
+    const allRepos = [...new Set([...issueRepos, ...trackedRepos])];
+    return allRepos.sort();
+  }, [issues, trackedRepos]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -323,7 +345,7 @@ const ContributorAIChat = ({ onClose, issues: propIssues }) => {
                 className={`p-2 rounded-md transition-colors border ${isIndexing
                   ? 'bg-[hsl(142,70%,45%,0.15)] border-[hsl(142,70%,45%,0.3)] text-[hsl(142,70%,55%)]'
                   : 'bg-[hsl(220,13%,12%)] hover:bg-[hsl(220,13%,15%)] border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)]'
-                }`}
+                  }`}
                 title="Refresh documentation"
               >
                 <RefreshCw className={`w-4 h-4 ${isIndexing ? 'animate-spin' : ''}`} />
