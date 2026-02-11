@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { gamificationApi } from '../../services/api';
+import { gamificationApi, syncApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
 import { RefreshCw } from 'lucide-react';
@@ -30,84 +30,46 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
 
     // Check if user needs initial data sync
     const checkSyncStatus = useCallback(async () => {
-        if (!user) return;
-        
+        if (!user?.username) return;
+
         try {
-            const token = localStorage.getItem('token');
-            const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-            
-            const response = await fetch(`${API_BASE}/api/sync/user-data`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                setNeedsSync(data.needsSync);
-                return data.needsSync;
-            }
+            const data = await syncApi.getSyncStatus();
+            setNeedsSync(data.needsSync);
+            return data.needsSync;
         } catch (error) {
             console.error('Failed to check sync status:', error);
         }
         return false;
-    }, [user]);
+    }, [user?.username]);
 
     // Trigger data sync for new users
     const syncUserData = useCallback(async () => {
-        if (!user || syncing) return;
-        
+        if (!user?.username || syncing) return;
+
         setSyncing(true);
         try {
-            const token = localStorage.getItem('token');
-            const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-            
             toast.info('Syncing your GitHub history...');
-            
-            const response = await fetch(`${API_BASE}/api/sync/user-data`, {
-                method: 'POST',
-                headers: { 
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                toast.success(`Synced ${data.prsImported} PRs and ${data.issuesImported} issues!`);
+
+            const data = await syncApi.syncUserData();
+
+            if (data.success) {
+                toast.success(`Synced ${data.totalPRs} PRs and ${data.totalIssues} issues!`);
                 setNeedsSync(false);
                 // Reload calendar data after sync
                 await loadData();
             } else {
-                throw new Error('Sync failed');
+                throw new Error(data.error || 'Sync failed');
             }
         } catch (error) {
             console.error('Failed to sync user data:', error);
-            toast.error('Failed to sync your GitHub history');
+            toast.error('Failed to sync your GitHub history. Please try again later.');
         } finally {
             setSyncing(false);
         }
-    }, [user, syncing]);
+    }, [user?.username, syncing]);
 
-    useEffect(() => {
-        loadData();
-    }, [user, selectedYear]);
-
-    // Check sync status on mount
-    useEffect(() => {
-        const initSync = async () => {
-            const shouldSync = await checkSyncStatus();
-            // Auto-sync for new users
-            if (shouldSync) {
-                syncUserData();
-            }
-        };
-        
-        if (user) {
-            initSync();
-        }
-    }, [user, checkSyncStatus, syncUserData]);
-
-    const loadData = async () => {
-        if (!user) {
+    const loadData = useCallback(async () => {
+        if (!user?.username) {
             setLoading(false);
             return;
         }
@@ -129,7 +91,26 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user?.username, selectedYear]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    // Check sync status on mount
+    useEffect(() => {
+        const initSync = async () => {
+            if (user?.username) {
+                const shouldSync = await checkSyncStatus();
+                // Auto-sync for new users if they haven't synced ever
+                if (shouldSync) {
+                    syncUserData();
+                }
+            }
+        };
+
+        initSync();
+    }, [user?.username, checkSyncStatus, syncUserData]);
 
     const getContributionColor = (level) => {
         switch (level) {

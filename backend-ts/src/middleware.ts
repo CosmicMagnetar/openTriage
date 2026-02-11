@@ -8,6 +8,7 @@ const allowedOrigins = [
     "http://localhost:3000",     // Next.js dev
     "https://open-triage.vercel.app",
     "https://opentriage.onrender.com",
+    "https://open-triage-6r2y.vercel.app", // Specific preview deployment
 ];
 
 // JWT Secret for token verification
@@ -40,7 +41,8 @@ function verifyToken(token: string): { user_id: string; role: string | null } | 
 
 export function middleware(request: NextRequest) {
     const origin = request.headers.get("origin") || "";
-    const isAllowedOrigin = allowedOrigins.includes(origin);
+    // Allow any Vercel preview deployment or listed origins
+    const isAllowedOrigin = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
     const pathname = request.nextUrl.pathname;
 
     // Handle preflight requests
