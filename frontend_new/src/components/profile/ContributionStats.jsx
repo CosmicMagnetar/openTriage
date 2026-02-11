@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { Download, RefreshCw, Save, Flame, Code, GitPullRequest, GitCommit, Star, Activity, Users, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
-import GitHubHeatmap from './GitHubHeatmap';
-import { profileApi, gamificationApi } from '../../services/api';
+import StreakDisplay from '../contributor/StreakDisplay';
+import { profileApi } from '../../services/api';
 
 // IndexedDB helper for offline-first caching
 const DB_NAME = 'OpenTriageStats';
@@ -293,7 +293,6 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
     const [publicContributions, setPublicContributions] = useState(null);
     const [publicLanguages, setPublicLanguages] = useState(null);
     const [apiLanguages, setApiLanguages] = useState(null);
-    const [realCalendarData, setRealCalendarData] = useState(null);
 
     // Fetch languages from our API (works for all users)
     useEffect(() => {
@@ -318,117 +317,7 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
         fetchLanguages();
     }, [username]);
 
-    // Fetch real contribution calendar data for the heatmap
-    useEffect(() => {
-        const fetchCalendar = async () => {
-            if (!username) return;
-            try {
-                const calendarResponse = await gamificationApi.getUserCalendar(username, 365);
-                if (calendarResponse?.calendar) {
-                    setRealCalendarData(calendarResponse.calendar);
-                }
-            } catch (err) {
-                console.log('Failed to fetch calendar data:', err);
-            }
-        };
-        fetchCalendar();
-    }, [username]);
 
-    // Fetch public GitHub data for non-OpenTriage users
-    useEffect(() => {
-        const fetchPublicData = async () => {
-            if (!isGitHubFallback || !username) return;
-
-            try {
-                const eventsRes = await fetch(`https://api.github.com/users/${username}/events/public?per_page=100`);
-                if (eventsRes.ok) {
-                    const events = await eventsRes.json();
-                    const eventCounts = events.reduce((acc, event) => {
-                        acc[event.type] = (acc[event.type] || 0) + 1;
-                        return acc;
-                    }, {});
-
-                    const contributionMap = {};
-                    events.forEach(event => {
-                        const date = event.created_at.split('T')[0];
-                        contributionMap[date] = (contributionMap[date] || 0) + 1;
-                    });
-
-                    setPublicContributions({
-                        events: events.length,
-                        pushEvents: eventCounts.PushEvent || 0,
-                        prEvents: eventCounts.PullRequestEvent || 0,
-                        issueEvents: eventCounts.IssuesEvent || 0,
-                        createEvents: eventCounts.CreateEvent || 0,
-                        contributionMap
-                    });
-                }
-
-                const reposRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=updated`);
-                if (reposRes.ok) {
-                    const repos = await reposRes.json();
-                    const langCounts = {};
-                    repos.forEach(repo => {
-                        if (repo.language) {
-                            langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
-                        }
-                    });
-                    setPublicLanguages(langCounts);
-                }
-            } catch (err) {
-                console.log('Failed to fetch public GitHub data:', err);
-            }
-        };
-
-        fetchPublicData();
-    }, [username, isGitHubFallback]);
-
-    // Load cached stats on mount
-    useEffect(() => {
-        const loadCached = async () => {
-            try {
-                const cached = await loadFromIndexedDB(username);
-                if (cached?.imageData) {
-                    setCachedImage(cached.imageData);
-                }
-            } catch (err) {
-                console.log('No cached stats found');
-            } finally {
-                setLoading(false);
-            }
-        };
-        if (username) loadCached();
-    }, [username]);
-
-    // Build heatmap data from real calendar or public events
-    const contributionData = (() => {
-        const data = new Array(371).fill(0);
-        const today = new Date();
-        const oneYearAgo = new Date(today);
-        oneYearAgo.setFullYear(today.getFullYear() - 1);
-
-        if (realCalendarData && realCalendarData.length > 0) {
-            // Build a date → contributions map from real API data
-            const calMap = new Map(
-                realCalendarData.map(d => [d.date, d.contributions || d.total || 0])
-            );
-            for (let i = 0; i < 371; i++) {
-                const date = new Date(oneYearAgo);
-                date.setDate(date.getDate() + i);
-                const dateStr = date.toISOString().split('T')[0];
-                data[i] = calMap.get(dateStr) || 0;
-            }
-        } else if (isGitHubFallback && publicContributions?.contributionMap) {
-            for (let i = 0; i < 371; i++) {
-                const date = new Date(oneYearAgo);
-                date.setDate(date.getDate() + i);
-                const dateStr = date.toISOString().split('T')[0];
-                data[i] = publicContributions.contributionMap[dateStr] || 0;
-            }
-        }
-        // No more random dummy data — empty heatmap is shown for users without data
-        return data;
-    })();
 
     // Activity data for radar - ensure meaningful values
     // Map API field names: totalCommits, totalPRs, totalIssues, totalReviews, public_repos
@@ -558,15 +447,9 @@ const ContributionStats = ({ username, githubStats, onSaveStats, isGitHubFallbac
                         />
                     </div>
 
-                    {/* Heatmap */}
+                    {/* Heatmap — uses the same StreakDisplay as the Overview tab */}
                     <div className="mb-5">
-                        <div className="flex items-center gap-2 mb-3">
-                            <Calendar className="w-4 h-4 text-[#7d8590]" />
-                            <span className="text-sm text-[#7d8590]">Contribution Activity</span>
-                        </div>
-                        <div className="bg-[#161b22] rounded-lg p-4 overflow-x-auto">
-                            <GitHubHeatmap data={contributionData} totalContributions={totalContributions} />
-                        </div>
+                        <StreakDisplay username={username} showSync={isOwner} />
                     </div>
 
                     {/* Charts - stack on mobile */}

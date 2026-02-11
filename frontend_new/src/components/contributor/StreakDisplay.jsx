@@ -8,8 +8,9 @@ import { RefreshCw } from 'lucide-react';
 const currentYear = new Date().getFullYear();
 const YEARS = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4];
 
-const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
+const StreakDisplay = ({ selectedYear: propYear, onYearChange, username: propUsername, showSync = true }) => {
     const { user } = useAuthStore();
+    const displayUsername = propUsername || user?.username;
     const [calendar, setCalendar] = useState([]);
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
@@ -28,9 +29,9 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
         }
     };
 
-    // Check if user needs initial data sync
+    // Check if user needs initial data sync (only for own profile)
     const checkSyncStatus = useCallback(async () => {
-        if (!user?.username) return;
+        if (!displayUsername || !showSync) return;
 
         try {
             const data = await syncApi.getSyncStatus();
@@ -40,11 +41,11 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
             console.error('Failed to check sync status:', error);
         }
         return false;
-    }, [user?.username]);
+    }, [displayUsername, showSync]);
 
-    // Trigger data sync for new users
+    // Trigger data sync for new users (only for own profile)
     const syncUserData = useCallback(async () => {
-        if (!user?.username || syncing) return;
+        if (!displayUsername || syncing || !showSync) return;
 
         setSyncing(true);
         try {
@@ -66,17 +67,17 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
         } finally {
             setSyncing(false);
         }
-    }, [user?.username, syncing]);
+    }, [displayUsername, syncing, showSync]);
 
     const loadData = useCallback(async () => {
-        if (!user?.username) {
+        if (!displayUsername) {
             setLoading(false);
             return;
         }
 
         try {
             setLoading(true);
-            const calendarData = await gamificationApi.getUserCalendar(user.username, 365, selectedYear);
+            const calendarData = await gamificationApi.getUserCalendar(displayUsername, 365, selectedYear);
 
             const yearData = calendarData.calendar || [];
             setCalendar(yearData);
@@ -91,18 +92,18 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
         } finally {
             setLoading(false);
         }
-    }, [user?.username, selectedYear]);
+    }, [displayUsername, selectedYear]);
 
     useEffect(() => {
         loadData();
     }, [loadData]);
 
-    // Check sync status on mount
+    // Check sync status on mount (only for own profile)
     useEffect(() => {
+        if (!showSync) return;
         const initSync = async () => {
-            if (user?.username) {
+            if (displayUsername) {
                 const shouldSync = await checkSyncStatus();
-                // Auto-sync for new users if they haven't synced ever
                 if (shouldSync) {
                     syncUserData();
                 }
@@ -110,7 +111,7 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
         };
 
         initSync();
-    }, [user?.username, checkSyncStatus, syncUserData]);
+    }, [displayUsername, checkSyncStatus, syncUserData, showSync]);
 
     const getContributionColor = (level) => {
         switch (level) {
@@ -196,15 +197,17 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange }) => {
                 <h2 className="text-base font-normal text-[#c9d1d9]">
                     <span className="font-semibold">{totalContributions.toLocaleString()}</span> contributions in {selectedYear}
                 </h2>
-                <button
-                    onClick={syncUserData}
-                    disabled={syncing}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d] rounded-md transition-colors"
-                    title="Sync GitHub history"
-                >
-                    <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                    {syncing ? 'Syncing...' : 'Refresh'}
-                </button>
+                {showSync && (
+                    <button
+                        onClick={syncUserData}
+                        disabled={syncing}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#8b949e] hover:text-[#c9d1d9] hover:bg-[#21262d] rounded-md transition-colors"
+                        title="Sync GitHub history"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+                        {syncing ? 'Syncing...' : 'Refresh'}
+                    </button>
+                )}
             </div>
 
             {/* Main layout: Calendar + Year buttons */}
