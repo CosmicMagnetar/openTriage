@@ -102,6 +102,10 @@ export async function POST(request: NextRequest) {
 
                 if (existingRepoEntry[0]) {
                     repoId = existingRepoEntry[0].id;
+                    // Ensure it's marked as user-tracked so it appears in tracked-repos
+                    await db.update(repositories)
+                        .set({ addedByUser: true })
+                        .where(eq(repositories.id, repoId));
                 } else {
                     repoId = uuidv4();
                     await db.insert(repositories).values({
@@ -110,6 +114,7 @@ export async function POST(request: NextRequest) {
                         name: repoFullName,
                         owner: owner,
                         userId: user.id,
+                        addedByUser: true,
                         createdAt: new Date().toISOString(),
                     }).onConflictDoNothing();
                 }
@@ -163,7 +168,7 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({
-            message: prsFound > 0 
+            message: prsFound > 0
                 ? `Repository tracked! Found ${prsFound} open PR(s).`
                 : "Repository tracked successfully!",
             repoFullName,
