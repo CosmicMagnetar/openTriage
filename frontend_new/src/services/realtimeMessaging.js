@@ -1,7 +1,14 @@
 /**
- * Real-time Messaging Client Service
- * Uses Server-Sent Events (SSE) for instant message delivery
+ * Updated Real-time Messaging Client Service
+ * Uses Server-Sent Events (SSE) with Exponential Backoff Retry Strategy
+ * 
+ * FIXES:
+ * - 401 Unauthorized race condition with JWT
+ * - Implements robust retry with exponential backoff
+ * - Waits for auth to be ready before connecting
  */
+
+import { RetryStrategy } from './retryStrategy.js';
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
 
@@ -10,19 +17,39 @@ class RealtimeMessagingClient {
     this.eventSource = null;
     this.listeners = [];
     this.isConnected = false;
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 3; // Reduced to avoid spam
-    this.reconnectDelay = 5000;
-    this.authFailed = false; // Track auth failures
+    this.authFailed = false;
+    
+    // Initialize retry strategy
+    this.retryStrategy = new RetryStrategy({
+      baseDelay: 1000,      // Start with 1s
+      maxDelay: 30000,      // Cap at 30s
+      maxRetries: 5,
+      backoffMultiplier: 2,
+      jitterPercent: 0.2,
+    });
+    
+    // Queue for messages sent while disconnected
+    this.messageQueue = [];
   }
 
-  connect() {
-    return new Promise((resolve, reject) => {
+  /**
+   * Connect to real-time messaging
+   * Now with auth readiness check and retry strategy
+   */
+  connect(authReadyPromise = null) {
+    return new Promise(async (resolve, reject) => {
       try {
+        // CRITICAL FIX: Wait for auth to be ready
+        if (authReadyPromise) {
+          console.log('[RealtimeMessaging] Waiting for auth to be ready...');
+          await authReadyPromise;
+          console.log('[RealtimeMessaging] Auth ready, proceeding with connection');
+        }
+
         // Don't retry if auth has failed
         if (this.authFailed) {
-          console.log("Skipping reconnect - authentication failed previously");
-          resolve(); // Resolve without connecting
+          console.log('[RealtimeMessaging] Skipping - auth failed previously');
+          resolve();
           return;
         }
 
@@ -34,59 +61,108 @@ class RealtimeMessagingClient {
 
         // Don't try to connect without a token
         if (!token) {
-          console.log("No auth token available for real-time messaging");
-          resolve(); // Resolve without connecting
+          console.log('[RealtimeMessaging] No auth token available');
+          resolve();
           return;
         }
 
-        const url = `${API_BASE}/api/messaging/ws?token=${encodeURIComponent(token)}`;
+        // RENAMED ENDPOINT to avoid adblocker: /api/messaging/ws → /api/realtime/connect
+        const url = `${API_BASE}/api/realtime/connect?token=${encodeURIComponent(token)}`;
 
-        // Use fetch first to check auth, then establish SSE
-        fetch(url, { method: "HEAD" })
-          .then((res) => {
-            if (res.status === 401 || res.status === 404) {
-              // Silently fall back to polling - no console output needed
-              this.authFailed = true;
-              this.notifyListeners("onAuthFailed");
+        console.log('[RealtimeMessaging] Attempting connection...');
+        
+        // Use fetch first to check auth (with timeout)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        try {
+          const res = await fetch(url, { 
+            method: "HEAD",
+            signal: controller.signal 
+          });
+          clearTimeout(timeoutId);
+
+          if (res.status === 401 || res.status === 403) {
+            // Auth failed - don't retry, fallback to polling
+            console.warn('[RealtimeMessaging] Auth failed (401/403), falling back to polling');
+            this.authFailed = true;
+            this.notifyListeners("onAuthFailed");
+            resolve();
+            return;
+          }
+
+          if (!res.ok && res.status !== 404) {
+            throw new Error(`Connection check failed: ${res.status}`);
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          
+          // If abort or network error, attempt retry
+          if (fetchError.name === 'AbortError' || !fetchError.response) {
+            console.warn('[RealtimeMessaging] Connection check failed, will retry');
+            
+            if (this.retryStrategy.canRetry()) {
+              await this.retryStrategy.retry(() => this.connect(authReadyPromise));
+              resolve();
+              return;
+            } else {
+              console.warn('[RealtimeMessaging] Max retries reached, falling back to polling');
+              this.notifyListeners("onMaxReconnectReached");
               resolve();
               return;
             }
+          }
+          
+          throw fetchError;
+        }
 
-            this.eventSource = new EventSource(url);
+        // Establish SSE connection
+        this.eventSource = new EventSource(url);
 
-            this.eventSource.onopen = () => {
-              this.isConnected = true;
-              this.reconnectAttempts = 0;
-              this.authFailed = false;
-              console.log("Real-time messaging connected");
-              this.notifyListeners("onConnectionOpen");
-              resolve();
-            };
+        this.eventSource.onopen = () => {
+          this.isConnected = true;
+          this.authFailed = false;
+          this.retryStrategy.reset(); // Reset retry counter on success
+          
+          console.log('[RealtimeMessaging] ✅ Connected successfully');
+          this.notifyListeners("onConnectionOpen");
+          
+          // Flush message queue
+          this.flushMessageQueue();
+          
+          resolve();
+        };
 
-            this.eventSource.onmessage = (event) => {
-              try {
-                const data = JSON.parse(event.data);
-                this.handleMessage(data);
-              } catch (error) {
-                console.error("Error parsing SSE message:", error);
-              }
-            };
+        this.eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            this.handleMessage(data);
+          } catch (error) {
+            console.error('[RealtimeMessaging] Error parsing message:', error);
+          }
+        };
 
-            this.eventSource.onerror = () => {
-              this.isConnected = false;
-              if (this.eventSource?.readyState === EventSource.CLOSED) {
-                this.attemptReconnect();
-              }
-              this.notifyListeners("onConnectionClose");
-            };
-          })
-          .catch((err) => {
-            console.log("Real-time messaging unavailable:", err.message);
-            resolve(); // Still resolve, just without real-time
-          });
+        this.eventSource.onerror = (error) => {
+          console.error('[RealtimeMessaging] Connection error:', error);
+          this.isConnected = false;
+          
+          if (this.eventSource?.readyState === EventSource.CLOSED) {
+            this.attemptReconnect(authReadyPromise);
+          }
+          
+          this.notifyListeners("onConnectionClose");
+        };
+
       } catch (error) {
-        console.log("Real-time messaging error:", error.message);
-        resolve(); // Don't reject, just work without real-time
+        console.error('[RealtimeMessaging] Connection failed:', error);
+        
+        // Retry on error
+        if (this.retryStrategy.canRetry()) {
+          await this.retryStrategy.retry(() => this.connect(authReadyPromise));
+          resolve();
+        } else {
+          resolve(); // Don't reject, just work without real-time
+        }
       }
     });
   }
@@ -96,6 +172,7 @@ class RealtimeMessagingClient {
       this.eventSource.close();
       this.eventSource = null;
       this.isConnected = false;
+      this.retryStrategy.cancel(); // Cancel any pending retries
       this.notifyListeners("onConnectionClose");
     }
   }
@@ -129,7 +206,7 @@ class RealtimeMessagingClient {
         this.notifyListeners("onMessageDeleted", event.data?.messageId);
         break;
       case "connected":
-        console.log("SSE connected:", event.userId);
+        console.log('[RealtimeMessaging] Server confirmed connection:', event.userId);
         break;
     }
   }
@@ -140,37 +217,71 @@ class RealtimeMessagingClient {
         try {
           listener[event](data);
         } catch (error) {
-          console.error(`Listener error ${event}:`, error);
+          console.error(`[RealtimeMessaging] Listener error ${event}:`, error);
         }
       }
     });
   }
 
-  attemptReconnect() {
+  attemptReconnect(authReadyPromise) {
     // Don't reconnect if auth failed
     if (this.authFailed) {
-      console.log("Not reconnecting - auth failed");
+      console.log('[RealtimeMessaging] Not reconnecting - auth failed');
       return;
     }
 
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log("Max reconnect attempts reached - falling back to polling");
+    if (!this.retryStrategy.canRetry()) {
+      console.log('[RealtimeMessaging] Max reconnect attempts reached');
       this.notifyListeners("onMaxReconnectReached");
       return;
     }
-    this.reconnectAttempts++;
-    const delay =
-      this.reconnectDelay * Math.pow(1.5, this.reconnectAttempts - 1);
+    
+    const status = this.retryStrategy.getStatus();
     console.log(
-      `Reconnecting in ${Math.round(delay / 1000)}s (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
+      `[RealtimeMessaging] Reconnecting (${status.retryCount}/${status.maxRetries})...`
     );
-    setTimeout(() => this.connect().catch(() => {}), delay);
+    
+    this.retryStrategy
+      .retry(() => this.connect(authReadyPromise))
+      .catch((error) => {
+        console.error('[RealtimeMessaging] Reconnection failed:', error);
+        this.notifyListeners("onMaxReconnectReached");
+      });
   }
 
-  // Reset auth state (call this after login/token refresh)
+  /**
+   * Reset auth state (call this after login/token refresh)
+   */
   resetAuthState() {
     this.authFailed = false;
-    this.reconnectAttempts = 0;
+    this.retryStrategy.reset();
+  }
+
+  /**
+   * Get retry strategy status (for debugging)
+   */
+  getRetryStatus() {
+    return this.retryStrategy.getStatus();
+  }
+
+  /**
+   * Queue a message to be sent when connected
+   * (For future implementation)
+   */
+  queueMessage(message) {
+    this.messageQueue.push(message);
+  }
+
+  /**
+   * Flush queued messages
+   * (For future implementation)
+   */
+  flushMessageQueue() {
+    while (this.messageQueue.length > 0) {
+      const message = this.messageQueue.shift();
+      // Send message implementation
+      console.log('[RealtimeMessaging] Flushing queued message:', message);
+    }
   }
 }
 
