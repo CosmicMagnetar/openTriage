@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "GitHub access token not found" }, { status: 400 });
         }
 
+        // TODO: Uncomment after Turso migration
+        // Circuit breaker logic commented out until sync_status column exists in production
+        /*
         // Get current user record to check sync status
         const userRecord = await db.select()
             .from(users)
@@ -61,6 +64,7 @@ export async function POST(request: NextRequest) {
                 syncError: null
             })
             .where(eq(users.id, user.id));
+        */
 
         console.log(`[SyncRun] Starting sync for user ${user.id}`);
 
@@ -85,14 +89,15 @@ export async function POST(request: NextRequest) {
             // Always reconcile the critical openTriage#1 issue to ensure immediate state sync
             const reconcileResult = await reconcileOpenTriageIssue1(user.githubAccessToken);
 
+            // TODO: Uncomment after Turso migration
+            /*
             // Mark sync as COMPLETED
-            await db.update(users)
-                .set({
-                    syncStatus: 'COMPLETED',
-                    lastSyncAt: new Date().toISOString(),
-                    syncError: null
-                })
-                .where(eq(users.id, user.id));
+            await db.update(users).set({
+                syncStatus: 'COMPLETED',
+                lastSyncAt: new Date().toISOString(),
+                syncError: null
+            }).where(eq(users.id, user.id));
+            */
 
             console.log(`[SyncRun] Sync completed for user ${user.id}`);
 
@@ -109,13 +114,16 @@ export async function POST(request: NextRequest) {
             });
 
         } catch (syncError: any) {
-            // Mark sync as FAILED with error message
-            await db.update(users)
-                .set({
-                    syncStatus: 'FAILED',
-                    syncError: syncError.message || 'Unknown error'
-                })
-                .where(eq(users.id, user.id));
+            console.error(`[SyncRun] Error syncing for user ${user.id}:`, syncError);
+
+            // TODO: Uncomment after Turso migration
+            /*
+            // Mark sync as FAILED
+            await db.update(users).set({
+                syncStatus: 'FAILED',
+                syncError: syncError.message || 'Unknown error'
+            }).where(eq(users.id, user.id));
+            */
 
             console.error(`[SyncRun] Sync failed for user ${user.id}:`, syncError);
 
