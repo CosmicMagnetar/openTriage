@@ -48,6 +48,32 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange, username: propUse
         return false;
     }, [displayUsername, showSync]);
 
+    // Load calendar data (must be declared before syncUserData which depends on it)
+    const loadData = useCallback(async () => {
+        if (!displayUsername) {
+            setLoading(false);
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const calendarData = await gamificationApi.getUserCalendar(displayUsername, 365, selectedYear);
+
+            const yearData = calendarData.calendar || [];
+            setCalendar(yearData);
+
+            // Use totalContributions from API (this is year-specific from GitHub)
+            setTotalContributions(calendarData.totalContributions ||
+                yearData.reduce((sum, d) => sum + (d.contributions || d.total || 0), 0));
+        } catch (error) {
+            console.error('Failed to load calendar data:', error);
+            setTotalContributions(0);
+            setCalendar([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [displayUsername, selectedYear]);
+
     // Trigger data sync for new users (only for own profile)
     const syncUserData = useCallback(async () => {
         // Guard: Don't start if already syncing
@@ -89,31 +115,6 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange, username: propUse
             console.log('[StreakDisplay] Sync completed, ref reset');
         }
     }, [displayUsername, showSync, loadData]);
-
-    const loadData = useCallback(async () => {
-        if (!displayUsername) {
-            setLoading(false);
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const calendarData = await gamificationApi.getUserCalendar(displayUsername, 365, selectedYear);
-
-            const yearData = calendarData.calendar || [];
-            setCalendar(yearData);
-
-            // Use totalContributions from API (this is year-specific from GitHub)
-            setTotalContributions(calendarData.totalContributions ||
-                yearData.reduce((sum, d) => sum + (d.contributions || d.total || 0), 0));
-        } catch (error) {
-            console.error('Failed to load calendar data:', error);
-            setTotalContributions(0);
-            setCalendar([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [displayUsername, selectedYear]);
 
     useEffect(() => {
         loadData();
