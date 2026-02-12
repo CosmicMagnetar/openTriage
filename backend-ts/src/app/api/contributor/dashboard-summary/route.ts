@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/db";
 import { issues } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { getUserRepositories } from "@/lib/db/queries/users";
 
 // Define columns to select (excludes bodySummary which doesn't exist in DB yet)
 const issueColumns = {
@@ -60,9 +61,12 @@ export async function GET(request: NextRequest) {
             const openIssues = issueItems.filter(i => i.state === 'open').length;
             const closedIssues = issueItems.filter(i => i.state === 'closed').length;
 
-            // Get unique repositories contributed to
-            const uniqueRepos = new Set(allItems.map(item => item.repoName).filter(Boolean));
-            
+            // Get unique repositories from issues + tracked repos
+            const reposFromIssues = allItems.map(item => item.repoName).filter(Boolean);
+            const trackedRepos = await getUserRepositories(user.id);
+            const reposFromTracking = trackedRepos.map(r => r.repoFullName);
+            const uniqueRepos = new Set([...reposFromIssues, ...reposFromTracking]);
+
             console.log("[Dashboard Summary] Calculated: %d PRs, %d Issues, %d repos", prs.length, issueItems.length, uniqueRepos.size);
 
             return NextResponse.json({
@@ -93,3 +97,4 @@ export async function GET(request: NextRequest) {
         }, { status: 500 });
     }
 }
+

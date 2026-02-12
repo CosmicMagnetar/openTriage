@@ -6,9 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { db } from "@/db";
-import { repositories } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { getUserRepositories } from "@/lib/db/queries/users";
 
 export async function GET(request: NextRequest) {
     try {
@@ -17,30 +15,17 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Fetch repositories that the user has explicitly added
-        const trackedRepos = await db
-            .select({
-                id: repositories.id,
-                name: repositories.name,
-                owner: repositories.owner,
-                createdAt: repositories.createdAt,
-            })
-            .from(repositories)
-            .where(
-                and(
-                    eq(repositories.userId, user.id),
-                    eq(repositories.addedByUser, true)
-                )
-            )
-            .orderBy(repositories.createdAt);
+        // Fetch from userRepositories junction table - the actual source of truth
+        // for repos tracked via POST /api/contributor/track-repo
+        const trackedRepos = await getUserRepositories(user.id);
 
         // Return just the repository names for easy consumption
-        const repoNames = trackedRepos.map(repo => repo.name);
+        const repoNames = trackedRepos.map(repo => repo.repoFullName);
 
         return NextResponse.json({
             repositories: repoNames,
             count: repoNames.length,
-            details: trackedRepos, // Include full details for potential future use
+            details: trackedRepos,
         });
 
     } catch (error) {
