@@ -8,7 +8,7 @@
  *   const { triggerSync, isSyncing, lastSyncTime, error } = useDataSync();
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useAuth } from '../auth/useAuth';
 import useSyncStore from '@/stores/syncStore';
 import axios from 'axios';
@@ -19,6 +19,9 @@ export function useDataSync(options = {}) {
   const { autoSync = false } = options;
   const { isAuthReady, isNewUser, token, user } = useAuth();
   const syncStore = useSyncStore();
+  
+  // Additional circuit breaker using useRef (survives re-renders)
+  const isSyncingRef = useRef(false);
 
   /**
    * Trigger a data sync
@@ -37,11 +40,14 @@ export function useDataSync(options = {}) {
       return { skipped: true, reason: 'new_user' };
     }
 
-    // Guard: Already syncing
-    if (syncStore.isSyncing) {
+    // Double-check circuit breaker (ref-based + store-based)
+    if (isSyncingRef.current || syncStore.isSyncing) {
       console.log('[DataSync] Sync already in progress');
       return { skipped: true, reason: 'already_syncing' };
     }
+
+    // Set both locks
+    isSyncingRef.current = true;
 
     try {
       syncStore.startSync();
@@ -58,6 +64,9 @@ export function useDataSync(options = {}) {
       console.error('[DataSync] Sync failed:', error);
       syncStore.failSync(error.message);
       return { success: false, error: error.message };
+    } finally {
+      // Always reset ref lock
+      isSyncingRef.current = false;
     }
   }, [isAuthReady, isNewUser, token, syncStore]);
 

@@ -114,7 +114,8 @@ function App() {
       };
       autoSelectRole();
     }
-  }, [user, role, isLoading, loadUser]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, role, isLoading]);
 
   if (isLoading) {
     return <SplashScreen />;

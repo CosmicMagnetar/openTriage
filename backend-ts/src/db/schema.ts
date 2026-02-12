@@ -38,6 +38,9 @@ export const users = sqliteTable("users", {
     avatarUrl: text("avatar_url").notNull(),
     role: text("role"),  // UserRole enum
     githubAccessToken: text("github_access_token"),
+    syncStatus: text("sync_status").default("IDLE"),  // IDLE, PENDING, SYNCING, COMPLETED, FAILED
+    lastSyncAt: text("last_sync_at"),  // Timestamp of last successful sync
+    syncError: text("sync_error"),  // Error message if sync failed
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
 });

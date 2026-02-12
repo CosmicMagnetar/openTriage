@@ -6,6 +6,9 @@ const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
 // Flag to prevent re-auth during logout
 let isLoggingOut = false;
 
+// Circuit breaker: prevent concurrent loadUser() calls
+let loadUserInProgress = false;
+
 const useAuthStore = create((set, get) => ({
   user: null,
   token: null,
@@ -26,6 +29,12 @@ const useAuthStore = create((set, get) => ({
   },
 
   loadUser: async () => {
+    // Circuit breaker: prevent concurrent calls
+    if (loadUserInProgress) {
+      console.log('[AuthStore] loadUser already in progress, skipping duplicate call');
+      return;
+    }
+
     // Prevent loading user during logout
     if (isLoggingOut || get().isLoggingOut) {
       set({ isLoading: false });
@@ -37,6 +46,9 @@ const useAuthStore = create((set, get) => ({
       set({ isLoading: false });
       return;
     }
+
+    // Set lock before async operations
+    loadUserInProgress = true;
 
     try {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -51,6 +63,9 @@ const useAuthStore = create((set, get) => ({
       localStorage.removeItem("token");
       delete axios.defaults.headers.common["Authorization"];
       set({ token: null, user: null, role: null, isLoading: false });
+    } finally {
+      // Always reset lock, even on error
+      loadUserInProgress = false;
     }
   },
 
