@@ -57,8 +57,18 @@ export async function GET(request: NextRequest) {
         const githubUser = await userResponse.json();
 
         // Check if user exists
+        // TODO: After Turso migration, add syncStatus, lastSyncAt, syncError to this select
         const existingUsers = await db
-            .select()
+            .select({
+                id: users.id,
+                githubId: users.githubId,
+                username: users.username,
+                avatarUrl: users.avatarUrl,
+                role: users.role,
+                githubAccessToken: users.githubAccessToken,
+                createdAt: users.createdAt,
+                updatedAt: users.updatedAt,
+            })
             .from(users)
             .where(eq(users.githubId, githubUser.id))
             .limit(1);
