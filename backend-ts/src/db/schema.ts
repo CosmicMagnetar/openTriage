@@ -39,11 +39,10 @@ export const users = sqliteTable("users", {
     role: text("role"),  // email: text("email"),
     githubAccessToken: text("github_access_token"),
 
-    // TODO: Uncomment after running Turso migration (add_sync_status.sql)
-    // Sync status tracking (Phase 2)
-    // syncStatus: text("sync_status").default("IDLE"),  // IDLE | PENDING | SYNCING | COMPLETED | FAILED
-    // lastSyncAt: text("last_sync_at"),                 // ISO timestamp
-    // syncError: text("sync_error"),                     // Error message if failed
+    // Sync status tracking (Phase 2) - Re-enabled after Turso migration
+    syncStatus: text("sync_status").default("IDLE"),  // IDLE | PENDING | SYNCING | COMPLETED | FAILED
+    lastSyncAt: text("last_sync_at"),                 // ISO timestamp
+    syncError: text("sync_error"),                     // Error message if failed
 
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),

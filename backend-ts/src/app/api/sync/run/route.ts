@@ -7,10 +7,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { runFullSync, runMaintainerSync, runContributorSync, reconcileOpenTriageIssue1, syncContributorPRsDirect, SYNC_INTERVAL_MS } from "@/lib/sync/github-sync";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { runMaintainerSync, runContributorSync, syncContributorPRsDirect, reconcileOpenTriageIssue1 } from "@/lib/sync/github-sync";
+
+const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Layer 2 Defense: In-memory set to prevent race conditions
+// This provides instant protection before database queries
+const activeSyncs = new Set<string>();
 
 export async function POST(request: NextRequest) {
     try {
@@ -23,11 +29,22 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "GitHub access token not found" }, { status: 400 });
         }
 
-        // TODO: Uncomment after Turso migration
-        // Circuit breaker logic commented out until sync_status column exists in production
-        /*
-        // Get current user record to check sync status
-        const userRecord = await db.select()
+        // Layer 2 Defense: In-memory check (FAST - prevents race conditions)
+        if (activeSyncs.has(user.id)) {
+            console.log(`[SyncRun] User ${user.id} sync blocked by in-memory guard`);
+            return NextResponse.json({
+                error: "Sync already in progress",
+                status: "SYNCING",
+                message: "Please wait for the current sync to complete"
+            }, { status: 429 });
+        }
+
+        // Layer 1 Defense: Database check (PERSISTENT - survives restarts)
+        const userRecord = await db.select({
+            id: users.id,
+            syncStatus: users.syncStatus,
+            lastSyncAt: users.lastSyncAt,
+        })
             .from(users)
             .where(eq(users.id, user.id))
             .limit(1);
@@ -40,7 +57,7 @@ export async function POST(request: NextRequest) {
 
         // Circuit breaker: Check if sync already in progress
         if (currentSyncStatus === 'SYNCING') {
-            console.log(`[SyncRun] User ${user.id} sync already in progress`);
+            console.log(`[SyncRun] User ${user.id} sync already in progress (DB status)`);
             return NextResponse.json({
                 error: "Sync already in progress",
                 status: "SYNCING",
@@ -57,14 +74,17 @@ export async function POST(request: NextRequest) {
             }, { status: 202 });
         }
 
-        // Set status to SYNCING before starting
+        // Add to in-memory set FIRST (before DB update)
+        activeSyncs.add(user.id);
+        console.log(`[SyncRun] Added user ${user.id} to activeSyncs. Size: ${activeSyncs.size}`);
+
+        // Set database status to SYNCING
         await db.update(users)
             .set({
                 syncStatus: 'SYNCING',
                 syncError: null
             })
             .where(eq(users.id, user.id));
-        */
 
         console.log(`[SyncRun] Starting sync for user ${user.id}`);
 
@@ -89,15 +109,12 @@ export async function POST(request: NextRequest) {
             // Always reconcile the critical openTriage#1 issue to ensure immediate state sync
             const reconcileResult = await reconcileOpenTriageIssue1(user.githubAccessToken);
 
-            // TODO: Uncomment after Turso migration
-            /*
             // Mark sync as COMPLETED
             await db.update(users).set({
                 syncStatus: 'COMPLETED',
                 lastSyncAt: new Date().toISOString(),
                 syncError: null
             }).where(eq(users.id, user.id));
-            */
 
             console.log(`[SyncRun] Sync completed for user ${user.id}`);
 
@@ -116,21 +133,20 @@ export async function POST(request: NextRequest) {
         } catch (syncError: any) {
             console.error(`[SyncRun] Error syncing for user ${user.id}:`, syncError);
 
-            // TODO: Uncomment after Turso migration
-            /*
-            // Mark sync as FAILED
+            // Mark sync as FAILED with error message
             await db.update(users).set({
                 syncStatus: 'FAILED',
                 syncError: syncError.message || 'Unknown error'
             }).where(eq(users.id, user.id));
-            */
-
-            console.error(`[SyncRun] Sync failed for user ${user.id}:`, syncError);
 
             return NextResponse.json({
                 error: "Sync failed",
                 message: syncError.message || "Internal server error"
             }, { status: 500 });
+        } finally {
+            // CRITICAL: Always remove from in-memory set, even on error
+            activeSyncs.delete(user.id);
+            console.log(`[SyncRun] Removed user ${user.id} from activeSyncs. Size: ${activeSyncs.size}`);
         }
     } catch (error) {
         console.error("POST /api/sync/run error:", error);

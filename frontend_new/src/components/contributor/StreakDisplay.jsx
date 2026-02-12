@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { gamificationApi, syncApi } from '../../services/api';
 import useAuthStore from '../../stores/authStore';
 import { toast } from 'sonner';
@@ -18,6 +18,11 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange, username: propUse
     const [totalContributions, setTotalContributions] = useState(0);
     const [hoveredDay, setHoveredDay] = useState(null);
     const [needsSync, setNeedsSync] = useState(false);
+
+    // Layer 2 Defense: useRef guard to prevent duplicate syncs
+    // This ensures sync only triggers ONCE per session
+    const syncInProgress = useRef(false);
+    const hasTriggeredInitialSync = useRef(false);
 
     // Use prop year if provided, otherwise internal state
     const selectedYear = propYear !== undefined ? propYear : internalYear;
@@ -45,29 +50,45 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange, username: propUse
 
     // Trigger data sync for new users (only for own profile)
     const syncUserData = useCallback(async () => {
-        if (!displayUsername || syncing || !showSync) return;
+        // Guard: Don't start if already syncing
+        if (!displayUsername || syncInProgress.current || !showSync) {
+            console.log('[StreakDisplay] Sync skipped:', {
+                displayUsername: !!displayUsername,
+                syncInProgress: syncInProgress.current,
+                showSync
+            });
+            return;
+        }
 
-        setSyncing(true);
         try {
+            // Set ref FIRST (before any async operations)
+            syncInProgress.current = true;
+            setSyncing(true);
+
             toast.info('Syncing your GitHub history...');
+            console.log('[StreakDisplay] Starting sync for user:', displayUsername);
 
             const data = await syncApi.syncUserData();
 
             if (data.success) {
+                console.log('[StreakDisplay] Sync completed:', data);
                 toast.success(`Synced ${data.totalPRs} PRs and ${data.totalIssues} issues!`);
                 setNeedsSync(false);
-                // Reload calendar data after sync
+                // Reload calendar data after sync (stale-while-revalidate pattern)
                 await loadData();
             } else {
                 throw new Error(data.error || 'Sync failed');
             }
         } catch (error) {
-            console.error('Failed to sync user data:', error);
+            console.error('[StreakDisplay] Sync failed:', error);
             toast.error('Failed to sync your GitHub history. Please try again later.');
         } finally {
+            // Always reset flags in finally block
             setSyncing(false);
+            syncInProgress.current = false;
+            console.log('[StreakDisplay] Sync completed, ref reset');
         }
-    }, [displayUsername, syncing, showSync]);
+    }, [displayUsername, showSync, loadData]);
 
     const loadData = useCallback(async () => {
         if (!displayUsername) {
@@ -99,19 +120,25 @@ const StreakDisplay = ({ selectedYear: propYear, onYearChange, username: propUse
     }, [loadData]);
 
     // Check sync status on mount (only for own profile)
+    // CRITICAL: This only runs ONCE per mount using hasTriggeredInitialSync ref
     useEffect(() => {
-        if (!showSync) return;
+        if (!showSync || hasTriggeredInitialSync.current) return;
+
         const initSync = async () => {
             if (displayUsername) {
+                console.log('[StreakDisplay] Checking initial sync status for:', displayUsername);
                 const shouldSync = await checkSyncStatus();
-                if (shouldSync) {
+                if (shouldSync && !syncInProgress.current) {
+                    console.log('[StreakDisplay] User needs sync, triggering initial sync');
+                    hasTriggeredInitialSync.current = true; // Mark as triggered
                     syncUserData();
                 }
             }
         };
 
         initSync();
-    }, [displayUsername, checkSyncStatus, syncUserData, showSync]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [displayUsername, showSync]); // Removed checkSyncStatus and syncUserData to prevent re-triggers
 
     const getContributionColor = (level) => {
         switch (level) {
