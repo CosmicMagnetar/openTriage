@@ -148,7 +148,7 @@ const DiscoveryEngine = ({ userLanguages = [], className = '' }) => {
 
             if (token) {
                 try {
-                    response = await fetch(`${backendUrl}/api/discover/issues?${params}`, {
+                    response = await fetch(`${backendUrl}/api/explore/tickets?${params}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
