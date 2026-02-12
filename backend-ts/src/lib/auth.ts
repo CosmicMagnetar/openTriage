@@ -66,6 +66,7 @@ export async function getCurrentUser(request: NextRequest) {
         console.log("[getCurrentUser] Token verified, user_id:", payload.user_id);
 
         // Fetch full user from database
+        // NOTE: sync_status columns excluded until Turso migration is applied
         const userRecords = await db
             .select({
                 id: users.id,
@@ -74,9 +75,6 @@ export async function getCurrentUser(request: NextRequest) {
                 avatarUrl: users.avatarUrl,
                 role: users.role,
                 githubAccessToken: users.githubAccessToken,
-                syncStatus: users.syncStatus,
-                lastSyncAt: users.lastSyncAt,
-                syncError: users.syncError,
                 createdAt: users.createdAt,
                 updatedAt: users.updatedAt,
             })

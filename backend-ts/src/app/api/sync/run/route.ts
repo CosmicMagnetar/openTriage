@@ -7,9 +7,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { runMaintainerSync, runContributorSync, syncContributorPRsDirect, reconcileOpenTriageIssue1 } from "@/lib/sync/github-sync";
 
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -29,7 +26,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "GitHub access token not found" }, { status: 400 });
         }
 
-        // Layer 2 Defense: In-memory check (FAST - prevents race conditions)
+        // Circuit Breaker: In-memory check (prevents concurrent syncs per user)
         if (activeSyncs.has(user.id)) {
             console.log(`[SyncRun] User ${user.id} sync blocked by in-memory guard`);
             return NextResponse.json({
@@ -39,56 +36,13 @@ export async function POST(request: NextRequest) {
             }, { status: 429 });
         }
 
-        // Layer 1 Defense: Database check (PERSISTENT - survives restarts)
-        const userRecord = await db.select({
-            id: users.id,
-            syncStatus: users.syncStatus,
-            lastSyncAt: users.lastSyncAt,
-        })
-            .from(users)
-            .where(eq(users.id, user.id))
-            .limit(1);
-
-        if (!userRecord || userRecord.length === 0) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
-        const currentSyncStatus = userRecord[0].syncStatus;
-
-        // Circuit breaker: Check if sync already in progress
-        if (currentSyncStatus === 'SYNCING') {
-            console.log(`[SyncRun] User ${user.id} sync already in progress (DB status)`);
-            return NextResponse.json({
-                error: "Sync already in progress",
-                status: "SYNCING",
-                message: "Please wait for the current sync to complete"
-            }, { status: 429 });
-        }
-
-        if (currentSyncStatus === 'PENDING') {
-            console.log(`[SyncRun] User ${user.id} sync is pending`);
-            return NextResponse.json({
-                error: "Sync is queued",
-                status: "PENDING",
-                message: "Sync request is queued and will start shortly"
-            }, { status: 202 });
-        }
-
-        // Add to in-memory set FIRST (before DB update)
+        // Add to in-memory set BEFORE starting sync
         activeSyncs.add(user.id);
         console.log(`[SyncRun] Added user ${user.id} to activeSyncs. Size: ${activeSyncs.size}`);
 
-        // Set database status to SYNCING
-        await db.update(users)
-            .set({
-                syncStatus: 'SYNCING',
-                syncError: null
-            })
-            .where(eq(users.id, user.id));
-
-        console.log(`[SyncRun] Starting sync for user ${user.id}`);
-
         try {
+            console.log(`[SyncRun] Starting sync for user ${user.id}`);
+
             // Determine sync type based on user role
             const userRole = user.role?.toUpperCase();
             let stats;
@@ -109,13 +63,6 @@ export async function POST(request: NextRequest) {
             // Always reconcile the critical openTriage#1 issue to ensure immediate state sync
             const reconcileResult = await reconcileOpenTriageIssue1(user.githubAccessToken);
 
-            // Mark sync as COMPLETED
-            await db.update(users).set({
-                syncStatus: 'COMPLETED',
-                lastSyncAt: new Date().toISOString(),
-                syncError: null
-            }).where(eq(users.id, user.id));
-
             console.log(`[SyncRun] Sync completed for user ${user.id}`);
 
             return NextResponse.json({
@@ -132,12 +79,6 @@ export async function POST(request: NextRequest) {
 
         } catch (syncError: any) {
             console.error(`[SyncRun] Error syncing for user ${user.id}:`, syncError);
-
-            // Mark sync as FAILED with error message
-            await db.update(users).set({
-                syncStatus: 'FAILED',
-                syncError: syncError.message || 'Unknown error'
-            }).where(eq(users.id, user.id));
 
             return NextResponse.json({
                 error: "Sync failed",
