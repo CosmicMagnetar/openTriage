@@ -88,7 +88,8 @@ function App() {
     }
     // Now load user (will use token from localStorage if present)
     loadUser();
-  }, [loadUser, isLoggingOut]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggingOut]);  // Only isLoggingOut in deps - loadUser should be stable
 
   // Logged in but no role selected - AUTO SELECT CONTRIBUTOR
   // This effectively removes the manual role selection screen
