@@ -38,7 +38,7 @@ export function verifyJwtToken(token: string): { user_id: string; role: string |
  */
 export async function getCurrentUser(request: NextRequest) {
     let token: string | null = null;
-    
+
     // Try Authorization header first
     const authHeader = request.headers.get("Authorization");
     console.log("[getCurrentUser] Authorization header:", authHeader ? "Present" : "Missing");
@@ -46,7 +46,7 @@ export async function getCurrentUser(request: NextRequest) {
         token = authHeader.substring(7);
         console.log("[getCurrentUser] Found token in Authorization header");
     }
-    
+
     // Fallback to query param for SSE connections
     if (!token) {
         const url = new URL(request.url);
@@ -66,8 +66,18 @@ export async function getCurrentUser(request: NextRequest) {
         console.log("[getCurrentUser] Token verified, user_id:", payload.user_id);
 
         // Fetch full user from database
+        // TODO: After Turso migration, re-add syncStatus, lastSyncAt, syncError to this select
         const userRecords = await db
-            .select()
+            .select({
+                id: users.id,
+                githubId: users.githubId,
+                username: users.username,
+                avatarUrl: users.avatarUrl,
+                role: users.role,
+                githubAccessToken: users.githubAccessToken,
+                createdAt: users.createdAt,
+                updatedAt: users.updatedAt,
+            })
             .from(users)
             .where(eq(users.id, payload.user_id))
             .limit(1);
