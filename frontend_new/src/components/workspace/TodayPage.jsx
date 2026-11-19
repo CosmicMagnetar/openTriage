@@ -17,7 +17,7 @@ import {
   ACTION, Baton, Button, Card, DrawnCheck, ErrorLine, Input, Page, Pulse, RESPONSIVENESS, Ref, Row, STATE, Segments,
   SkeletonRows, Stat, Tag, Dot, useChangedRows, waitingOnLabel,
 } from './ui';
-import { OpportunityRows, SetupCard, useOpportunities } from './opportunities';
+import { SetupCard, useOpportunities } from './opportunities';
 import { prBucket } from './prRows';
 import { TODAY_EXTRA_WIDGETS } from './todayWidgets';
 
@@ -105,8 +105,7 @@ export default function TodayPage() {
 
   const items = useMemo(() => [
     ...shown.map(toItem),
-    ...forYou.map((r) => ({ kind: 'issue', owner: r.owner, repo: r.repo, number: r.number })),
-  ], [shown, forYou]);
+  ], [shown]);
   const refresh = () => { q.refresh(); prs.refresh(); if (ws === 'contributor') opp.refresh(); else inbox.refresh(); };
   const { index, setIndex, open } = useListNav(items, { onRefresh: refresh });
 
@@ -121,7 +120,8 @@ export default function TodayPage() {
         {opp.error && <ErrorLine message={opp.error.message} onRetry={opp.refresh} />}
         {!opp.data && !opp.error && <SkeletonRows />}
         {opp.data && forYou.length === 0 && <p className="px-3.5 pb-2 fs-12-5 text-[var(--faint)]">Nothing matches yet. Add languages in Settings.</p>}
-        <div className="-mt-1"><OpportunityRows results={forYou} selectedIndex={index} offset={shown.length} onOpen={(at, item) => { setIndex(at); open(item); }} /></div>
+        <div className="px-3.5"><MiniList empty="" onOpen={open}
+          rows={forYou.map((r) => ({ key: `${r.owner}/${r.repo}#${r.number}`, item: { kind: 'issue', owner: r.owner, repo: r.repo, number: r.number }, color: 'green', title: r.title, meta: `${r.repo}#${r.number}${r.why?.[0] ? ` · ${r.why[0]}` : ''}` }))} /></div>
       </Card>
     ),
     prs: () => (
@@ -244,7 +244,7 @@ export default function TodayPage() {
                     onMouseEnter={() => prefetchItem(items[i])}
                     lead={<Pulse color={meta.color} title={meta.label} />}
                     title={<>{a.isPR && <GitPullRequest className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5 text-[var(--faint)]" />}{a.title}</>}
-                    meta={<><span className="text-[var(--text-2)]">{meta.label}</span><span>·</span><span>{a.suggestion}</span></>}
+                    meta={<><span className="text-[var(--text-2)]">{meta.label}</span>{a.suggestion && <><span>·</span><span>{a.suggestion}</span></>}</>}
                     right={<>
                       <Ref owner={owner} repo={repo} number={a.number} className="hidden md:inline" />
                       <Tag>{waitingOnLabel(a.waitingOn, user?.username)}{a.waitingDays >= 1 ? ` · ${Math.floor(a.waitingDays)}d` : ''}</Tag>

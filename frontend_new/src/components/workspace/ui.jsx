@@ -379,7 +379,7 @@ export function Page({ title, count, subtitle, actions, toolbar, refreshing, upd
             <button onClick={onRefresh} title="Refresh (r)"
               className="ml-1 inline-flex items-center gap-1.5 fs-11 text-[var(--faint)] hover:text-[var(--text-2)]">
               <Dot color={refreshing ? 'blue' : 'gray'} />
-              {updatedAt ? `Updated ${timeAgo(new Date(updatedAt).toISOString())} ago` : ''}
+              {updatedAt ? (timeAgo(new Date(updatedAt).toISOString()) === 'now' ? 'Updated just now' : `Updated ${timeAgo(new Date(updatedAt).toISOString())} ago`) : ''}
             </button>
           )}
           <div className="ml-auto flex items-center gap-2">{actions}</div>

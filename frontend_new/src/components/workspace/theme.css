@@ -271,7 +271,7 @@
 .ot .delta { font-family: var(--mono); font-size: calc(10.5px * var(--fs)); margin-left: 4px; transition: opacity .4s; }
 
 /* A row whose content changed on the last refresh */
-@keyframes ot-changed { 0% { box-shadow: inset 3px 0 0 var(--accent); background: var(--accent-soft); } 100% { box-shadow: inset 3px 0 0 transparent; background: transparent; } }
+@keyframes ot-changed { 0% { background: var(--accent-soft); } 100% { background: transparent; } }
 .ot .row-changed { animation: ot-changed 3s ease-out; }
 
 /* Progress bar (journey XP, funnels) */
