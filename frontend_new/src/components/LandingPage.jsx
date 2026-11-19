@@ -3,6 +3,7 @@ import Logo from './Logo';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../stores/authStore';
+import { GITHUB_LOGIN_URL } from '../lib/config';
 
 // ============================================
 // REUSABLE COMPONENTS
@@ -749,7 +750,7 @@ const OnboardingTutorial = () => {
     }, [activeTab]);
 
     const handleLogin = () => {
-        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/github`;
+        window.location.href = GITHUB_LOGIN_URL;
     };
 
     return (
@@ -931,7 +932,7 @@ const LandingPage = () => {
     }, []);
 
     const handleLogin = () => {
-        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/github`;
+        window.location.href = GITHUB_LOGIN_URL;
     };
 
     const goToDashboard = () => {

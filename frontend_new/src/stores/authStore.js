@@ -1,8 +1,9 @@
+import { BACKEND_URL } from '../lib/config';
 import { create } from "zustand";
 import axios from "axios";
 import { clearQueryCache, setQueryScope } from "../lib/query";
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
+const API = `${BACKEND_URL}/api`;
 const USER_KEY = "ot_user";
 
 function readCachedUser() {

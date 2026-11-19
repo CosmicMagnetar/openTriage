@@ -1,10 +1,11 @@
+import { BACKEND_URL } from '../../lib/config';
 import * as React from "react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import axios from "axios";
 import { cn } from "@/lib/utils";
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
+const API = `${BACKEND_URL}/api`;
 
 /**
  * AISuggestTextarea - A textarea with inline AI suggestions (Copilot-style)

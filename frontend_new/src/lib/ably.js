@@ -1,3 +1,4 @@
+import { BACKEND_URL } from './config';
 /**
  * Ably Client Configuration
  * 
@@ -38,7 +39,7 @@ export function getAblyClient() {
         }
         
         ablyClient = new Ably.Realtime({
-            authUrl: `${import.meta.env.VITE_BACKEND_URL}/api/auth/ably-token`,
+            authUrl: `${BACKEND_URL}/api/auth/ably-token`,
             authMethod: 'GET',
             authHeaders: {
                 'Authorization': `Bearer ${jwtToken}`,

@@ -11,10 +11,12 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    // Must match FRONTEND_URL in backend-ts/.env.local (OAuth returns here).
+    port: 5173,
+    strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:3001',
         changeOrigin: true,
       },
     },
