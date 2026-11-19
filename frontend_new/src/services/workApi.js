@@ -58,6 +58,9 @@ export const workApi = {
   deleteReply: (id) => send("delete", "/maintainer/templates", undefined, { id }),
   journey: (o) => get("/journey", fresh(o)),
   programs: (params) => get("/programs", params),
+  profileSettings: () => get("/profile/settings"),
+  saveProfileSettings: (settings) => send("put", "/profile/settings", settings),
+  publicProfile: (login) => get(`/u/${encodeURIComponent(login)}`),
 };
 
 /** Cache keys: one place so pages, panel and prefetch agree. */

@@ -65,10 +65,10 @@ export const BADGES = [
     how: 'Remove code nobody needs.', unit: 'lines removed', value: (d) => d.stats.deletions, tiers: [500, 2500, 10000, 25000, 50000] },
   { id: 'docs', family: 'craft', name: 'Docs friend', glyph: BookOpenCheck, shape: 'hex',
     how: 'Open pull requests that touch docs or READMEs.', unit: 'docs PRs',
-    value: (d) => (d.timeline ?? []).filter((e) => e.kind === 'pr' && /readme|docs?\b|documentation|typo/i.test(e.title)).length, tiers: [1, 5, 15, 30, 60] },
+    value: (d) => d.derived?.docsPrs ?? (d.timeline ?? []).filter((e) => e.kind === 'pr' && /readme|docs?\b|documentation|typo/i.test(e.title)).length, tiers: [1, 5, 15, 30, 60] },
   { id: 'community', family: 'care', name: 'Good neighbour', glyph: Globe, shape: 'circle',
     how: 'Contribute to repos you don’t own.', unit: 'outside repos',
-    value: (d) => new Set((d.timeline ?? []).filter((e) => d.login && !e.repo.toLowerCase().startsWith(`${d.login.toLowerCase()}/`)).map((e) => e.repo)).size, tiers: [1, 5, 15, 30, 60] },
+    value: (d) => d.derived?.outsideRepos ?? new Set((d.timeline ?? []).filter((e) => d.login && !e.repo.toLowerCase().startsWith(`${d.login.toLowerCase()}/`)).map((e) => e.repo)).size, tiers: [1, 5, 15, 30, 60] },
   { id: 'all-rounder', family: 'start', name: 'All-rounder', glyph: Trophy, shape: 'star',
     how: 'Comment, open a PR, get a merge and review someone else.', value: (d) => [mil(d, 'first-comment')?.achievedAt, d.stats.prsOpened, d.stats.prsMerged, d.stats.reviews].filter(Boolean).length, tiers: [4] },
 ];

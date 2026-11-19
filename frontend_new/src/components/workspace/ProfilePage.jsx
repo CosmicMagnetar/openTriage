@@ -47,6 +47,41 @@ const STAT_DEFS = {
   lines: ['Lines added', (d) => d.stats.additions],
 };
 
+const SYNCED = ['public', 'hidden', 'featured', 'banner', 'hue', 'stats', 'weeklyGoal'];
+const pick = (p) => Object.fromEntries(SYNCED.map((k) => [k, p[k]]));
+
+/**
+ * Keep profile choices on the server so the public link and other devices
+ * see them. Server copy wins on load (if one exists); later edits save after
+ * a short pause.
+ */
+function useProfileSync(profile) {
+  const loaded = useRef(false);
+  const last = useRef('');
+  useEffect(() => {
+    let off = false;
+    workApi.profileSettings().then((srv) => {
+      if (off) return;
+      const local = pick(usePrefs.getState().profile);
+      const fromServer = pick({ ...local, ...srv });
+      last.current = JSON.stringify(fromServer);
+      if (JSON.stringify(local) !== last.current) setProfile(fromServer);
+    }).catch(() => { /* offline: keep local, try saving later */ }).finally(() => { loaded.current = true; });
+    return () => { off = true; };
+  }, []);
+  useEffect(() => {
+    if (!loaded.current) return undefined;
+    const body = JSON.stringify(pick(profile));
+    if (body === last.current) return undefined;
+    const t = setTimeout(() => {
+      workApi.saveProfileSettings(pick(profile))
+        .then(() => { last.current = body; })
+        .catch(() => toast.error('Could not save your profile settings'));
+    }, 600);
+    return () => clearTimeout(t);
+  }, [profile]);
+}
+
 // ---------------------------------------------------------------------------
 // Pieces
 // ---------------------------------------------------------------------------
@@ -224,7 +259,8 @@ function Activity({ d }) {
   );
 }
 
-function Customize({ profile, hue }) {
+function Customize({ profile, hue, login }) {
+  const link = `${window.location.origin}/u/${login}`;
   const toggleStat = (k) => setProfile({ stats: profile.stats.includes(k) ? profile.stats.filter((x) => x !== k) : [...profile.stats, k] });
   return (
     <div className="grid gap-5 lg:grid-cols-2">
@@ -270,6 +306,12 @@ function Customize({ profile, hue }) {
             <span className="block fs-12-5 text-[var(--muted)]">Anyone with the link sees your level, pinned and visible badges, and the numbers you chose. Off by default.</span>
           </span>
         </label>
+        {profile.public && (
+          <div className="mt-3 flex gap-2 items-center">
+            <a href={link} target="_blank" rel="noopener noreferrer" className="flex-1 truncate fs-13 mono text-[var(--link)] hover:underline">{link}</a>
+            <Button size="sm" onClick={async () => { try { await navigator.clipboard.writeText(link); toast.success('Link copied'); } catch { toast.error('Could not copy'); } }}>Copy</Button>
+          </div>
+        )}
         <p className="fs-12-5 text-[var(--muted)] mt-3">Pin up to 6 badges and hide any badge from its detail view (click a badge).</p>
         <p className="fs-12-5 mt-1"><span className="font-semibold">{profile.featured.length}</span> pinned · <span className="font-semibold">{profile.hidden.length}</span> hidden</p>
       </Card>
@@ -341,6 +383,7 @@ export default function ProfilePage() {
   const { user } = useAuthStore();
   const profile = usePrefs((s) => s.profile);
   const login = user?.username;
+  useProfileSync(profile);
   const gh = useGitHubUser(login);
   const q = useQuery(keys.journey(), (o) => workApi.journey(o), { staleMs: 30 * 60_000 });
   const [tab, setTab] = useState('badges');
@@ -495,7 +538,7 @@ export default function ProfilePage() {
                   </div>
                 )}
                 {tab === 'activity' && <Activity d={d} />}
-                {tab === 'customize' && <Customize profile={profile} hue={hue} />}
+                {tab === 'customize' && <Customize profile={profile} hue={hue} login={login} />}
               </motion.div>
             </AnimatePresence>
           </>

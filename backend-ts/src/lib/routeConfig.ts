@@ -14,6 +14,8 @@ export const publicRoutes: string[] = [
     '/api/webhooks/github',
     // Curated program list and its .ics feed: same for everyone, fetched by calendar apps without a token.
     '/api/programs',
+    // Public profile pages: 404 unless the owner turned the link on.
+    '/api/u',
 ];
 
 // Routes that require MAINTAINER role
@@ -38,6 +40,7 @@ export const authenticatedRoutes: string[] = [
     '/api/repo-lens',
     '/api/next-actions',
     '/api/journey',
+    '/api/profile',
     '/api/sync',  // Both maintainers and contributors can sync
 ];
 
