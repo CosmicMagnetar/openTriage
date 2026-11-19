@@ -1,0 +1,160 @@
+[
+  {
+    "id": "gsoc",
+    "name": "Google Summer of Code 2026",
+    "org": "Google",
+    "url": "https://summerofcode.withgoogle.com/",
+    "summary": "Paid, mentored open-source coding projects with established organizations over the summer.",
+    "tags": ["paid", "first-timers", "remote", "mentorship"],
+    "eligibility": "18+ and new or beginner open-source contributors (not limited to students).",
+    "stipend": "Paid; amount depends on project size and contributor's country.",
+    "rolling": false,
+    "phases": [
+      { "name": "Organization applications", "kind": "other", "start": "2026-01-19", "end": "2026-02-03" },
+      { "name": "Contributor applications", "kind": "application", "start": "2026-03-16", "end": "2026-03-31" },
+      { "name": "Community bonding", "kind": "work", "start": "2026-05-01", "end": "2026-05-24" },
+      { "name": "Coding period (standard)", "kind": "work", "start": "2026-05-25", "end": "2026-08-24" },
+      { "name": "Extended coding period", "kind": "work", "start": "2026-08-24", "end": "2026-11-02" }
+    ],
+    "source": "https://developers.google.com/open-source/gsoc/timeline",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "outreachy-may",
+    "name": "Outreachy (May–August round, 2026)",
+    "org": "Outreachy / Software Freedom Conservancy",
+    "url": "https://www.outreachy.org/",
+    "summary": "Paid, remote three-month internships in open source for people underrepresented in tech.",
+    "tags": ["paid", "remote", "first-timers", "underrepresented", "mentorship"],
+    "eligibility": "People who face underrepresentation, systemic bias or discrimination in tech where they live; must be available full-time.",
+    "stipend": "USD 7,000 total",
+    "rolling": false,
+    "phases": [
+      { "name": "Initial applications", "kind": "application", "start": "2026-02-06", "end": "2026-02-13" },
+      { "name": "Contribution period", "kind": "application", "start": "2026-03-17", "end": "2026-04-15" },
+      { "name": "Internship", "kind": "work", "start": "2026-05-18", "end": "2026-08-17" }
+    ],
+    "source": "https://www.outreachy.org/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "outreachy-december",
+    "name": "Outreachy (December–March round, 2026–27)",
+    "org": "Outreachy / Software Freedom Conservancy",
+    "url": "https://www.outreachy.org/",
+    "summary": "Paid, remote three-month internships in open source for people underrepresented in tech.",
+    "tags": ["paid", "remote", "first-timers", "underrepresented", "mentorship"],
+    "eligibility": "People who face underrepresentation, systemic bias or discrimination in tech where they live; must be available full-time.",
+    "stipend": "USD 7,000 total",
+    "rolling": false,
+    "phases": [
+      { "name": "Initial applications", "kind": "application", "start": "2026-08-24", "end": "2026-08-31" },
+      { "name": "Contribution period", "kind": "application", "start": "2026-10-12", "end": "2026-11-09" },
+      { "name": "Accepted interns announced", "kind": "other", "start": "2026-11-30", "end": "2026-11-30" },
+      { "name": "Internship", "kind": "work", "start": "2026-12-07", "end": "2027-03-08" }
+    ],
+    "source": "https://www.outreachy.org/apply/project-selection/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "lfx-mentorship",
+    "name": "LFX Mentorship",
+    "org": "Linux Foundation",
+    "url": "https://mentorship.lfx.linuxfoundation.org/",
+    "summary": "Mentored, usually paid projects across Linux Foundation and CNCF open-source projects, run in three terms a year.",
+    "tags": ["paid", "remote", "first-timers", "mentorship", "cloud-native"],
+    "eligibility": "Open to anyone accepted by a project mentor; check each listing.",
+    "stipend": "Paid per listing; full-time stipends are paid 50% at week 6 and 50% at week 12.",
+    "rolling": false,
+    "phases": [
+      { "name": "Spring term", "kind": "work", "start": "2027-03-01", "end": "2027-05-31" },
+      { "name": "Summer term", "kind": "work", "start": "2027-06-01", "end": "2027-08-31" },
+      { "name": "Fall term", "kind": "work", "start": "2027-09-01", "end": "2027-11-30" }
+    ],
+    "source": "https://docs.linuxfoundation.org/lfx/mentorship/mentorship-program-timelines",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "linux-kernel-mentorship",
+    "name": "Linux Kernel Mentorship Program",
+    "org": "Linux Foundation",
+    "url": "https://wiki.linuxfoundation.org/lkmp",
+    "summary": "Learn to find and fix Linux kernel bugs with kernel maintainers as mentors, through LFX terms.",
+    "tags": ["remote", "kernel", "mentorship", "systems"],
+    "eligibility": "Applicants who complete the kernel prerequisite tasks; selected through LFX Mentorship.",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      { "name": "Spring term", "kind": "work", "start": "2027-03-01", "end": "2027-05-31" },
+      { "name": "Summer term", "kind": "work", "start": "2027-06-01", "end": "2027-08-31" },
+      { "name": "Fall term", "kind": "work", "start": "2027-09-01", "end": "2027-11-30" }
+    ],
+    "source": "https://docs.linuxfoundation.org/lfx/mentorship/mentorship-program-timelines",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "hacktoberfest",
+    "name": "Hacktoberfest 2026",
+    "org": "DigitalOcean",
+    "url": "https://hacktoberfest.com/",
+    "summary": "Month-long October celebration of open source; the 2026 edition focused on building with open-weight models and open-source AI.",
+    "tags": ["first-timers", "remote", "event", "ai"],
+    "eligibility": "Anyone.",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      { "name": "Hacktoberfest", "kind": "event", "start": "2026-10-01", "end": "2026-10-31" }
+    ],
+    "source": "https://hacktoberfest.com/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "mlh-fellowship",
+    "name": "MLH Fellowship",
+    "org": "Major League Hacking",
+    "url": "https://fellowship.mlh.com/",
+    "summary": "Remote 12-week internship alternative where fellows work on real projects in software, production or Web3 engineering tracks.",
+    "tags": ["paid", "remote", "students", "first-timers"],
+    "eligibility": "See the MLH Fellowship FAQ; batches start several times a year.",
+    "stipend": "Educational stipend (amount not published)",
+    "rolling": true,
+    "phases": [],
+    "source": "https://fellowship.mlh.com/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "summer-of-bitcoin",
+    "name": "Summer of Bitcoin 2026",
+    "org": "Summer of Bitcoin",
+    "url": "https://www.summerofbitcoin.org/",
+    "summary": "Paid summer internships for university students on open-source Bitcoin projects, for developers and designers.",
+    "tags": ["paid", "remote", "students", "bitcoin", "design"],
+    "eligibility": "University students worldwide.",
+    "stipend": "Paid in BTC, adjusted by country (USD 3,000–6,000).",
+    "rolling": false,
+    "phases": [
+      { "name": "Challenge round (bootcamp)", "kind": "application", "start": "2026-02-16", "end": "2026-03-20" },
+      { "name": "Proposal deadline", "kind": "application", "start": "2026-04-20", "end": "2026-04-20" },
+      { "name": "Project period", "kind": "work", "start": "2026-05-18", "end": "2026-08-16" }
+    ],
+    "source": "http://blog.summerofbitcoin.org/summer-of-bitcoin-2026-announcing-the-next-generation-of-bitcoin-builders/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "season-of-kde",
+    "name": "Season of KDE 2026",
+    "org": "KDE",
+    "url": "https://mentorship.kde.org/sok/",
+    "summary": "Two-month mentored projects in KDE for newcomers, covering code, docs, design and promotion.",
+    "tags": ["remote", "first-timers", "docs", "design", "mentorship"],
+    "eligibility": "Anyone new to KDE.",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      { "name": "Contributor applications", "kind": "application", "start": "2025-12-15", "end": "2026-01-14" },
+      { "name": "Work period", "kind": "work", "start": "2026-01-23", "end": "2026-03-20" }
+    ],
+    "source": "https://mentorship.kde.org/sok/",
+    "checkedAt": "2026-11-19"
+  }
+]

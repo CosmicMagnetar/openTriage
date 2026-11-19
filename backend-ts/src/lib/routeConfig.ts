@@ -12,6 +12,8 @@ export const publicRoutes: string[] = [
     '/api/health',
     // GitHub calls this without a bearer token; it is authenticated by HMAC signature instead.
     '/api/webhooks/github',
+    // Curated program list and its .ics feed: same for everyone, fetched by calendar apps without a token.
+    '/api/programs',
 ];
 
 // Routes that require MAINTAINER role
@@ -35,6 +37,7 @@ export const authenticatedRoutes: string[] = [
     '/api/work',
     '/api/repo-lens',
     '/api/next-actions',
+    '/api/journey',
     '/api/sync',  // Both maintainers and contributors can sync
 ];
 
