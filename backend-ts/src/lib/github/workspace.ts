@@ -173,3 +173,22 @@ export async function addLabels(octokit: Octokit, owner: string, repo: string, n
     invalidateRepo(owner, repo);
     return { labels: res.data.map((l) => l.name) };
 }
+
+/** Remove labels one by one; a label that is already gone (404) is ignored. */
+export async function removeLabels(octokit: Octokit, owner: string, repo: string, number: number, labels: string[]) {
+    let remaining: string[] | null = null;
+    for (const name of labels) {
+        try {
+            const res = await octokit.issues.removeLabel({ owner, repo, issue_number: number, name });
+            remaining = res.data.map((l) => l.name);
+        } catch (err) {
+            if ((err as { status?: number }).status !== 404) throw err;
+        }
+    }
+    invalidateRepo(owner, repo);
+    if (remaining === null) {
+        const res = await octokit.issues.listLabelsOnIssue({ owner, repo, issue_number: number, per_page: 100 });
+        remaining = res.data.map((l) => l.name);
+    }
+    return { labels: remaining };
+}
