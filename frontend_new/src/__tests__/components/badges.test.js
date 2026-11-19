@@ -41,3 +41,28 @@ describe('badges', () => {
     expect(levelTitle(15)).toBe('Steward');
   });
 });
+
+import { evaluateMaintainer } from '../../components/workspace/badges/registry';
+
+describe('maintainer badges', () => {
+  const ev = { repos: 4, reviews: 2, outsideMerged: 0, mergeRate: null, responsiveRepos: 0, newcomersWaitingLong: 1, docsBest: 27, longestWait: 321 };
+  const by = (id, e = ev) => evaluateMaintainer(e).find((r) => r.badge.id === id);
+
+  it('nothing without tracked repos', () => {
+    expect(evaluateMaintainer(null)).toEqual([]);
+  });
+
+  it('tiers from real maintainer evidence', () => {
+    expect(by('m-steward').tier).toBe(1); // 4 repos: 1 and 3 reached
+    expect(by('m-reviewer').tier).toBe(0);
+    expect(by('m-docs').tier).toBe(-1); // 27 < 40
+    expect(by('m-clear').tier).toBe(-1); // 321-day-old item
+    expect(by('m-welcome').tier).toBe(-1);
+  });
+
+  it('clear queue and warm welcome unlock when the evidence is good', () => {
+    const good = { ...ev, longestWait: 3, newcomersWaitingLong: 0 };
+    expect(by('m-clear', good).tier).toBe(0);
+    expect(by('m-welcome', good).tier).toBe(0);
+  });
+});

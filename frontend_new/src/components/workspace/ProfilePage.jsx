@@ -19,7 +19,8 @@ import { Button, Card, ErrorLine, ExtLink, LiveNumber, Page, Progress, Segments,
 import { ContributionGraph } from './ContributionGraph';
 import { HUES } from './nav';
 import BadgeArt from './badges/BadgeArt';
-import { FAMILIES, TIERS, evaluateAll, featuredBadges, levelTitle } from './badges/registry';
+import { FAMILIES, MAINTAINER_FAMILIES, TIERS, evaluateAll, evaluateMaintainer, featuredBadges, levelTitle } from './badges/registry';
+import { REFRESH_MS } from '../../lib/query';
 import { badgeImage, loadImage } from './badges/badgeImage';
 
 // ---------------------------------------------------------------------------
@@ -81,6 +82,32 @@ function useProfileSync(profile) {
     }, 600);
     return () => clearTimeout(t);
   }, [profile]);
+}
+
+/**
+ * Maintainer badge evidence from data the app already loads: tracked repos
+ * and reply speed (Command center), outside merges and first-timers
+ * (Community), docs scores (Docs health) and reviews (journey).
+ */
+function useMaintainerEvidence(journey) {
+  const today = useQuery(keys.today('maintainer'), (o) => workApi.nextActions('maintainer', o), { staleMs: REFRESH_MS });
+  const repos = (today.data?.repos ?? []).map((r) => r.repo).slice(0, 6);
+  const community = useQuery(repos.length ? keys.community() : null, (o) => workApi.community(o), { staleMs: REFRESH_MS });
+  const docs = useQuery(repos.length ? `docs-all:${repos.join(',')}`.toLowerCase() : null,
+    () => Promise.all(repos.map((r) => workApi.docsHealth(r).catch(() => null))), { staleMs: 30 * 60_000 });
+  if (!today.data || !repos.length) return null;
+  const scores = (docs.data ?? []).filter(Boolean).map((x) => x.score);
+  const actions = today.data.actions ?? [];
+  return {
+    repos: repos.length,
+    reviews: journey?.stats?.reviews ?? 0,
+    outsideMerged: community.data?.mergeRatio?.outsideMerged ?? 0,
+    mergeRate: community.data?.mergeRatio?.ratio ?? null,
+    responsiveRepos: (today.data.repos ?? []).filter((r) => r.responsiveness?.level === 'responsive').length,
+    newcomersWaitingLong: community.data ? community.data.newcomersWaiting.filter((n) => n.waitingDays >= 7).length : 1,
+    docsBest: scores.length ? Math.max(...scores) : 0,
+    longestWait: actions.reduce((m, a) => Math.max(m, a.waitingDays ?? 0), 0),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +207,7 @@ function BadgeSheet({ r, onClose, profile }) {
         <div className="flex items-start gap-5">
           <BadgeArt badge={r.badge} tier={r.tier} size={112} />
           <div className="flex-1 min-w-0">
-            <p className="fs-12-5 text-[var(--muted)]">{FAMILIES.find((f) => f.id === r.badge.family)?.label}</p>
+            <p className="fs-12-5 text-[var(--muted)]">{[...FAMILIES, ...MAINTAINER_FAMILIES].find((f) => f.id === r.badge.family)?.label}</p>
             <h2 className="fs-19 font-semibold">{r.badge.name}</h2>
             <p className="fs-13-5 text-[var(--text-2)] mt-1">{r.badge.how}</p>
             <p className="fs-13 mt-2">
@@ -439,7 +466,12 @@ export default function ProfilePage() {
   const [share, setShare] = useState(false);
   const d = q.data ? { ...q.data, login } : null;
   const hue = HUES[profile.hue] ?? HUES.magenta;
-  const results = useMemo(() => evaluateAll(d), [q.data, login]); // eslint-disable-line react-hooks/exhaustive-deps
+  const contributorResults = useMemo(() => evaluateAll(d), [q.data, login]); // eslint-disable-line react-hooks/exhaustive-deps
+  const evidence = useMaintainerEvidence(q.data);
+  const evKey = JSON.stringify(evidence);
+  const maintainerResults = useMemo(() => evaluateMaintainer(evidence), [evKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // One collection: pins, hiding, "New" and sharing work across both kinds.
+  const results = useMemo(() => [...contributorResults, ...maintainerResults], [contributorResults, maintainerResults]);
   const earned = results.filter((r) => r.tier >= 0);
   const shelf = featuredBadges(results, profile, 6);
   // What was already seen when the page opened; only badges beyond that are "New".
@@ -447,7 +479,7 @@ export default function ProfilePage() {
   const fresh = useMemo(() => {
     const seen = seenAtOpen.current;
     if (!Object.keys(seen).length) return new Set(); // first visit: everything is simply yours
-    return new Set(results.filter((r) => r.tier >= 0 && r.tier > (seen[r.badge.id] ?? -1)).map((r) => r.badge.id));
+    return new Set(results.filter((r) => r.badge.id in seen && r.tier >= 0 && r.tier > seen[r.badge.id]).map((r) => r.badge.id));
   }, [results]);
 
   // Tell people what they just earned, once, then remember it as seen.
@@ -456,7 +488,8 @@ export default function ProfilePage() {
     const newly = results.filter((r) => r.tier >= 0 && r.tier > (profile.seen?.[r.badge.id] ?? -1));
     if (!newly.length) return;
     const firstVisit = !profile.seen || Object.keys(profile.seen).length === 0;
-    if (!firstVisit) newly.slice(0, 3).forEach((r) => toast.success(`New badge: ${r.badge.name} · ${TIERS[r.tier].label}`));
+    // Only celebrate real progress on a badge you had already seen; badges appearing for the first time just show up.
+    if (!firstVisit) newly.filter((r) => r.badge.id in (profile.seen ?? {})).slice(0, 3).forEach((r) => toast.success(`New badge: ${r.badge.name} · ${TIERS[r.tier].label}`));
     setProfile({ seen: Object.fromEntries(results.map((r) => [r.badge.id, Math.max(r.tier, profile.seen?.[r.badge.id] ?? -1)])) });
   }, [results]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -565,7 +598,13 @@ export default function ProfilePage() {
               <motion.div key={tab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
                 {tab === 'badges' && (
                   <div className="space-y-6">
-                    {FAMILIES.map((f) => {
+                    {[...FAMILIES, ...(maintainerResults.length ? [{ id: '__m', heading: true }] : []), ...(maintainerResults.length ? MAINTAINER_FAMILIES : [])].map((f) => {
+                      if (f.heading) return (
+                        <div key={f.id} className="pt-2 border-t border-[var(--line)]">
+                          <h3 className="fs-19 font-semibold mt-4">As a maintainer</h3>
+                          <p className="fs-13-5 text-[var(--muted)]">Earned from the repositories you track. They count towards your profile like any other badge.</p>
+                        </div>
+                      );
                       const list = results.filter((r) => r.badge.family === f.id);
                       if (!list.length) return null;
                       return (

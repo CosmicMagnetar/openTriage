@@ -5,8 +5,8 @@
  * URL per badge id (and optionally per tier) in ART_OVERRIDES.
  */
 import {
-  BookOpenCheck, Brush, Compass, Eye, Flame, GitMerge, GitPullRequest, Globe, Languages, MessageCircle,
-  Rocket, Scissors, Sprout, Star, Target, Trophy,
+  BookOpenCheck, Brush, Compass, Eye, FileCheck2, Flame, GitMerge, GitPullRequest, Globe, HandHeart, Languages, MessageCircle,
+  Rocket, Scissors, ShieldCheck, Sprout, Star, Target, Timer, Trophy, Users,
 } from 'lucide-react';
 
 export const TIERS = [
@@ -104,4 +104,40 @@ export function featuredBadges(results, { featured = [], hidden = [] } = {}, n =
   const pinned = featured.map((id) => earned.find((r) => r.badge.id === id)).filter(Boolean);
   const rest = earned.filter((r) => !featured.includes(r.badge.id)).sort((a, b) => b.tier - a.tier || b.value - a.value);
   return [...pinned, ...rest].slice(0, n);
+}
+
+// ---------------------------------------------------------------------------
+// Maintainer badges: earned from the repos you track. Evidence object:
+// { repos, reviews, outsideMerged, mergeRate (0..1|null), responsiveRepos,
+//   docsBest (0..100), docsAvg (0..100), newcomersWaiting, longestWait }
+// ---------------------------------------------------------------------------
+
+export const MAINTAINER_FAMILIES = [
+  { id: 'm-care', label: 'Looking after people', blurb: 'Replies, reviews and welcoming newcomers.' },
+  { id: 'm-ship', label: 'Merging work', blurb: 'Getting outside contributions in.' },
+  { id: 'm-home', label: 'A good home', blurb: 'Docs and a queue that does not pile up.' },
+];
+
+export const MAINTAINER_BADGES = [
+  { id: 'm-steward', family: 'm-home', name: 'Steward', glyph: ShieldCheck, shape: 'shield',
+    how: 'Track the repositories you maintain.', unit: 'repos', value: (e) => e.repos, tiers: [1, 3, 5, 10, 20] },
+  { id: 'm-reviewer', family: 'm-care', name: 'Careful reviewer', glyph: Eye, shape: 'hex',
+    how: 'Review pull requests.', unit: 'reviews', value: (e) => e.reviews, tiers: [1, 10, 25, 50, 100] },
+  { id: 'm-merger', family: 'm-ship', name: 'Door opener', glyph: GitMerge, shape: 'shield',
+    how: 'Merge pull requests from outside contributors.', unit: 'outside PRs merged (90 days)', value: (e) => e.outsideMerged, tiers: [1, 5, 15, 40, 100] },
+  { id: 'm-fair', family: 'm-ship', name: 'Fair hand', glyph: HandHeart, shape: 'circle',
+    how: 'Merge most outside pull requests you get.', unit: '% merged', value: (e) => (e.mergeRate == null ? 0 : Math.round(e.mergeRate * 100)), tiers: [25, 50, 70, 85, 95] },
+  { id: 'm-fast', family: 'm-care', name: 'Quick to reply', glyph: Timer, shape: 'diamond',
+    how: 'Keep repositories where outside people get a reply quickly.', unit: 'responsive repos', value: (e) => e.responsiveRepos, tiers: [1, 2, 4, 8, 15] },
+  { id: 'm-welcome', family: 'm-care', name: 'Warm welcome', glyph: Users, shape: 'star',
+    how: 'Leave no first-time contributor waiting a week.', value: (e) => (e.repos > 0 && e.newcomersWaitingLong === 0 ? 1 : 0), tiers: [1] },
+  { id: 'm-docs', family: 'm-home', name: 'Docs keeper', glyph: FileCheck2, shape: 'hex',
+    how: 'Give a repo README, contributing guide, licence and templates.', unit: 'best docs score', value: (e) => e.docsBest, tiers: [40, 60, 75, 90, 100] },
+  { id: 'm-clear', family: 'm-home', name: 'Clear queue', glyph: Sprout, shape: 'circle',
+    how: 'Keep nothing in your queue older than two weeks.', value: (e) => (e.repos > 0 && e.longestWait <= 14 ? 1 : 0), tiers: [1] },
+];
+
+export function evaluateMaintainer(ev) {
+  if (!ev) return [];
+  return MAINTAINER_BADGES.map((b) => ({ badge: b, ...evaluate(b, ev) }));
 }
