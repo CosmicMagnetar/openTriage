@@ -8,7 +8,7 @@ import { keys, parseGitHubRef, workApi } from '../../services/workApi';
 import { useQuery } from '../../lib/query';
 import { prefetchItem } from './useWorkspace';
 import {
-  AVAILABILITY, Button, Dot, ErrorLine, Input, RESPONSIVENESS, Ref, Row, SkeletonRows, Stagger, StaggerItem, Tag, VERDICT, timeAgo,
+  AVAILABILITY, Button, Dot, Pulse, ErrorLine, Input, RESPONSIVENESS, Ref, Row, SkeletonRows, Stagger, StaggerItem, Tag, VERDICT, timeAgo,
 } from './ui';
 
 export function useOpportunities() {
@@ -37,7 +37,7 @@ export function OpportunityRows({ results, selectedIndex, offset = 0, onOpen, li
           <StaggerItem key={`${r.owner}/${r.repo}#${r.number}`}>
             <Row id={`row-${at}`} selected={at === selectedIndex}
               onClick={() => onOpen(at, item)} onMouseEnter={() => prefetchItem(item)}
-              lead={<Dot color={verdict.color} title={verdict.label} />}
+              lead={<Pulse color={verdict.color} title={verdict.label} />}
               title={r.title}
               meta={<>
                 <Ref owner={r.owner} repo={r.repo} number={r.number} />

@@ -9,10 +9,10 @@ import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
 import usePrefs from '../../stores/prefsStore';
 import { keys, parseGitHubRef, workApi } from '../../services/workApi';
-import { invalidate, useQuery } from '../../lib/query';
+import { REFRESH_MS, invalidate, useQuery } from '../../lib/query';
 import { prefetchItem, useListNav } from './useWorkspace';
 import {
-  ACTION, Button, CountUp, Dot, DrawnCheck, ErrorLine, Input, Page, RESPONSIVENESS, Ref, Row, SectionLabel, Segments,
+  ACTION, Button, CountUp, Baton, Dot, Pulse, DrawnCheck, STATE, ErrorLine, Input, Page, RESPONSIVENESS, Ref, Row, SectionLabel, Segments,
   SkeletonRows, Stagger, StaggerItem, Tag, waitingOnLabel,
 } from './ui';
 import { OpportunityRows, SetupCard, useOpportunities } from './opportunities';
@@ -57,11 +57,12 @@ function greeting(name) {
 
 function Stat({ label, value, color, onClick }) {
   return (
-    <button onClick={onClick} disabled={!onClick}
-      className="flex items-center gap-2 h-8 px-3 rounded-md border border-[var(--line)] bg-[var(--panel)] hover:bg-[var(--hover)] disabled:hover:bg-[var(--panel)] text-left">
-      <Dot color={color} />
-      <span className="mono text-[14px] text-[var(--text)]"><CountUp value={value} /></span>
-      <span className="text-[12px] text-[var(--muted)]">{label}</span>
+    <button onClick={onClick} disabled={!onClick} className="stat-tile text-left" style={{ '--c': STATE[color] }}>
+      <span className="flex items-center justify-between gap-3">
+        <span className="mono text-[20px] leading-none font-semibold text-[var(--text)]"><CountUp value={value} /></span>
+        <Pulse color={color} size={22} />
+      </span>
+      <span className="block mt-1.5 text-[11.5px] text-[var(--muted)]">{label}</span>
     </button>
   );
 }
@@ -71,9 +72,9 @@ export default function TodayPage() {
   const { user, role } = useAuthStore();
   const onboarded = usePrefs((s) => s.onboarded);
   const ws = role === 'MAINTAINER' ? 'maintainer' : 'contributor';
-  const q = useQuery(keys.today(ws), (o) => workApi.nextActions(ws, o), { staleMs: 90_000 });
+  const q = useQuery(keys.today(ws), (o) => workApi.nextActions(ws, o), { staleMs: REFRESH_MS });
   const opp = useOpportunities();
-  const inbox = useQuery(ws === 'maintainer' ? keys.inbox() : null, (o) => workApi.inbox(o), { staleMs: 90_000 });
+  const inbox = useQuery(ws === 'maintainer' ? keys.inbox() : null, (o) => workApi.inbox(o), { staleMs: REFRESH_MS });
   const [filter, setFilter] = useState('all');
 
   const actions = useMemo(() => q.data?.actions ?? [], [q.data]);
@@ -105,7 +106,7 @@ export default function TodayPage() {
       onRefresh={refresh}
       actions={ws === 'maintainer' && <AddRepo onAdded={onTracked} />}
       toolbar={q.data && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-stretch gap-2">
           <Stat label="waiting on you" value={actions.length} color={actions.length ? 'amber' : 'green'} />
           {ws === 'contributor' ? (
             <>
@@ -171,14 +172,16 @@ export default function TodayPage() {
               <Row id={`row-${i}`} selected={i === index}
                 onClick={() => { setIndex(i); open(items[i]); }}
                 onMouseEnter={() => prefetchItem(items[i])}
-                lead={<Dot color={meta.color} title={meta.label} />}
+                lead={<Pulse color={meta.color} title={meta.label} />}
                 title={<>{a.isPR && <GitPullRequest className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5 text-[var(--faint)]" />}{a.title}</>}
                 meta={<><span className="text-[var(--text-2)]">{meta.label}</span><span>·</span><span>{a.suggestion}</span></>}
                 right={<>
                   <Ref owner={owner} repo={repo} number={a.number} className="hidden md:inline" />
                   <Tag>{waitingOnLabel(a.waitingOn, user?.username)}{a.waitingDays >= 1 ? ` · ${Math.floor(a.waitingDays)}d` : ''}</Tag>
                 </>}
-              />
+              >
+                <Baton action={a} me={user?.username} />
+              </Row>
             </StaggerItem>
           );
         })}
@@ -212,7 +215,7 @@ export default function TodayPage() {
             return (
               <Row key={`${r.owner}/${r.repo}#${r.number}`} id={`row-${at}`} selected={at === index}
                 onClick={() => { setIndex(at); open(item); }} onMouseEnter={() => prefetchItem(item)}
-                lead={<Dot color={r.authorIsNewcomer ? 'purple' : 'blue'} />} title={r.title}
+                lead={<Pulse color={r.authorIsNewcomer ? 'purple' : 'blue'} />} title={r.title}
                 meta={<><Ref owner={r.owner} repo={r.repo} number={r.number} /><span>@{r.author}</span></>} />
             );
           })}
@@ -227,7 +230,7 @@ export default function TodayPage() {
             const state = c.overlap.length ? ['red', 'Someone else opened a PR'] : c.status === 'stale' ? ['amber', 'Going stale — post an update'] : ['green', 'Active'];
             return (
               <Row key={`${c.owner}/${c.repo}#${c.number}`} onClick={() => open(item)} onMouseEnter={() => prefetchItem(item)}
-                lead={<Dot color={state[0]} />} title={c.title} meta={<span>{state[1]}</span>}
+                lead={<Pulse color={state[0]} />} title={c.title} meta={<span>{state[1]}</span>}
                 right={<Ref owner={c.owner} repo={c.repo} number={c.number} />} />
             );
           })}

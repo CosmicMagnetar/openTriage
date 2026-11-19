@@ -153,7 +153,7 @@ export default function RepoLensPage() {
             </Block>
           )}
 
-          {lens.layout.length === 0 && <Empty title="This repository looks empty." />}
+          {lens.layout.length === 0 && <Empty art="search" title="This repository looks empty." />}
         </div>
       )}
     </Page>

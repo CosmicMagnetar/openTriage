@@ -13,6 +13,22 @@ import usePrefs from '../../stores/prefsStore';
 
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
+/** True when animation is allowed (Settings → Motion and the OS setting). */
+export function useMotionOn() {
+  return usePrefs((s) => s.motion) && !reducedMotion();
+}
+
+/** Slow drifting light behind the workspace, tinted by the accent colour. */
+export function Ambient() {
+  return (
+    <div aria-hidden className="ambient">
+      <span className="ambient-a" />
+      <span className="ambient-b" />
+      <span className="ambient-grain" />
+    </div>
+  );
+}
+
 /** Rows fade/slide in with a short stagger the first time a list appears. */
 export function Stagger({ children, as = 'div' }) {
   const motionOn = usePrefs((s) => s.motion) && !reducedMotion();
@@ -172,6 +188,56 @@ export function Dot({ color = 'gray', pulse = false, title }) {
   );
 }
 
+/**
+ * Liveness heartbeat: the signature mark for every item.
+ * Active states beat, amber (stale) beats slowly, gray (done/dead) is flat.
+ */
+const RHYTHM = { green: 'fast', blue: 'fast', purple: 'fast', red: 'fast', amber: 'slow', gray: 'flat' };
+export function Pulse({ color = 'gray', title, size = 18 }) {
+  const rhythm = RHYTHM[color] ?? 'fast';
+  const c = STATE[color] ?? color;
+  const d = rhythm === 'flat' ? 'M1 6h16' : 'M1 6h4l1.5-3.5L9 10l1.8-6L12 6h5';
+  return (
+    <span title={title} className={`pulse-mark pulse-${rhythm}`} style={{ '--c': c, width: size }}>
+      <svg viewBox="0 0 18 12" width={size} height={size * 0.67} aria-hidden>
+        <path d={d} className="pulse-trace" />
+        <path d={d} className="pulse-line" />
+      </svg>
+    </span>
+  );
+}
+
+/**
+ * Who holds the baton: contributor → CI → maintainers, with the current
+ * holder lit and the baton sliding to it.
+ */
+export function Baton({ action, me }) {
+  const motionOn = useMotionOn();
+  if (!action?.waitingOn) return null;
+  const onMaintainers = action.waitingOn.kind === 'maintainers';
+  const holder = onMaintainers ? 2 : action.type === 'ci_failing' ? 1 : 0;
+  const person = onMaintainers ? 'contributor' : waitingOnLabel(action.waitingOn, me);
+  const stops = [person, 'CI', 'maintainers'];
+  const color = STATE[(ACTION[action.type] ?? {}).color] ?? 'var(--accent)';
+  return (
+    <div className="baton" style={{ '--c': color }} aria-label={`Waiting on ${stops[holder]}`}>
+      <div className="baton-track">
+        {motionOn ? (
+          <motion.span className="baton-fill" initial={{ width: 0 }} animate={{ width: `${holder * 50}%` }}
+            transition={{ duration: 0.6, ease: [0.2, 0.7, 0.3, 1] }} />
+        ) : <span className="baton-fill" style={{ width: `${holder * 50}%` }} />}
+        {stops.map((label, i) => (
+          <span key={label + i} className={`baton-stop ${i === holder ? 'is-holder' : i < holder ? 'is-past' : ''}`}
+            style={{ left: `${i * 50}%` }}>
+            <span className="baton-dot" />
+            <span className="baton-label">{label}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Quiet text tag; colour only on the dot. */
 export function Tag({ color, children, title, mono = false }) {
   return (
@@ -196,10 +262,10 @@ export function Kbd({ children }) {
 }
 
 export const Button = forwardRef(function Button({ variant = 'ghost', size = 'md', className = '', children, ...rest }, ref) {
-  const base = 'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none';
+  const base = 'btn inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none';
   const sizes = { sm: 'h-6 px-2 text-[12px]', md: 'h-7 px-2.5 text-[12.5px]' };
   const variants = {
-    primary: 'text-[#0b0c0e] bg-[var(--accent)] hover:brightness-110',
+    primary: 'btn-primary text-[#0b0c0e] bg-[var(--accent)] hover:brightness-110',
     ghost: 'text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--hover)] border border-[var(--line)]',
     subtle: 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]',
     danger: 'text-[var(--red)] hover:bg-[rgba(248,81,73,0.1)] border border-[var(--line)]',
@@ -303,9 +369,9 @@ export function Row({ selected, onClick, onMouseEnter, lead, title, meta, right,
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       style={{ paddingTop: 'var(--row-py)', paddingBottom: 'var(--row-py)' }}
-      className={`group flex items-start gap-3 px-5 border-b border-[var(--line-soft)] cursor-pointer hover:bg-[var(--hover)] transition-colors ${selected ? 'row-selected' : ''}`}
+      className={`ot-row group relative flex items-start gap-3 px-5 border-b border-[var(--line-soft)] cursor-pointer hover:bg-[var(--hover)] transition-colors ${selected ? 'row-selected' : ''}`}
     >
-      <div className="pt-[5px]">{lead}</div>
+      <div className="pt-[3px]">{lead}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 min-w-0">
           <span className="truncate text-[13px] text-[var(--text)]">{title}</span>
@@ -318,29 +384,75 @@ export function Row({ selected, onClick, onMouseEnter, lead, title, meta, right,
   );
 }
 
+const SCAN_LINES = ['Reading GitHub', 'Checking who is on it', 'Finding who acts next'];
+
+/**
+ * First-load state (only when nothing is cached yet): a heartbeat being drawn
+ * and what is being checked, instead of grey placeholder bars.
+ * Kept as `SkeletonRows` so every page uses it without changes.
+ */
 export function SkeletonRows({ n = 6 }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((x) => (x + 1) % SCAN_LINES.length), 1400);
+    return () => clearInterval(t);
+  }, []);
+  const compact = n <= 3;
   return (
-    <div aria-hidden>
-      {Array.from({ length: n }).map((_, i) => (
-        <div key={i} className="flex items-start gap-3 px-5 py-3 border-b border-[var(--line-soft)]">
-          <div className="skeleton w-2 h-2 mt-1.5 rounded-full" />
-          <div className="flex-1 space-y-1.5">
-            <div className="skeleton h-3" style={{ width: `${55 + ((i * 17) % 35)}%` }} />
-            <div className="skeleton h-2.5" style={{ width: `${25 + ((i * 11) % 30)}%` }} />
-          </div>
-        </div>
-      ))}
+    <div role="status" aria-live="polite" className={`scan ${compact ? 'scan-compact' : ''}`}>
+      <svg viewBox="0 0 120 30" className="scan-ecg" aria-hidden>
+        <path d="M0 15h34l5-10 7 22 6-18 4 6h64" />
+      </svg>
+      <span className="scan-text">{SCAN_LINES[i]}<span className="scan-dots" /></span>
     </div>
   );
 }
 
-export function Empty({ title, children, action }) {
+/** Small animated scenes for empty states. */
+function EmptyArt({ art }) {
+  if (art === 'search') {
+    return (
+      <svg viewBox="0 0 96 64" className="empty-art" aria-hidden>
+        <circle cx="40" cy="30" r="14" className="ea-stroke" />
+        <path d="M50 40l12 12" className="ea-stroke" />
+        <circle cx="40" cy="30" r="3" className="ea-dot ea-orbit" />
+        <path d="M8 58h80" className="ea-ground" />
+      </svg>
+    );
+  }
+  if (art === 'start') {
+    return (
+      <svg viewBox="0 0 96 64" className="empty-art" aria-hidden>
+        <path d="M14 46h68" className="ea-ground" />
+        <circle cx="22" cy="46" r="4" className="ea-dot" />
+        <circle cx="48" cy="46" r="4" className="ea-dot ea-d2" />
+        <circle cx="74" cy="46" r="4" className="ea-dot ea-d3" />
+        <rect x="16" y="20" width="12" height="6" rx="3" className="ea-baton" />
+      </svg>
+    );
+  }
+  // calm: everyone has what they need
   return (
-    <div className="px-5 py-16 text-center">
-      <p className="text-[13px] text-[var(--text-2)]">{title}</p>
+    <svg viewBox="0 0 96 64" className="empty-art" aria-hidden>
+      <circle cx="48" cy="30" r="20" className="ea-ring" />
+      <circle cx="48" cy="30" r="12" className="ea-ring ea-r2" />
+      <path d="M40 30.5l5.5 5.5L57 24.5" className="ea-check" />
+      <path d="M8 58h80" className="ea-ground" />
+    </svg>
+  );
+}
+
+export function Empty({ title, children, action, art = 'calm' }) {
+  const motionOn = useMotionOn();
+  const Wrap = motionOn ? motion.div : 'div';
+  const anim = motionOn ? { initial: { opacity: 0, y: 6 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.3 } } : {};
+  return (
+    <Wrap className="px-5 py-14 text-center" {...anim}>
+      <EmptyArt art={art} />
+      <p className="text-[13.5px] font-medium text-[var(--text)] mt-3">{title}</p>
       {children && <div className="text-[12px] text-[var(--muted)] mt-1.5 max-w-md mx-auto">{children}</div>}
       {action && <div className="mt-4">{action}</div>}
-    </div>
+    </Wrap>
   );
 }
 

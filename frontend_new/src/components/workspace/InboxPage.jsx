@@ -5,9 +5,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { keys, workApi } from '../../services/workApi';
-import { useQuery } from '../../lib/query';
+import { REFRESH_MS, useQuery } from '../../lib/query';
 import { prefetchItem, useListNav } from './useWorkspace';
-import { ACTION, Button, Dot, Empty, ErrorLine, Page, Ref, Row, Segments, SkeletonRows, Tag, timeAgo } from './ui';
+import { ACTION, Button, Dot, Pulse, Empty, ErrorLine, Page, Ref, Row, Segments, SkeletonRows, Tag, timeAgo } from './ui';
 
 const CLASS_LABEL = {
   CRITICAL_BUG: 'critical bug', BUG: 'bug', FEATURE_REQUEST: 'feature', QUESTION: 'question',
@@ -16,7 +16,7 @@ const CLASS_LABEL = {
 
 export default function InboxPage() {
   const navigate = useNavigate();
-  const q = useQuery(keys.inbox(), (o) => workApi.inbox(o), { staleMs: 90_000 });
+  const q = useQuery(keys.inbox(), (o) => workApi.inbox(o), { staleMs: REFRESH_MS });
   const [filter, setFilter] = useState('untriaged');
 
   const rows = useMemo(() => q.data?.rows ?? [], [q.data]);
@@ -49,7 +49,7 @@ export default function InboxPage() {
       {q.error && <ErrorLine message={q.error.message} onRetry={q.refresh} />}
       {q.isLoading && <SkeletonRows n={8} />}
       {q.data?.hint && (
-        <Empty title="No repositories tracked" action={<Button onClick={() => navigate('/dashboard/settings')}>Track a repository</Button>}>
+        <Empty art="start" title="No repositories tracked" action={<Button onClick={() => navigate('/dashboard/settings')}>Track a repository</Button>}>
           Track a repository you maintain to see its incoming issues here.
         </Empty>
       )}
@@ -65,7 +65,7 @@ export default function InboxPage() {
           <Row key={`${r.owner}/${r.repo}#${r.number}`} id={`row-${i}`} selected={i === index}
             onClick={() => { setIndex(i); open(items[i]); }}
             onMouseEnter={() => prefetchItem(items[i])}
-            lead={<Dot color={lead} />}
+            lead={<Pulse color={lead} />}
             title={r.title}
             meta={<>
               <Ref owner={r.owner} repo={r.repo} number={r.number} />

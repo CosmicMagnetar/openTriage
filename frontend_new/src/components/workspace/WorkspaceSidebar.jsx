@@ -5,6 +5,7 @@
  */
 import { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { HelpCircle, LogOut, Menu, Search, Settings, X } from 'lucide-react';
 import { openHelp } from './HelpOverlay';
 import { toast } from 'sonner';
@@ -51,7 +52,7 @@ function WorkspaceToggle() {
   );
 }
 
-export default function WorkspaceSidebar({ nav, counts = {} }) {
+export default function WorkspaceSidebar({ nav, counts = {}, onPreload }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout: storeLogout } = useAuthStore();
@@ -96,16 +97,31 @@ export default function WorkspaceSidebar({ nav, counts = {} }) {
         </div>
 
         <nav className="flex-1 px-2 py-1 scroll">
-          {nav.map(({ icon: Icon, label, path, countKey }) => (
-            <button key={path} data-testid={`nav-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`} onClick={() => go(path)}
-              className={`w-full h-8 flex items-center gap-2.5 px-2 rounded-md text-[13px] transition-colors ${isActive(path)
-                ? 'bg-[var(--raised)] text-[var(--text)]'
-                : 'text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text-2)]'}`}>
-              <Icon className="w-4 h-4" />
-              <span className="flex-1 text-left">{label}</span>
-              {countKey && counts[countKey] > 0 && <span className="mono text-[11px] text-[var(--text-2)]">{counts[countKey]}</span>}
-            </button>
-          ))}
+          {nav.map(({ icon: Icon, label, path, countKey }) => {
+            const active = isActive(path);
+            return (
+              <button key={path} data-testid={`nav-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`} onClick={() => go(path)}
+                onMouseEnter={() => onPreload?.(path)} onFocus={() => onPreload?.(path)}
+                className={`group relative w-full h-8 flex items-center gap-2.5 px-2 rounded-md text-[13px] transition-colors ${active
+                  ? 'text-[var(--text)]'
+                  : 'text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text-2)]'}`}>
+                {active && (
+                  <motion.span layoutId="nav-active" aria-hidden
+                    className="absolute inset-0 rounded-md bg-[var(--raised)] shadow-[inset_0_0_0_1px_var(--line)]"
+                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}>
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-[var(--accent)]" />
+                  </motion.span>
+                )}
+                <Icon className={`relative w-4 h-4 transition-transform ${active ? 'text-[var(--accent)]' : 'group-hover:scale-110'}`} />
+                <span className="relative flex-1 text-left">{label}</span>
+                {countKey && counts[countKey] > 0 && (
+                  <span className="relative mono text-[10.5px] min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
+                    {counts[countKey]}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         <div className="p-3 border-t border-[var(--line-soft)] space-y-2.5">

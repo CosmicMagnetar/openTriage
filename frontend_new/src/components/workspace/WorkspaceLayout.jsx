@@ -3,27 +3,41 @@
  * Pages are lazy so switching workspace never loads code it doesn't need.
  */
 import { Suspense, lazy, useEffect } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { BookOpen, Compass, GitPullRequest, Inbox, Layers, Sun } from 'lucide-react';
 import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
-import { prefetch, useQuery } from '../../lib/query';
+import { REFRESH_MS, prefetch, useQuery } from '../../lib/query';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ItemPanel from './ItemPanel';
 import CommandPalette from './CommandPalette';
 import HelpOverlay from './HelpOverlay';
 import usePrefs, { ACCENTS, opportunityParams } from '../../stores/prefsStore';
-import { SkeletonRows } from './ui';
+import { Ambient, useMotionOn } from './ui';
 import './theme.css';
 
-const TodayPage = lazy(() => import('./TodayPage'));
-const FindWorkPage = lazy(() => import('./FindWorkPage'));
-const InboxPage = lazy(() => import('./InboxPage'));
-const PullRequestsPage = lazy(() => import('./PullRequestsPage'));
-const MyWorkPage = lazy(() => import('./MyWorkPage'));
-const RepoLensPage = lazy(() => import('./RepoLensPage'));
-const IssueFullPage = lazy(() => import('./IssueFullPage'));
-const SettingsPage = lazy(() => import('./SettingsPage'));
+// Page code loaders, kept so they can be preloaded before the user clicks.
+const loaders = {
+  today: () => import('./TodayPage'),
+  find: () => import('./FindWorkPage'),
+  inbox: () => import('./InboxPage'),
+  prs: () => import('./PullRequestsPage'),
+  mine: () => import('./MyWorkPage'),
+  lens: () => import('./RepoLensPage'),
+  issue: () => import('./IssueFullPage'),
+  settings: () => import('./SettingsPage'),
+};
+const TodayPage = lazy(loaders.today);
+const FindWorkPage = lazy(loaders.find);
+const InboxPage = lazy(loaders.inbox);
+const PullRequestsPage = lazy(loaders.prs);
+const MyWorkPage = lazy(loaders.mine);
+const RepoLensPage = lazy(loaders.lens);
+const IssueFullPage = lazy(loaders.issue);
+const SettingsPage = lazy(loaders.settings);
+
+const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300));
 
 const NAV = {
   CONTRIBUTOR: [
@@ -46,33 +60,41 @@ export default function WorkspaceLayout() {
   const ws = role === 'MAINTAINER' ? 'maintainer' : 'contributor';
   const nav = NAV[role === 'MAINTAINER' ? 'MAINTAINER' : 'CONTRIBUTOR'];
   // Shared with TodayPage via the cache, so this costs nothing extra.
-  const today = useQuery(keys.today(ws), (o) => workApi.nextActions(ws, o), { staleMs: 90_000 });
+  const today = useQuery(keys.today(ws), (o) => workApi.nextActions(ws, o), { staleMs: REFRESH_MS });
 
-  // Warm the other pages in the background once the first screen is up,
-  // so opening them is instant instead of showing a skeleton.
+  const location = useLocation();
+  const motionOn = useMotionOn();
+
+  // Warm every page of this workspace right away (data in parallel, code when
+  // the browser is idle) so opening any of them is instant, never a skeleton.
   useEffect(() => {
-    const t = setTimeout(() => {
-      if (ws === 'maintainer') {
-        prefetch(keys.inbox(), (o) => workApi.inbox(o), 90_000);
-        prefetch(keys.prs('maintainer'), (o) => workApi.prs('maintainer', o), 90_000);
-      } else {
-        const op = opportunityParams(usePrefs.getState());
-        prefetch(keys.opportunities(op), (o) => workApi.opportunities(op, o), 10 * 60_000);
-        prefetch(keys.prs('mine'), (o) => workApi.prs('mine', o), 90_000);
-      }
-    }, 1500);
-    return () => clearTimeout(t);
+    if (ws === 'maintainer') {
+      prefetch(keys.inbox(), (o) => workApi.inbox(o), REFRESH_MS);
+      prefetch(keys.prs('maintainer'), (o) => workApi.prs('maintainer', o), REFRESH_MS);
+    } else {
+      const op = opportunityParams(usePrefs.getState());
+      prefetch(keys.opportunities(op), (o) => workApi.opportunities(op, o), 10 * 60_000);
+      prefetch(keys.prs('mine'), (o) => workApi.prs('mine', o), REFRESH_MS);
+    }
+    prefetch(keys.signals(), () => workApi.signals(), 6 * 60 * 60_000);
+    idle(() => Object.values(loaders).forEach((load) => load().catch(() => {})));
   }, [ws]);
 
   return (
     <div className="ot w-full h-screen flex overflow-hidden"
       data-density={prefs.density} data-motion={prefs.motion ? 'on' : 'off'}
       style={{ '--accent': ACCENTS[prefs.accent] ?? ACCENTS.indigo, '--accent-soft': `${ACCENTS[prefs.accent] ?? ACCENTS.indigo}1f` }}>
-      <WorkspaceSidebar nav={nav} counts={{ today: today.data?.actions?.length ?? 0 }} />
-      <main className="flex-1 min-w-0 flex flex-col">
+      <WorkspaceSidebar onPreload={(path) => { const k = path.split('/')[2] || 'today'; loaders[k]?.().catch(() => {}); }} nav={nav} counts={{ today: today.data?.actions?.length ?? 0 }} />
+      <Ambient />
+      <main className="relative z-[1] flex-1 min-w-0 flex flex-col">
         <div className="flex-1 min-h-0">
-          <Suspense fallback={<div className="pt-16"><SkeletonRows n={8} /></div>}>
-            <Routes>
+          <Suspense fallback={null}>
+            <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={location.pathname} className="h-full"
+              initial={motionOn ? { opacity: 0, y: 6 } : false}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.2, 0.7, 0.3, 1] } }}
+              exit={motionOn ? { opacity: 0, y: -4, transition: { duration: 0.12 } } : undefined}>
+            <Routes location={location}>
               <Route index element={<TodayPage />} />
               <Route path="find" element={<FindWorkPage />} />
               <Route path="mine" element={<MyWorkPage />} />
@@ -84,6 +106,8 @@ export default function WorkspaceLayout() {
               <Route path="settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
+            </motion.div>
+            </AnimatePresence>
           </Suspense>
         </div>
       </main>

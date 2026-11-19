@@ -18,7 +18,7 @@ import { keys, workApi } from '../../services/workApi';
 import { fetchQuery, invalidate, useQuery } from '../../lib/query';
 import { isTypingTarget, useItemPanel } from './useWorkspace';
 import {
-  ACTION, AVAILABILITY, Block, Button, CHECKS, Dot, ErrorLine, Evidence, ExtLink, Input, RESPONSIVENESS, REVIEW,
+  ACTION, AVAILABILITY, Baton, Block, Button, CHECKS, Dot, ErrorLine, Evidence, ExtLink, Input, RESPONSIVENESS, REVIEW,
   SkeletonRows, Tag, Textarea, VERDICT, celebrate, timeAgo, waitingOnLabel,
 } from './ui';
 
@@ -106,6 +106,7 @@ function ActionList({ actions, me }) {
               <span className="text-[12px] text-[var(--muted)]">waiting on <span className="text-[var(--text-2)]">{waitingOnLabel(a.waitingOn, me)}</span>
                 {a.waitingDays >= 1 && <> · {Math.floor(a.waitingDays)}d</>}</span>
             </div>
+            <Baton action={a} me={me} />
             <p className="text-[12.5px] text-[var(--text-2)] mt-1">{a.reason}</p>
             <p className="text-[12.5px] text-[var(--text)] mt-0.5">→ {a.suggestion}</p>
             <Evidence items={a.evidence} />

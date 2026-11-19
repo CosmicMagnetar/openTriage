@@ -78,7 +78,7 @@ export async function buildPRView(octokit: Octokit, owner: string, repo: string,
 // ---------------------------------------------------------------------------
 
 export async function contributorPRs(octokit: Octokit, login: string, fresh = false) {
-    return cached(`prs:c:${login}`.toLowerCase(), 90 * 1000, async () => {
+    return cached(`prs:c:${login}`.toLowerCase(), 5 * MINUTE, async () => {
         const [mine, toReview] = await Promise.all([
             searchPRs(octokit, `is:open author:${login} archived:false sort:updated-desc`, 40),
             searchPRs(octokit, `is:open review-requested:${login} archived:false sort:updated-desc`, 20),
@@ -92,7 +92,7 @@ export async function contributorPRs(octokit: Octokit, login: string, fresh = fa
 
 export async function maintainerPRs(octokit: Octokit, login: string, repos: RepoRef[], fresh = false) {
     const key = `prs:m:${login}:${repos.map(full).sort().join(",")}`.toLowerCase();
-    return cached(key, 90 * 1000, async () => {
+    return cached(key, 5 * MINUTE, async () => {
         const perms = await fetchViewerPermissions(octokit, repos);
         const mine = repos.filter((r) => perms.get(full(r).toLowerCase())).slice(0, 8);
         const lists = await Promise.all(mine.map(async (r) => {
@@ -139,7 +139,7 @@ function inboxRow(issue: IssueItem, batch: IssueItem[], responseDays?: number) {
 
 export async function maintainerInbox(octokit: Octokit, login: string, repos: RepoRef[], fresh = false) {
     const key = `inbox:${login}:${repos.map(full).sort().join(",")}`.toLowerCase();
-    return cached(key, 90 * 1000, async () => {
+    return cached(key, 5 * MINUTE, async () => {
         const perms = await fetchViewerPermissions(octokit, repos);
         const mine = repos.filter((r) => perms.get(full(r).toLowerCase())).slice(0, 8);
         const lists = await Promise.all(mine.map(async (r) => {

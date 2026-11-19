@@ -6,16 +6,16 @@ import { Fragment, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
-import { useQuery } from '../../lib/query';
+import { REFRESH_MS, useQuery } from '../../lib/query';
 import { prefetchItem, useListNav } from './useWorkspace';
-import { Button, Dot, Empty, ErrorLine, Page, Ref, Row, SectionLabel, SkeletonRows } from './ui';
+import { Button, Dot, Pulse, Empty, ErrorLine, Page, Ref, Row, SectionLabel, SkeletonRows } from './ui';
 import { PRRow, prItem } from './prRows';
 
 export default function MyWorkPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const prs = useQuery(keys.prs('mine'), (o) => workApi.prs('mine', o), { staleMs: 90_000 });
-  const today = useQuery(keys.today('contributor'), (o) => workApi.nextActions('contributor', o), { staleMs: 90_000 });
+  const prs = useQuery(keys.prs('mine'), (o) => workApi.prs('mine', o), { staleMs: REFRESH_MS });
+  const today = useQuery(keys.today('contributor'), (o) => workApi.nextActions('contributor', o), { staleMs: REFRESH_MS });
 
   const sections = useMemo(() => {
     const mine = prs.data?.mine ?? [];
@@ -43,7 +43,7 @@ export default function MyWorkPage() {
       {prs.error && <ErrorLine message={prs.error.message} onRetry={prs.refresh} />}
       {loading && <SkeletonRows n={8} />}
       {loaded && flat.length === 0 && (
-        <Empty title="Nothing in flight" action={<Button onClick={() => navigate('/dashboard/find')}>Find work</Button>}>
+        <Empty art="start" title="Nothing in flight" action={<Button onClick={() => navigate('/dashboard/find')}>Find work</Button>}>
           Open PRs, review requests and issues you claim on GitHub show up here.
         </Empty>
       )}
@@ -62,7 +62,7 @@ export default function MyWorkPage() {
             return (
               <Row key={`is-${c.owner}/${c.repo}#${c.number}`} id={`row-${at}`} selected={at === index}
                 onClick={onOpen} onMouseEnter={() => prefetchItem(x.item)}
-                lead={<Dot color={state[0]} />} title={c.title}
+                lead={<Pulse color={state[0]} />} title={c.title}
                 meta={<><Ref owner={c.owner} repo={c.repo} number={c.number} /><span>{state[1]}</span></>} />
             );
           })}
