@@ -28,6 +28,7 @@ import { repositories } from "@/db/schema";
 import { eq, and, sql, like } from "drizzle-orm";
 import { syncSingleRepository } from "@/lib/sync/github-sync";
 import { invalidateRepo } from "@/lib/github/services";
+import { emitRepoChanged } from "@/lib/socket";
 import { users } from "@/db/schema";
 
 /**
@@ -120,6 +121,10 @@ export async function POST(request: NextRequest) {
 
         // Live updates: drop cached lens / issue / next-action views for this repo.
         invalidateRepo(owner, repoShort);
+        if (eventType !== "ping") {
+            const number = payload.issue?.number ?? payload.pull_request?.number;
+            emitRepoChanged(repoName, eventType, number);
+        }
 
         // ============================================================================
         // HANDLE DIFFERENT EVENT TYPES

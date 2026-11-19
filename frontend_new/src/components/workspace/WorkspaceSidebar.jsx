@@ -8,6 +8,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HelpCircle, LogOut, Menu, Search, Settings, X } from 'lucide-react';
 import { openHelp } from './HelpOverlay';
+import { useLive } from '../../lib/live';
 import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
 import Logo from '../Logo';
@@ -48,6 +49,23 @@ function WorkspaceToggle() {
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/** Live (webhook push) vs. timed refresh, so it's clear how fresh the data is. */
+function LiveStatus() {
+  const { live, lastEvent } = useLive();
+  return (
+    <div className="flex items-center gap-2 px-1 text-[11px] text-[var(--faint)]"
+      title={live ? 'Changes from GitHub webhooks appear within seconds.' : 'Not connected for live updates. Data refreshes every 5 minutes.'}>
+      <span className={`live-dot ${live ? 'is-live' : ''}`} />
+      <span className="flex-1">{live ? 'Live' : 'Refreshing every 5 min'}</span>
+      {live && lastEvent && (
+        <span className="mono truncate max-w-[120px]" title={`${lastEvent.event} in ${lastEvent.repo}`}>
+          {lastEvent.number ? `#${lastEvent.number} ` : ''}{lastEvent.repo.split('/')[1]}
+        </span>
+      )}
     </div>
   );
 }
@@ -125,6 +143,7 @@ export default function WorkspaceSidebar({ nav, counts = {}, onPreload }) {
         </nav>
 
         <div className="p-3 border-t border-[var(--line-soft)] space-y-2.5">
+          <LiveStatus />
           <WorkspaceToggle />
           <div className="flex items-center gap-2">
             <img src={user?.avatarUrl || 'https://github.com/ghost.png'} alt="" className="w-6 h-6 rounded-full" />

@@ -96,6 +96,23 @@ export function invalidate(prefix) {
   }
 }
 
+/**
+ * Refetch the on-screen queries whose key matches `test` (live updates).
+ * Cached data stays visible until the new data arrives.
+ */
+export function refreshActive(test) {
+  for (const [key, a] of active) {
+    if (test(key)) fetchQuery(key, a.fetcher).catch(() => {});
+  }
+}
+
+/** Mark matching off-screen entries stale so they refetch when next shown. */
+export function markStale(test) {
+  for (const key of [...entries.keys()]) {
+    if (!active.has(key) && test(key)) write(key, { updatedAt: 0 });
+  }
+}
+
 export function clearQueryCache() {
   entries.clear();
   inflight.clear();

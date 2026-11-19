@@ -74,3 +74,28 @@ export function broadcastStageUpdate(payload: StageUpdatePayload): void {
         ...payload,
     });
 }
+
+/* ------------------------------------------------------------------ */
+/*  Live updates                                                      */
+/* ------------------------------------------------------------------ */
+
+export interface RepoChangedPayload {
+    repo: string;      // owner/repo, lower-case
+    event: string;     // GitHub event name (issues, pull_request, issue_comment, ...)
+    number?: number;   // issue or PR number when the event has one
+    at: string;
+}
+
+/** Room name for clients watching a repository. */
+export const repoRoom = (fullName: string) => `repo:${fullName.toLowerCase()}`;
+
+/**
+ * Tell clients watching a repo that something changed, so they refetch.
+ * Carries no content: clients reload through the authenticated API.
+ */
+export function emitRepoChanged(fullName: string, event: string, number?: number): void {
+    const io = getIO();
+    if (!io) return;
+    const payload: RepoChangedPayload = { repo: fullName.toLowerCase(), event, number, at: new Date().toISOString() };
+    io.to(repoRoom(fullName)).emit("repo_changed", payload);
+}

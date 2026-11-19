@@ -9,6 +9,8 @@ import { BookOpen, Compass, GitPullRequest, Inbox, Layers, Sun } from 'lucide-re
 import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
 import { REFRESH_MS, prefetch, useQuery } from '../../lib/query';
+import { startLive, stopLive, watchRepos } from '../../lib/live';
+import { useItemPanel } from './useWorkspace';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ItemPanel from './ItemPanel';
 import CommandPalette from './CommandPalette';
@@ -64,6 +66,20 @@ export default function WorkspaceLayout() {
 
   const location = useLocation();
   const motionOn = useMotionOn();
+  const panel = useItemPanel();
+  const prs = useQuery(keys.prs(ws === 'maintainer' ? 'maintainer' : 'mine'), (o) => workApi.prs(ws === 'maintainer' ? 'maintainer' : 'mine', o), { staleMs: REFRESH_MS });
+
+  // Live updates: connect once, watch the repos that are on screen.
+  useEffect(() => { startLive(); return () => stopLive(); }, []);
+  useEffect(() => {
+    const d = today.data;
+    watchRepos([
+      ...(d?.repos ?? []).map((r) => r.repo),
+      ...(d?.actions ?? []).map((a) => a.repo),
+      ...(prs.data?.rows ?? prs.data?.mine ?? []).map((r) => `${r.owner}/${r.repo}`),
+      panel.current && `${panel.current.owner}/${panel.current.repo}`,
+    ]);
+  }, [today.data, prs.data, panel.current]);
 
   // Warm every page of this workspace right away (data in parallel, code when
   // the browser is idle) so opening any of them is instant, never a skeleton.

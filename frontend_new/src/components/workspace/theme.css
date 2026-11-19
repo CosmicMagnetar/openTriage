@@ -243,3 +243,8 @@
 .ot .lens-chip { transition: transform .18s var(--ease-out), border-color .18s, color .18s; }
 .ot .lens-chip:hover { transform: translateY(-1px); }
 .ot .list-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; padding: 28px 20px 40px; font-size: 12px; color: var(--muted); }
+.ot .live-dot { position: relative; width: 6px; height: 6px; border-radius: 50%; background: var(--faint); }
+.ot .live-dot.is-live { background: var(--green); }
+.ot .live-dot.is-live::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 1px solid var(--green); animation: ot-live 2s ease-out infinite; }
+@keyframes ot-live { from { transform: scale(.6); opacity: .9; } to { transform: scale(1.8); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ot .live-dot.is-live::after { animation: none; } }

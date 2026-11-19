@@ -10,6 +10,10 @@ const { createServer } = require("http");
 const { parse } = require("url");
 const next = require("next");
 const { Server: SocketIO } = require("socket.io");
+const jwt = require("jsonwebtoken");
+
+const REPO_RE = /^[\w.-]+\/[\w.-]+$/;
+const MAX_WATCHED = 100;
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME || "0.0.0.0";
@@ -45,6 +49,30 @@ app.prepare().then(() => {
 
   io.on("connection", (socket) => {
     console.log(`[Socket.io] Client connected: ${socket.id}`);
+
+    // Live updates. Only signed-in clients may watch repos; events carry no
+    // content (repo, event name, number), clients refetch through the API.
+    const token = socket.handshake.auth && socket.handshake.auth.token;
+    let userId = null;
+    try {
+      if (token && process.env.JWT_SECRET) {
+        userId = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] }).user_id || null;
+      }
+    } catch {
+      userId = null;
+    }
+    socket.emit("live_status", { live: Boolean(userId) });
+
+    let watched = new Set();
+    socket.on("watch_repos", (repos) => {
+      if (!userId || !Array.isArray(repos)) return;
+      const next = new Set(
+        repos.filter((r) => typeof r === "string" && REPO_RE.test(r)).slice(0, MAX_WATCHED).map((r) => `repo:${r.toLowerCase()}`),
+      );
+      for (const room of watched) if (!next.has(room)) socket.leave(room);
+      for (const room of next) if (!watched.has(room)) socket.join(room);
+      watched = next;
+    });
 
     // Clients join a room scoped to their RAG session
     socket.on("join_rag_session", (sessionId) => {
