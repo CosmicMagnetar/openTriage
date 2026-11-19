@@ -10,8 +10,6 @@ import { mergePullRequest, closeIssueOrPR } from '../../../services/githubServic
 import IssueDetailHeader from './IssueDetailHeader';
 import ConversationThread from './ConversationThread';
 import ReplyComposer from './ReplyComposer';
-import MaintainerLeaderboardWidget from './MaintainerLeaderboardWidget';
-import ResourceSharingWidget from './ResourceSharingWidget';
 import MetadataWidget from './MetadataWidget';
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
@@ -279,8 +277,15 @@ const IssueDetailPage = () => {
 
         {/* ── Side Column (30%) — sticky sidebar ────── */}
         <div className="w-[30%] overflow-y-auto p-5 space-y-4 custom-scrollbar">
-          <MaintainerLeaderboardWidget issue={issue} onAssign={handleAssign} />
-          <ResourceSharingWidget issue={issue} />
+          {issue.owner && issue.repo && (
+            <button
+              onClick={() => navigate(`/dashboard/work/${issue.owner}/${issue.repo}/${issue.number}`)}
+              className="w-full text-left p-4 rounded-xl border border-[hsl(217,91%,60%,0.25)] bg-[hsl(217,91%,60%,0.08)] hover:bg-[hsl(217,91%,60%,0.14)] transition-colors"
+            >
+              <p className="text-sm font-medium text-[hsl(217,91%,72%)]">Coordination &amp; context</p>
+              <p className="text-xs text-[hsl(210,11%,60%)] mt-1">Who's on it, duplicates, who acts next, likely files</p>
+            </button>
+          )}
           <MetadataWidget issue={issue} />
         </div>
       </div>

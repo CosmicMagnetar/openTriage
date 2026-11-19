@@ -11,12 +11,10 @@ import SplashScreen from "./components/SplashScreen";
 import LandingPage from "./components/LandingPage";
 import { Toaster } from "./components/ui/sonner";
 import { refreshAblyClient } from "./lib/ably";
-import { realtimeMessagingClient } from "./services/realtimeMessaging";
 import "./App.css";
 
 // Lazy-load heavy components that are only needed post-login
 const AuthPage = lazy(() => import("./components/AuthPage"));
-const RoleSelection = lazy(() => import("./components/RoleSelection"));
 const MaintainerLayout = lazy(() => import("./components/maintainer/MaintainerLayout"));
 const ContributorLayout = lazy(() => import("./components/contributor/ContributorLayout"));
 
@@ -34,7 +32,6 @@ function App() {
   const handleLogout = useCallback(() => {
     // Disconnect real-time services first
     try {
-      realtimeMessagingClient.disconnect();
       refreshAblyClient();
     } catch (e) {
       console.debug("Cleanup during logout:", e);

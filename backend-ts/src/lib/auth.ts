@@ -21,7 +21,7 @@ export function normalizeWorkspace(role: string | null | undefined): Workspace {
  * Routes that may authenticate with `?token=` because EventSource/WebSocket
  * clients cannot set an Authorization header. Everything else must use the header.
  */
-const QUERY_TOKEN_PATHS = ["/api/realtime/", "/api/messaging/ws"];
+const QUERY_TOKEN_PATHS: string[] = [];
 
 function getJwtSecret(): string {
     const secret = process.env.JWT_SECRET;

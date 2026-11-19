@@ -85,46 +85,12 @@ export async function callAIEngine<T = unknown>(
 
 // Pre-configured helpers for each service
 
-export async function triageIssue(issue: {
-    title: string;
-    body?: string;
-    authorName?: string;
-    isPR?: boolean;
-}) {
-    return callAIEngine("/triage", {
-        title: issue.title,
-        body: issue.body || "",
-        authorName: issue.authorName || "unknown",
-        isPR: issue.isPR || false,
-    });
-}
-
 export async function chat(message: string, history?: { role: string; content: string }[], context?: object) {
     return callAIEngine("/chat", { message, history, context });
 }
 
 export async function ragQuery(question: string, repoName?: string) {
     return callAIEngine("/rag/chat", { question, repo_name: repoName });
-}
-
-export async function findMentorMatches(userId: string, username: string, limit = 5) {
-    return callAIEngine("/mentor-match", { user_id: userId, username, limit });
-}
-
-export async function generateHype(pr: {
-    title: string;
-    body?: string;
-    filesChanged?: string[];
-    additions?: number;
-    deletions?: number;
-}) {
-    return callAIEngine("/hype", {
-        pr_title: pr.title,
-        pr_body: pr.body || "",
-        files_changed: pr.filesChanged || [],
-        additions: pr.additions || 0,
-        deletions: pr.deletions || 0,
-    });
 }
 
 export async function ragChat(question: string, repoName?: string, topK = 5) {

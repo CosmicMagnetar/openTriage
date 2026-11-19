@@ -102,11 +102,6 @@ const useAuthStore = create((set, get) => ({
     try {
       // Clear session storage
       sessionStorage.clear();
-
-      // Disconnect real-time services (if available)
-      if (typeof window !== "undefined" && window.realtimeMessagingClient) {
-        window.realtimeMessagingClient.disconnect?.();
-      }
     } catch (e) {
       console.debug("Cleanup during logout:", e);
     }

@@ -99,17 +99,6 @@ class TTLCache<T> {
 
 // Pre-configured caches for different use cases
 
-/** Streak cache - 5 minute TTL */
-export const streakCache = new TTLCache<{
-    current_streak: number;
-    longest_streak: number;
-    is_active: boolean;
-    total_contribution_days: number;
-}>(5 * 60 * 1000);
-
-/** Calendar cache - 10 minute TTL (larger data, less frequently changing) */
-export const calendarCache = new TTLCache<Array<{ date: string; contributions: number }>>(10 * 60 * 1000);
-
 /** Generic cache for other uses */
 export const genericCache = new TTLCache<unknown>(5 * 60 * 1000);
 

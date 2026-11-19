@@ -29,15 +29,12 @@ export const contributorOnlyRoutes: string[] = [
 export const authenticatedRoutes: string[] = [
     '/api/auth/me',
     '/api/auth/select-role',
-    '/api/profile',
-    '/api/messaging',
-    '/api/messages',
-    '/api/chat',
     '/api/ai',
     '/api/rag',
-    '/api/mentor',
-    '/api/badges',
     '/api/user',
+    '/api/work',
+    '/api/repo-lens',
+    '/api/next-actions',
     '/api/sync',  // Both maintainers and contributors can sync
 ];
 
