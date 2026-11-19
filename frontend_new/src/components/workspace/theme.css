@@ -76,6 +76,54 @@
   border-radius: 4px;
 }
 
+/* Density (Settings → Personalize) */
+.ot { --row-py: 10px; }
+.ot[data-density="comfortable"] { --row-py: 14px; }
+
+/* GitHub markdown in the conversation */
+.ot .md { font-size: 12.5px; color: var(--text-2); line-height: 1.55; overflow-wrap: anywhere; }
+.ot .md p { margin: 0.35em 0; }
+.ot .md a { color: var(--accent); }
+.ot .md a:hover { text-decoration: underline; }
+.ot .md code { font-family: var(--mono); font-size: 11.5px; background: var(--raised); padding: 1px 4px; border-radius: 4px; }
+.ot .md pre { background: var(--bg); border: 1px solid var(--line-soft); border-radius: 6px; padding: 10px; overflow-x: auto; margin: 0.5em 0; }
+.ot .md pre code { background: none; padding: 0; }
+.ot .md ul, .ot .md ol { padding-left: 1.3em; margin: 0.35em 0; }
+.ot .md ul { list-style: disc; }
+.ot .md ol { list-style: decimal; }
+.ot .md blockquote { border-left: 2px solid var(--line); padding-left: 10px; color: var(--muted); margin: 0.4em 0; }
+.ot .md h1, .ot .md h2, .ot .md h3, .ot .md h4 { font-weight: 600; color: var(--text); margin: 0.6em 0 0.3em; font-size: 13px; }
+.ot .md img { max-width: 100%; border-radius: 6px; }
+.ot .md table { border-collapse: collapse; font-size: 12px; }
+.ot .md td, .ot .md th { border: 1px solid var(--line); padding: 2px 6px; }
+.ot .md input[type="checkbox"] { margin-right: 4px; }
+
+/* Small celebration burst (posting a claim, inbox zero) */
+@keyframes ot-burst {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; }
+}
+.ot .burst-dot {
+  position: fixed;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 70;
+  animation: ot-burst 700ms cubic-bezier(.2,.7,.3,1) forwards;
+}
+
+@keyframes ot-check {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+.ot .draw-check path { stroke-dasharray: 24; animation: ot-check 600ms ease-out forwards; }
+
+.ot[data-motion="off"] *, .ot[data-motion="off"] *::before, .ot[data-motion="off"] *::after {
+  animation-duration: 0ms !important;
+  transition-duration: 0ms !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ot .pulse, .ot .skeleton { animation: none; }
+  .ot .pulse, .ot .skeleton, .ot .burst-dot { animation: none; }
 }

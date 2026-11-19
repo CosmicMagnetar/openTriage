@@ -8,7 +8,9 @@ import useAuthStore from '../../stores/authStore';
 import { keys, parseGitHubRef, workApi } from '../../services/workApi';
 import { invalidate, useQuery } from '../../lib/query';
 import AISettingsPanel from '../settings/AISettingsPanel';
-import { Block, Button, Input, Page, Textarea } from './ui';
+import usePrefs, { ACCENTS } from '../../stores/prefsStore';
+import { InterestsEditor } from './opportunities';
+import { Block, Button, Input, Page, Segments, Textarea } from './ui';
 
 function TrackedRepos() {
   const repos = useQuery(keys.repos(), () => workApi.trackedRepos(), { staleMs: 60_000 });
@@ -113,6 +115,45 @@ function SavedReplies() {
   );
 }
 
+function Personalize() {
+  const prefs = usePrefs();
+  return (
+    <Block title="Personalize">
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-6">
+          <div>
+            <p className="text-[12px] text-[var(--muted)] mb-1.5">Accent</p>
+            <div className="flex gap-1.5">
+              {Object.entries(ACCENTS).map(([name, hex]) => (
+                <button key={name} onClick={() => prefs.set({ accent: name })} aria-label={`${name} accent`} title={name}
+                  className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${prefs.accent === name ? 'ring-2 ring-offset-2 ring-offset-[var(--bg)]' : ''}`}
+                  style={{ background: hex, '--tw-ring-color': hex }} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-[12px] text-[var(--muted)] mb-1.5">Density</p>
+            <Segments value={prefs.density} onChange={(v) => prefs.set({ density: v })}
+              options={[{ value: 'compact', label: 'Compact' }, { value: 'comfortable', label: 'Comfortable' }]} />
+          </div>
+          <div>
+            <p className="text-[12px] text-[var(--muted)] mb-1.5">Motion</p>
+            <Segments value={prefs.motion ? 'on' : 'off'} onChange={(v) => prefs.set({ motion: v === 'on' })}
+              options={[{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} />
+          </div>
+          <div>
+            <p className="text-[12px] text-[var(--muted)] mb-1.5">Suggestions</p>
+            <Segments value={prefs.newcomer ? 'new' : 'any'} onChange={(v) => prefs.set({ newcomer: v === 'new' })}
+              options={[{ value: 'new', label: 'Newcomer-friendly' }, { value: 'any', label: 'Any issue' }]} />
+          </div>
+        </div>
+        <InterestsEditor />
+        <Button variant="subtle" size="sm" onClick={() => prefs.set({ onboarded: false })}>Show the setup card on Today again</Button>
+      </div>
+    </Block>
+  );
+}
+
 export default function SettingsPage() {
   const { user, role } = useAuthStore();
   return (
@@ -127,9 +168,10 @@ export default function SettingsPage() {
             </div>
           </div>
         </Block>
+        <Personalize />
         {role === 'MAINTAINER' && <TrackedRepos />}
         <SavedReplies />
-        <Block title="AI">
+        <Block title="AI (optional)">
           <AISettingsPanel />
         </Block>
       </div>

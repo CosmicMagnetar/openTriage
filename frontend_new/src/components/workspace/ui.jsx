@@ -2,8 +2,90 @@
  * Workspace UI kit. Dense rows instead of cards, colour only for state,
  * monospace for references. Every page and the item panel use these.
  */
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
+import usePrefs from '../../stores/prefsStore';
+
+// ---------------------------------------------------------------------------
+// Motion (all respect Settings → Motion and prefers-reduced-motion)
+// ---------------------------------------------------------------------------
+
+const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+/** Rows fade/slide in with a short stagger the first time a list appears. */
+export function Stagger({ children, as = 'div' }) {
+  const motionOn = usePrefs((s) => s.motion) && !reducedMotion();
+  const M = motion[as];
+  if (!motionOn) return <>{children}</>;
+  return (
+    <M initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.025 } } }}>
+      {children}
+    </M>
+  );
+}
+
+export function StaggerItem({ children }) {
+  const motionOn = usePrefs((s) => s.motion) && !reducedMotion();
+  if (!motionOn) return <>{children}</>;
+  return (
+    <motion.div variants={{ hidden: { opacity: 0, y: 4 }, show: { opacity: 1, y: 0, transition: { duration: 0.18 } } }}>
+      {children}
+    </motion.div>
+  );
+}
+
+/** Number that counts up when it changes. */
+export function CountUp({ value }) {
+  const motionOn = usePrefs((s) => s.motion) && !reducedMotion();
+  const [shown, setShown] = useState(value);
+  const prev = useRef(value);
+  useEffect(() => {
+    if (!motionOn || typeof value !== 'number') { setShown(value); return undefined; }
+    const from = typeof prev.current === 'number' ? prev.current : 0;
+    prev.current = value;
+    if (from === value) { setShown(value); return undefined; }
+    const start = performance.now();
+    let raf;
+    const tick = (t) => {
+      const k = Math.min(1, (t - start) / 400);
+      setShown(Math.round(from + (value - from) * (1 - (1 - k) ** 3)));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, motionOn]);
+  return <>{shown}</>;
+}
+
+/** A small burst of coloured dots from a point (e.g. the button that was clicked). */
+export function celebrate(x = window.innerWidth / 2, y = window.innerHeight / 2) {
+  if (!usePrefs.getState().motion || reducedMotion()) return;
+  const root = document.querySelector('.ot') ?? document.body;
+  const colors = ['var(--accent)', 'var(--green)', 'var(--purple)', 'var(--amber)', 'var(--blue)'];
+  for (let i = 0; i < 18; i++) {
+    const d = document.createElement('span');
+    const angle = (Math.PI * 2 * i) / 18 + Math.random() * 0.4;
+    const dist = 40 + Math.random() * 50;
+    d.className = 'burst-dot';
+    d.style.left = `${x}px`;
+    d.style.top = `${y}px`;
+    d.style.background = colors[i % colors.length];
+    d.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    d.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    root.appendChild(d);
+    setTimeout(() => d.remove(), 800);
+  }
+}
+
+export function DrawnCheck({ size = 28 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className="draw-check inline-block" aria-hidden>
+      <circle cx="12" cy="12" r="10.5" fill="none" stroke="var(--line)" strokeWidth="1.5" />
+      <path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // State vocabulary (one meaning per colour, everywhere)
@@ -184,7 +266,7 @@ export function Page({ title, count, subtitle, actions, toolbar, refreshing, upd
       <header className="shrink-0 border-b border-[var(--line-soft)] px-5 pt-4 pb-3 pl-14 lg:pl-5">
         <div className="flex items-center gap-3 min-h-[28px]">
           <h1 className="text-[15px] font-semibold tracking-tight">{title}</h1>
-          {count !== undefined && <span className="mono text-[var(--faint)]">{count}</span>}
+          {count !== undefined && <span className="mono text-[var(--faint)]"><CountUp value={count} /></span>}
           {onRefresh && (
             <button onClick={onRefresh} title="Refresh (r)"
               className="ml-1 inline-flex items-center gap-1.5 text-[11px] text-[var(--faint)] hover:text-[var(--text-2)]">
@@ -220,7 +302,8 @@ export function Row({ selected, onClick, onMouseEnter, lead, title, meta, right,
       tabIndex={-1}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
-      className={`group flex items-start gap-3 px-5 py-2.5 border-b border-[var(--line-soft)] cursor-pointer hover:bg-[var(--hover)] ${selected ? 'row-selected' : ''}`}
+      style={{ paddingTop: 'var(--row-py)', paddingBottom: 'var(--row-py)' }}
+      className={`group flex items-start gap-3 px-5 border-b border-[var(--line-soft)] cursor-pointer hover:bg-[var(--hover)] transition-colors ${selected ? 'row-selected' : ''}`}
     >
       <div className="pt-[5px]">{lead}</div>
       <div className="flex-1 min-w-0">

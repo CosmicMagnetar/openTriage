@@ -11,7 +11,8 @@ import { prefetch, useQuery } from '../../lib/query';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ItemPanel from './ItemPanel';
 import CommandPalette from './CommandPalette';
-import AIDisabledBanner from '../settings/AIDisabledBanner';
+import HelpOverlay from './HelpOverlay';
+import usePrefs, { ACCENTS, opportunityParams } from '../../stores/prefsStore';
 import { SkeletonRows } from './ui';
 import './theme.css';
 
@@ -41,6 +42,7 @@ const NAV = {
 
 export default function WorkspaceLayout() {
   const { role } = useAuthStore();
+  const prefs = usePrefs();
   const ws = role === 'MAINTAINER' ? 'maintainer' : 'contributor';
   const nav = NAV[role === 'MAINTAINER' ? 'MAINTAINER' : 'CONTRIBUTOR'];
   // Shared with TodayPage via the cache, so this costs nothing extra.
@@ -54,7 +56,8 @@ export default function WorkspaceLayout() {
         prefetch(keys.inbox(), (o) => workApi.inbox(o), 90_000);
         prefetch(keys.prs('maintainer'), (o) => workApi.prs('maintainer', o), 90_000);
       } else {
-        prefetch(keys.find({}), (o) => workApi.findWork({}, o), 5 * 60_000);
+        const op = opportunityParams(usePrefs.getState());
+        prefetch(keys.opportunities(op), (o) => workApi.opportunities(op, o), 10 * 60_000);
         prefetch(keys.prs('mine'), (o) => workApi.prs('mine', o), 90_000);
       }
     }, 1500);
@@ -62,10 +65,11 @@ export default function WorkspaceLayout() {
   }, [ws]);
 
   return (
-    <div className="ot w-full h-screen flex overflow-hidden">
+    <div className="ot w-full h-screen flex overflow-hidden"
+      data-density={prefs.density} data-motion={prefs.motion ? 'on' : 'off'}
+      style={{ '--accent': ACCENTS[prefs.accent] ?? ACCENTS.indigo, '--accent-soft': `${ACCENTS[prefs.accent] ?? ACCENTS.indigo}1f` }}>
       <WorkspaceSidebar nav={nav} counts={{ today: today.data?.actions?.length ?? 0 }} />
       <main className="flex-1 min-w-0 flex flex-col">
-        <AIDisabledBanner />
         <div className="flex-1 min-h-0">
           <Suspense fallback={<div className="pt-16"><SkeletonRows n={8} /></div>}>
             <Routes>
@@ -85,6 +89,7 @@ export default function WorkspaceLayout() {
       </main>
       <ItemPanel />
       <CommandPalette nav={nav} />
+      <HelpOverlay workspace={ws} />
     </div>
   );
 }

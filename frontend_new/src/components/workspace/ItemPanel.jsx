@@ -4,8 +4,10 @@
  * decide and act: status, who acts next, context, and a reply composer that
  * posts straight to GitHub.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
 import {
   BookOpen, CircleDot, FileCode2, GitPullRequest, Maximize2, MessageSquare, Sparkles, Tag as TagIcon, X,
@@ -13,11 +15,11 @@ import {
 import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
-import { invalidate, useQuery } from '../../lib/query';
+import { fetchQuery, invalidate, useQuery } from '../../lib/query';
 import { isTypingTarget, useItemPanel } from './useWorkspace';
 import {
   ACTION, AVAILABILITY, Block, Button, CHECKS, Dot, ErrorLine, Evidence, ExtLink, Input, RESPONSIVENESS, REVIEW,
-  SkeletonRows, Tag, Textarea, VERDICT, timeAgo, waitingOnLabel,
+  SkeletonRows, Tag, Textarea, VERDICT, celebrate, timeAgo, waitingOnLabel,
 } from './ui';
 
 // ---------------------------------------------------------------------------
@@ -115,6 +117,104 @@ function ActionList({ actions, me }) {
 }
 
 // ---------------------------------------------------------------------------
+// Conversation (GitHub comments + reviews)
+// ---------------------------------------------------------------------------
+
+const REVIEW_STATE = {
+  APPROVED: ['green', 'approved'],
+  CHANGES_REQUESTED: ['amber', 'requested changes'],
+  COMMENTED: ['gray', 'reviewed'],
+  DISMISSED: ['gray', 'review dismissed'],
+};
+
+const mdComponents = {
+  a: ({ node: _n, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+  img: ({ node: _n, alt, ...props }) => <img {...props} alt={alt ?? ''} loading="lazy" />,
+};
+
+/** GitHub bodies may contain raw HTML; we never render it — keep the text, turn <a> into links. */
+function cleanBody(s) {
+  return (s ?? '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<a\s[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_, href, text) => {
+      const t = text.replace(/<[^>]+>/g, '').trim();
+      return t ? `[${t}](${href})` : '';
+    })
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/?(details|summary|div|p|span|sup|sub|picture|source|img|table|thead|tbody|tr|td|th)[^>]*>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+}
+
+function Post({ e, opening = false }) {
+  const [expanded, setExpanded] = useState(!opening && !e.isBot);
+  const [state, label] = e.kind === 'review' ? REVIEW_STATE[e.state] ?? ['gray', 'reviewed'] : [null, null];
+  const body = cleanBody(e.body);
+  const long = body && (body.length > 700 || e.isBot);
+  return (
+    <li className={`flex gap-2.5 ${e.isBot ? 'opacity-60' : ''}`}>
+      <img src={e.avatarUrl || 'https://github.com/ghost.png'} alt="" className="w-6 h-6 rounded-full shrink-0 mt-0.5" loading="lazy" />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-1.5 text-[12px]">
+          <span className="text-[var(--text)] font-medium">{e.author}</span>
+          {e.isMaintainer && <Tag>maintainer</Tag>}
+          {e.isBot && <Tag>bot</Tag>}
+          {state && <span className="inline-flex items-center gap-1 text-[var(--muted)]"><Dot color={state} />{label}</span>}
+          {opening && <span className="text-[var(--muted)]">opened this</span>}
+          <a href={e.url} target="_blank" rel="noopener noreferrer" className="text-[var(--faint)] hover:text-[var(--muted)]">{timeAgo(e.createdAt)}</a>
+        </div>
+        {body ? (
+          <div className={`md mt-0.5 ${long && !expanded ? `${e.isBot ? 'max-h-12' : 'max-h-40'} overflow-hidden [mask-image:linear-gradient(180deg,#000_60%,transparent)]` : ''}`}>
+            <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{body}</Markdown>
+          </div>
+        ) : (
+          <p className="text-[12px] text-[var(--faint)] mt-0.5">No description.</p>
+        )}
+        {long && (
+          <button onClick={() => setExpanded((x) => !x)} className="text-[11.5px] text-[var(--muted)] hover:text-[var(--text)] mt-0.5">
+            {expanded ? 'Show less' : 'Show more'}
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function Conversation({ owner, repo, number }) {
+  const t = useQuery(keys.thread(owner, repo, number), (o) => workApi.thread(owner, repo, number, o), { staleMs: 120_000 });
+  const [showAll, setShowAll] = useState(false);
+  const entries = t.data?.entries ?? [];
+  const hidden = !showAll && entries.length > 8 ? entries.length - 6 : 0;
+  const visible = hidden ? [...entries.slice(0, 2), ...entries.slice(-4)] : entries;
+
+  return (
+    <Block title={`Conversation${t.data ? ` · ${t.data.total}` : ''}`}
+      right={t.isRefreshing && <Dot color="blue" pulse />}>
+      {t.error && <ErrorLine message={t.error.message} onRetry={t.refresh} />}
+      {t.isLoading && <SkeletonRows n={2} />}
+      {t.data && (
+        <ul className="space-y-4">
+          <Post e={t.data.opening} opening />
+          {visible.map((e, i) => (
+            <Fragment key={e.id}>
+              {hidden > 0 && i === 2 && (
+                <li>
+                  <button onClick={() => setShowAll(true)} className="w-full h-7 rounded-md border border-dashed border-[var(--line)] text-[12px] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]">
+                    Show {hidden} more comments
+                  </button>
+                </li>
+              )}
+              <Post e={e} />
+            </Fragment>
+          ))}
+          {entries.length === 0 && <li className="text-[12px] text-[var(--faint)] pl-8">No comments yet. Be the first to reply.</li>}
+        </ul>
+      )}
+    </Block>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Composer (posts to GitHub as the user)
 // ---------------------------------------------------------------------------
 
@@ -122,6 +222,7 @@ function Composer({ owner, repo, number, initial = '', placeholder, cta = 'Comme
   const [text, setText] = useState(initial);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
+  const postRef = useRef(null);
   const replies = useQuery(keys.replies(), () => workApi.savedReplies(), { staleMs: 5 * 60_000 });
   useEffect(() => setText(initial), [initial]);
 
@@ -129,8 +230,12 @@ function Composer({ owner, repo, number, initial = '', placeholder, cta = 'Comme
     setBusy(true);
     try {
       const res = await workApi.comment(owner, repo, number, text);
+      const r = postRef.current?.getBoundingClientRect();
+      if (r) celebrate(r.left + r.width / 2, r.top + r.height / 2);
       toast.success('Posted on GitHub', { action: { label: 'View', onClick: () => window.open(res.url, '_blank') } });
       setText('');
+      invalidate(keys.thread(owner, repo, number));
+      fetchQuery(keys.thread(owner, repo, number), (o) => workApi.thread(owner, repo, number, { ...o, fresh: true })).catch(() => {});
       onPosted?.();
     } catch (e) {
       toast.error(e.message);
@@ -171,7 +276,7 @@ function Composer({ owner, repo, number, initial = '', placeholder, cta = 'Comme
       <Textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder}
         onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && text.trim()) post(); }} />
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="primary" disabled={busy || !text.trim()} onClick={post}>
+        <Button ref={postRef} variant="primary" disabled={busy || !text.trim()} onClick={post}>
           <MessageSquare className="w-3.5 h-3.5" /> {busy ? 'Posting…' : cta}
         </Button>
         <span className="text-[11px] text-[var(--faint)]">⌘↵</span>
@@ -264,7 +369,7 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
               {v.issue.labels.map((l) => <Tag key={l}>{l}</Tag>)}
             </>}>{v.issue.title}</Title>
 
-            <Block title="Can it be picked up?">
+            <Block title={isMaintainer ? 'Status' : 'Can I pick this up?'}>
               <div className="flex flex-wrap items-center gap-2">
                 <Tag color={avail.color}>{avail.label}</Tag>
                 <Tag color={verdict.color}>{verdict.label} · {v.pickup.score}</Tag>
@@ -289,6 +394,8 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
             <Block title="Who acts next">
               <ActionList actions={v.actions} me={user?.username} />
             </Block>
+
+            <Conversation owner={owner} repo={repo} number={number} />
 
             {(v.related.possibleDuplicates.length > 0 || v.related.related.length > 0) && (
               <Block title={v.related.possibleDuplicates.length ? 'Possible duplicates' : 'Related'}>
@@ -463,6 +570,8 @@ export function PRDetail({ owner, repo, number, onClose }) {
               <ActionList actions={d.actions} me={user?.username} />
             </Block>
 
+            <Conversation owner={owner} repo={repo} number={number} />
+
             {(d.reviews.length > 0 || pr.requestedReviewers.length > 0 || d.suggestedReviewers.length > 0) && (
               <Block title="Reviewers">
                 <ul className="space-y-1 text-[12.5px]">
@@ -501,12 +610,6 @@ export function PRDetail({ owner, repo, number, onClose }) {
                 ))}
               </ul>
             </Block>
-
-            {pr.body?.trim() && (
-              <Block title="Description">
-                <p className="text-[12.5px] text-[var(--text-2)] whitespace-pre-wrap line-clamp-[12]">{pr.body}</p>
-              </Block>
-            )}
 
             <Block title="Reply">
               <Composer owner={owner} repo={repo} number={number}

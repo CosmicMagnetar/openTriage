@@ -47,6 +47,9 @@ export const workApi = {
   addRepo: (owner, repo) => send("post", "/sync/add-repo", { owner, repo }),
   comment: (owner, repo, number, body) => send("post", `/work/item/${ref(owner, repo, number)}`, { action: "comment", body }),
   addLabels: (owner, repo, number, labels) => send("post", `/work/item/${ref(owner, repo, number)}`, { action: "label", labels }),
+  thread: (owner, repo, number, o) => get(`/work/item/${ref(owner, repo, number)}/thread`, fresh(o)),
+  signals: () => get("/me/signals"),
+  opportunities: (params, o) => get("/work/opportunities", { ...params, ...fresh(o) }),
   savedReplies: () => get("/maintainer/templates"),
   saveReply: (name, body) => send("post", "/maintainer/templates", { name, body }),
   deleteReply: (id) => send("delete", "/maintainer/templates", undefined, { id }),
@@ -64,6 +67,9 @@ export const keys = {
   lens: (o, r) => `lens:${o}/${r}`.toLowerCase(),
   repos: () => "repos",
   replies: () => "replies",
+  thread: (o, r, n) => `thread:${o}/${r}#${n}`.toLowerCase(),
+  signals: () => "signals",
+  opportunities: (params) => `opp:${JSON.stringify(params)}`,
 };
 
 /**

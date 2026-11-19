@@ -5,7 +5,8 @@
  */
 import { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, Menu, Search, Settings, X } from 'lucide-react';
+import { HelpCircle, LogOut, Menu, Search, Settings, X } from 'lucide-react';
+import { openHelp } from './HelpOverlay';
 import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
 import Logo from '../Logo';
@@ -112,6 +113,10 @@ export default function WorkspaceSidebar({ nav, counts = {} }) {
           <div className="flex items-center gap-2">
             <img src={user?.avatarUrl || 'https://github.com/ghost.png'} alt="" className="w-6 h-6 rounded-full" />
             <span className="flex-1 min-w-0 text-[12.5px] text-[var(--text-2)] truncate">{user?.username}</span>
+            <button onClick={openHelp} aria-label="Help (?)" title="Help (?)"
+              className="w-7 h-7 inline-flex items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]">
+              <HelpCircle className="w-3.5 h-3.5" />
+            </button>
             <button onClick={() => go('/dashboard/settings')} aria-label="Settings" title="Settings"
               className={`w-7 h-7 inline-flex items-center justify-center rounded-md hover:bg-[var(--hover)] ${isActive('/dashboard/settings') ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>
               <Settings className="w-3.5 h-3.5" />

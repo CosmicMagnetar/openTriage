@@ -43,7 +43,7 @@ export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>
 /** Drop cached views of a repo (webhook, or after the user writes to GitHub). */
 export function invalidateRepo(owner: string, repo: string) {
     const r = `${owner}/${repo}`.toLowerCase();
-    for (const prefix of ["lens:", "resp:", "files:", "issue:", "ctx:", "pr:", "inbox:"]) cache.invalidatePrefix(`${prefix}${r}`);
+    for (const prefix of ["lens:", "resp:", "files:", "issue:", "ctx:", "pr:", "inbox:", "thread:"]) cache.invalidatePrefix(`${prefix}${r}`);
     // Per-user lists can contain this repo; they are short-lived, so drop them all.
     for (const prefix of ["na:", "prs:", "find:"]) cache.invalidatePrefix(prefix);
 }
