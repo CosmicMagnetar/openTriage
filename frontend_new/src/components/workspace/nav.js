@@ -1,35 +1,49 @@
 /**
  * Workspace navigation, grouped per role. Shared by the layout, the sidebar,
- * the ⌘K palette and Settings → Sidebar (reorder / hide).
+ * the ⌘K palette, page headers and Settings → Sidebar (reorder / hide).
+ * Each page has its own hue: its icon, header tint and key numbers use it,
+ * so you can tell where you are at a glance.
  */
-import { BookOpen, Compass, GitPullRequest, Home, Inbox, Layers, LayoutDashboard, LineChart, Trophy } from 'lucide-react';
+import { BookOpen, Compass, GitPullRequest, Home, Inbox, Layers, LayoutDashboard, Settings, Sparkles, Trophy } from 'lucide-react';
+
+export const HUES = {
+  green: '#57ab5a',
+  blue: '#478be6',
+  orange: '#e0823d',
+  magenta: '#d462a6',
+  teal: '#39a7a0',
+  amber: '#c69026',
+  pink: '#e5708b',
+  slate: '#8b95a3',
+};
 
 /** Role-specific nav, grouped. Each workspace gets pages for its own job. */
 export const NAV = {
   contributor: [
     { id: 'focus', title: 'Focus', items: [
-      { icon: Home, label: 'Home', path: '/dashboard', countKey: 'today' },
-      { icon: Layers, label: 'My work', path: '/dashboard/mine' },
+      { icon: Home, label: 'Home', path: '/dashboard', countKey: 'today', hue: HUES.green },
+      { icon: Layers, label: 'My work', path: '/dashboard/mine', hue: HUES.teal },
     ] },
     { id: 'discover', title: 'Discover', items: [
-      { icon: Compass, label: 'Find work', path: '/dashboard/find' },
-      { icon: Trophy, label: 'Opportunities', path: '/dashboard/opportunities', countKey: 'deadlines' },
+      { icon: Compass, label: 'Find work', path: '/dashboard/find', hue: HUES.blue },
+      { icon: Trophy, label: 'Opportunities', path: '/dashboard/opportunities', countKey: 'deadlines', hue: HUES.orange },
     ] },
     { id: 'grow', title: 'Grow', items: [
-      { icon: LineChart, label: 'Journey', path: '/dashboard/journey' },
-      { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens' },
+      { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.magenta },
+      { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens', hue: HUES.slate },
     ] },
   ],
   maintainer: [
     { id: 'focus', title: 'Focus', items: [
-      { icon: LayoutDashboard, label: 'Command center', path: '/dashboard', countKey: 'today' },
-      { icon: Inbox, label: 'Inbox', path: '/dashboard/inbox', countKey: 'inbox' },
+      { icon: LayoutDashboard, label: 'Command center', path: '/dashboard', countKey: 'today', hue: HUES.amber },
+      { icon: Inbox, label: 'Inbox', path: '/dashboard/inbox', countKey: 'inbox', hue: HUES.blue },
     ] },
     { id: 'review', title: 'Review', items: [
-      { icon: GitPullRequest, label: 'Pull requests', path: '/dashboard/prs', countKey: 'prs' },
+      { icon: GitPullRequest, label: 'Pull requests', path: '/dashboard/prs', countKey: 'prs', hue: HUES.green },
     ] },
     { id: 'understand', title: 'Understand', items: [
-      { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens' },
+      { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.magenta },
+      { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens', hue: HUES.slate },
     ] },
   ],
 };
@@ -37,3 +51,13 @@ export const NAV = {
 /** Flat nav list for the ⌘K palette. */
 export const flatNav = (ws) => NAV[ws].flatMap((g) => g.items);
 
+const EXTRA = [{ icon: Settings, label: 'Settings', path: '/dashboard/settings', hue: HUES.slate }];
+
+/** Nav entry for a path (longest match), for page headers. */
+export function pageMeta(ws, pathname) {
+  const items = [...flatNav(ws), ...EXTRA];
+  const clean = pathname.replace(/\/$/, '') || '/dashboard';
+  return items
+    .filter((n) => (n.path === '/dashboard' ? clean === '/dashboard' : clean.startsWith(n.path)))
+    .sort((a, b) => b.path.length - a.path.length)[0] ?? null;
+}

@@ -35,6 +35,7 @@ const loaders = {
   issue: () => import('./IssueFullPage'),
   settings: () => import('./SettingsPage'),
   journey: () => import('./JourneyPage'),
+  profile: () => import('./JourneyPage'),
   opportunities: () => import('./OpportunitiesPage'),
 };
 const TodayPage = lazy(loaders.today);
@@ -142,7 +143,8 @@ export default function WorkspaceLayout() {
               <Route path="lens/:owner/:repo" element={<RepoLensPage />} />
               <Route path="work/:owner/:repo/:number" element={<IssueFullPage />} />
               <Route path="settings" element={<SettingsPage />} />
-              <Route path="journey" element={ws === 'contributor' ? <JourneyPage /> : <Navigate to="/dashboard" replace />} />
+              <Route path="journey" element={<Navigate to="/dashboard/profile" replace />} />
+              <Route path="profile" element={<JourneyPage />} />
               <Route path="opportunities" element={ws === 'contributor' ? <OpportunitiesPage /> : <Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

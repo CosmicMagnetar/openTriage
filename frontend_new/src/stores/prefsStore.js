@@ -6,7 +6,7 @@
 import { create } from "zustand";
 
 const KEY = "ot:prefs";
-const VERSION = 5;
+const VERSION = 6;
 
 /** Curated accents; each keeps ≥4.5:1 contrast on the workspace background. */
 export const ACCENTS = {
@@ -56,7 +56,8 @@ function load() {
     // v3 stored one accent name for both workspaces
     if (typeof parsed.accent === "string") delete parsed.accent;
     // v5 changed palette and defaults: drop stale accent/density from earlier versions
-    if (parsed.v !== VERSION) { delete parsed.accent; delete parsed.density; delete parsed.textSize; }
+    // v6 made text larger and comfortable density the default: reset size/density once
+    if (parsed.v !== VERSION) { if (parsed.v !== 5) delete parsed.accent; delete parsed.density; delete parsed.textSize; }
     return { ...DEFAULTS, ...parsed };
   } catch {
     return { ...DEFAULTS };

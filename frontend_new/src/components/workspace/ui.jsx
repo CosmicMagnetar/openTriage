@@ -5,7 +5,10 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, Check } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import usePrefs from '../../stores/prefsStore';
+import useAuthStore from '../../stores/authStore';
+import { pageMeta } from './nav';
 
 // ---------------------------------------------------------------------------
 // Motion (all respect Settings → Motion and prefers-reduced-motion)
@@ -367,25 +370,31 @@ export function timeAgo(iso) {
 // Layout
 // ---------------------------------------------------------------------------
 
-/** Page frame: sticky header with title, count, refresh state and actions. */
-export function Page({ title, count, subtitle, actions, toolbar, refreshing, updatedAt, onRefresh, children }) {
+/** Page frame: header with the page's icon chip in its hue, title, freshness and actions. */
+export function Page({ title, count, subtitle, actions, toolbar, refreshing, updatedAt, onRefresh, children, icon, hue }) {
+  const { pathname } = useLocation();
+  const ws = useAuthStore((st) => (st.role === 'MAINTAINER' ? 'maintainer' : 'contributor'));
+  const meta = pageMeta(ws, pathname);
+  const Icon = icon ?? meta?.icon;
+  const h = hue ?? meta?.hue;
   return (
-    <div className="h-full flex flex-col min-w-0">
-      <header className="shrink-0 border-b border-[var(--line)] bg-[var(--bg)] px-6 pt-5 pb-3.5">
-        <div className="flex items-center gap-3 min-h-[28px]">
-          <h1 className="fs-19 font-semibold tracking-tight">{title}</h1>
-          {count !== undefined && <span className="mono text-[var(--faint)]"><LiveNumber value={count} delta={false} /></span>}
+    <div className="h-full flex flex-col min-w-0" style={h ? { '--hue': h } : undefined}>
+      <header className="page-head shrink-0 border-b border-[var(--line)] px-8 pt-6 pb-4">
+        <div className="flex items-center gap-3 min-h-[32px]">
+          {Icon && <span className="chip chip-lg"><Icon /></span>}
+          <h1 className="fs-24 font-semibold tracking-tight">{title}</h1>
+          {count !== undefined && <span className="mono fs-13 text-[var(--muted)]"><LiveNumber value={count} delta={false} /></span>}
           {onRefresh && (
             <button onClick={onRefresh} title="Refresh (r)"
-              className="ml-1 inline-flex items-center gap-1.5 fs-11 text-[var(--faint)] hover:text-[var(--text-2)]">
+              className="ml-1 inline-flex items-center gap-1.5 fs-12 text-[var(--muted)] hover:text-[var(--text)]">
               <Dot color={refreshing ? 'blue' : 'gray'} />
               {updatedAt ? (timeAgo(new Date(updatedAt).toISOString()) === 'now' ? 'Updated just now' : `Updated ${timeAgo(new Date(updatedAt).toISOString())} ago`) : ''}
             </button>
           )}
           <div className="ml-auto flex items-center gap-2">{actions}</div>
         </div>
-        {subtitle && <p className="fs-12 text-[var(--muted)] mt-0.5">{subtitle}</p>}
-        {toolbar && <div className="mt-3 flex flex-wrap items-center gap-2">{toolbar}</div>}
+        {subtitle && <p className="fs-13-5 text-[var(--text-2)] mt-1.5 max-w-3xl">{subtitle}</p>}
+        {toolbar && <div className="mt-4 flex flex-wrap items-center gap-2">{toolbar}</div>}
       </header>
       <div className="flex-1 scroll">{children}</div>
     </div>
@@ -416,7 +425,7 @@ export function Row({ selected, changed, onClick, onMouseEnter, lead, title, met
       <div className="pt-[3px]">{lead}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 min-w-0">
-          <span className="truncate fs-13-5 text-[var(--text)]">{title}</span>
+          <span className="truncate fs-14 text-[var(--text)]">{title}</span>
         </div>
         {meta && <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 fs-12 text-[var(--muted)]">{meta}</div>}
         {children}
@@ -556,28 +565,28 @@ export function Evidence({ items }) {
   );
 }
 
-/** Bordered panel with an optional title row. */
-export function Card({ title, right, children, className = '', bodyClass = 'px-3.5 pb-3.5' }) {
+/** Bordered panel with an optional title row (icon chip in the card's hue). */
+export function Card({ title, right, children, className = '', bodyClass = 'px-5 pb-5', icon: Icon, hue }) {
   return (
-    <section className={`card ${className}`}>
+    <section className={`card ${className}`} style={hue ? { '--hue': hue } : undefined}>
       {(title || right) && (
         <div className="card-h">
-          {title && <h2 className="card-t">{title}</h2>}
+          {title && <h2 className="card-t">{Icon && <span className="chip"><Icon /></span>}{title}</h2>}
           {right}
         </div>
       )}
-      <div className={title || right ? bodyClass : 'p-3.5'}>{children}</div>
+      <div className={title || right ? bodyClass : 'p-5'}>{children}</div>
     </section>
   );
 }
 
 /** Big number with a label; `onClick` makes it a filter button. */
-export function Stat({ label, value, color = 'var(--accent)', hint, onClick }) {
+export function Stat({ label, value, color, hint, onClick }) {
   const Tag = onClick ? 'button' : 'div';
   return (
-    <Tag onClick={onClick} className="stat-tile text-left" style={{ '--c': color }} title={hint}>
-      <div className="fs-12 text-[var(--muted)]">{label}</div>
-      <div className="fs-24 font-semibold mt-0.5 leading-none" style={{ color: value ? 'var(--text)' : 'var(--faint)' }}>
+    <Tag onClick={onClick} className="stat-tile text-left" style={{ '--c': color ?? 'var(--hue)' }} title={hint}>
+      <div className="fs-13 text-[var(--text-2)]">{label}</div>
+      <div className="fs-30 font-semibold mt-1.5 leading-none tnum" style={{ color: value ? (color ?? 'var(--text)') : 'var(--faint)' }}>
         <LiveNumber value={value} />
       </div>
     </Tag>

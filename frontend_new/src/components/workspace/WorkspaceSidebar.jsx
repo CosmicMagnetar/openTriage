@@ -101,17 +101,17 @@ export default function WorkspaceSidebar({ ws, groups, counts = {}, panels = [],
             if (!items.length) return null;
             return (
               <Section key={g.id} id={`${ws}:${g.id}`} title={g.title}>
-                {items.map(({ icon: Icon, label, path, countKey }) => {
+                {items.map(({ icon: Icon, label, path, countKey, hue }) => {
                   const active = isActive(path);
                   return (
                     <button key={path} data-testid={`nav-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`} onClick={() => go(path)}
                       onMouseEnter={() => onPreload?.(path)} onFocus={() => onPreload?.(path)}
                       aria-current={active ? 'page' : undefined}
-                      className={`side-item isolate ${active ? 'is-active' : ''}`}>
+                      className={`side-item isolate ${active ? 'is-active' : ''}`} style={hue ? { '--hue': hue } : undefined}>
                       {active && (motionOn
                         ? <motion.span layoutId="nav-active" aria-hidden className="side-pill" transition={{ type: 'spring', stiffness: 520, damping: 40 }} />
                         : <span aria-hidden className="side-pill" />)}
-                      <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[var(--accent)]' : 'text-[var(--muted)]'}`} />
+                      <Icon className="nav-ico w-4 h-4 shrink-0" />
                       <span className="flex-1 text-left truncate">{label}</span>
                       {countKey && counts[countKey] > 0 && (
                         <span className="mono fs-11 min-w-[20px] h-[18px] px-1.5 inline-flex items-center justify-center rounded bg-[var(--raised)] text-[var(--text-2)]">

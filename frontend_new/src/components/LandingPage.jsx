@@ -1065,9 +1065,12 @@ const LandingPage = () => {
                             <Logo size="lg" />
                             <span className="text-5xl md:text-6xl font-bold text-white tracking-tight">OpenTriage</span>
                         </div>
-                        <h1 className="text-2xl md:text-3xl text-zinc-400 mb-10 font-medium leading-relaxed">
-                            Stop Sorting Issues. <span className="text-emerald-400">Start Shipping Code.</span>
+                        <h1 className="text-2xl md:text-3xl text-zinc-300 mb-4 font-medium leading-snug">
+                            Grow in open source, <span className="text-emerald-400">one clear next step a day.</span>
                         </h1>
+                        <p className="text-lg text-zinc-400 mb-10 leading-relaxed max-w-xl">
+                            OpenTriage sorts your pull requests, the people waiting on you and the best issue to pick next into one short list, so contributors grow steadily and maintainers keep their community moving.
+                        </p>
                         <div className="flex flex-col sm:flex-row gap-4 mb-10">
                             <button onClick={handleLogin} className="flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-zinc-100 text-black rounded-xl font-semibold transition-all text-lg">
                                 <Github className="w-5 h-5" />
