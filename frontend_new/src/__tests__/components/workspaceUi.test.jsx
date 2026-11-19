@@ -4,13 +4,13 @@ import { Baton, Empty, LiveNumber, Pulse, SkeletonRows, useChangedRows } from '.
 import usePrefs, { arrangeNav, accentFor } from '../../stores/prefsStore';
 
 describe('workspace v3 ui', () => {
-  it('Pulse beats for active, slows for stale, is flat for done', () => {
+  it('state mark: filled dot when active, dashed when stale, ring only when done', () => {
     const { container, rerender } = render(<Pulse color="green" />);
-    expect(container.querySelector('.pulse-fast')).toBeTruthy();
+    expect(container.querySelectorAll('circle').length).toBe(2);
     rerender(<Pulse color="amber" />);
-    expect(container.querySelector('.pulse-slow')).toBeTruthy();
+    expect(container.querySelector('circle[stroke-dasharray]')).toBeTruthy();
     rerender(<Pulse color="gray" />);
-    expect(container.querySelector('.pulse-flat')).toBeTruthy();
+    expect(container.querySelectorAll('circle').length).toBe(1);
   });
 
   it('Baton marks maintainers as holder when waiting on maintainers', () => {
@@ -81,6 +81,16 @@ describe('workspace v4 ui', () => {
 
   it('each workspace has its own default accent', () => {
     expect(accentFor({ accent: {} }, 'contributor').hex).not.toBe(accentFor({ accent: {} }, 'maintainer').hex);
-    expect(accentFor({ accent: { maintainer: 'blue' } }, 'maintainer').hex).toBe('#5b9fe0');
+    expect(accentFor({ accent: { maintainer: 'blue' } }, 'maintainer').hex).toBe('#478be6');
+  });
+});
+
+describe('workspace v5 nav', () => {
+  it('contributor and maintainer get different pages', async () => {
+    const { NAV } = await import('../../components/workspace/nav');
+    const paths = (ws) => NAV[ws].flatMap((g) => g.items.map((i) => i.label));
+    expect(paths('contributor')).not.toEqual(paths('maintainer'));
+    expect(paths('contributor')).toContain('Home');
+    expect(paths('maintainer')).toContain('Command center');
   });
 });

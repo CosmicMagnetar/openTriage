@@ -14,6 +14,7 @@ import { REFRESH_MS, prefetch, useQuery } from '../../lib/query';
 import { startLive, stopLive, watchRepos } from '../../lib/live';
 import { useItemPanel } from './useWorkspace';
 import WorkspaceSidebar from './WorkspaceSidebar';
+import ContextBar from './ContextBar';
 import ItemPanel from './ItemPanel';
 import CommandPalette from './CommandPalette';
 import HelpOverlay from './HelpOverlay';
@@ -104,9 +105,11 @@ export default function WorkspaceLayout() {
   }, [ws]);
 
   return (
-    <div className="ot w-full h-screen flex overflow-hidden"
+    <div className="ot w-full h-screen flex flex-col overflow-hidden"
       data-ws={ws} data-density={prefs.density} data-text={prefs.textSize} data-motion={prefs.motion ? 'on' : 'off'}
       style={{ '--accent': accent.hex, '--accent-ink': accent.ink }}>
+      <ContextBar ws={ws} repoCount={today.data?.repos?.length ?? 0} />
+      <div className="flex-1 min-h-0 flex">
       <WorkspaceSidebar ws={ws} groups={NAV[ws]} panels={panels}
         onPreload={(path) => { const k = path.split('/')[2] || 'today'; loaders[k]?.().catch(() => {}); }}
         counts={{ today: actions.length, inbox: inbox.data?.rows?.length, prs: prRows.length }} />
@@ -115,9 +118,9 @@ export default function WorkspaceLayout() {
           <Suspense fallback={null}>
             <AnimatePresence mode="wait" initial={false}>
             <motion.div key={location.pathname} className="h-full"
-              initial={motionOn ? { opacity: 0, y: 6 } : false}
-              animate={{ opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.2, 0.7, 0.3, 1] } }}
-              exit={motionOn ? { opacity: 0, y: -4, transition: { duration: 0.12 } } : undefined}>
+              initial={motionOn ? { opacity: 0, y: 4 } : false}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.15, ease: [0.2, 0.7, 0.3, 1] } }}
+              exit={motionOn ? { opacity: 0, transition: { duration: 0.08 } } : undefined}>
             <Routes location={location}>
               <Route index element={<TodayPage />} />
               <Route path="find" element={<FindWorkPage />} />
@@ -135,6 +138,7 @@ export default function WorkspaceLayout() {
           </Suspense>
         </div>
       </main>
+      </div>
       <ItemPanel />
       <CommandPalette nav={flatNav(ws)} />
       <HelpOverlay workspace={ws} />

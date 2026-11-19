@@ -4,7 +4,7 @@
  */
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Check } from 'lucide-react';
 import usePrefs from '../../stores/prefsStore';
 
 // ---------------------------------------------------------------------------
@@ -231,19 +231,19 @@ export function Dot({ color = 'gray', pulse = false, title }) {
 }
 
 /**
- * Liveness heartbeat: the signature mark for every item.
- * Active states beat, amber (stale) beats slowly, gray (done/dead) is flat.
+ * State mark for an item, GitHub style: a circled dot in the state colour
+ * (open/active), a half-filled ring for waiting/stale, a plain ring for done.
+ * Kept under the old name `Pulse` so every page uses it without changes.
  */
-const RHYTHM = { green: 'fast', blue: 'fast', purple: 'fast', red: 'fast', amber: 'slow', gray: 'flat' };
-export function Pulse({ color = 'gray', title, size = 18 }) {
-  const rhythm = RHYTHM[color] ?? 'fast';
+export function Pulse({ color = 'gray', title, size = 16 }) {
   const c = STATE[color] ?? color;
-  const d = rhythm === 'flat' ? 'M1 6h16' : 'M1 6h4l1.5-3.5L9 10l1.8-6L12 6h5';
+  const stale = color === 'amber';
+  const done = color === 'gray';
   return (
-    <span title={title} className={`pulse-mark pulse-${rhythm}`} style={{ '--c': c, width: size }}>
-      <svg viewBox="0 0 18 12" width={size} height={size * 0.67} aria-hidden>
-        <path d={d} className="pulse-trace" />
-        <path d={d} className="pulse-line" />
+    <span title={title} className="state-icon" style={{ width: size, height: size }}>
+      <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden>
+        <circle cx="8" cy="8" r="6.25" fill="none" stroke={c} strokeWidth="1.5" strokeDasharray={stale ? '3 2' : undefined} />
+        {!done && <circle cx="8" cy="8" r="2" fill={c} />}
       </svg>
     </span>
   );
@@ -305,10 +305,10 @@ export function Kbd({ children }) {
 
 export const Button = forwardRef(function Button({ variant = 'ghost', size = 'md', className = '', children, ...rest }, ref) {
   const base = 'btn inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none';
-  const sizes = { sm: 'h-7 px-2.5 fs-12', md: 'h-8 px-3 fs-12-5' };
+  const sizes = { sm: 'ctl-sm px-2.5 fs-12', md: 'ctl px-3 fs-13' };
   const variants = {
     primary: 'btn-primary text-[var(--accent-ink)] bg-[var(--accent)] hover:brightness-110',
-    ghost: 'text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--hover)] border border-[var(--line)]',
+    ghost: 'text-[var(--text)] bg-[var(--panel)] hover:bg-[var(--hover)] border border-[var(--line)]',
     subtle: 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]',
     danger: 'text-[var(--red)] hover:bg-[rgba(248,81,73,0.1)] border border-[var(--line)]',
   };
@@ -323,7 +323,7 @@ export const Input = forwardRef(function Input({ className = '', ...rest }, ref)
   return (
     <input
       ref={ref}
-      className={`h-8 px-3 rounded-md fs-12-5 bg-[var(--panel)] border border-[var(--line)] text-[var(--text)] placeholder:text-[var(--faint)] focus:outline-none focus:border-[var(--accent)] ${className}`}
+      className={`ctl px-3 rounded-md fs-13 bg-[var(--inset)] border border-[var(--line)] text-[var(--text)] placeholder:text-[var(--faint)] focus:outline-none focus:border-[var(--accent)] ${className}`}
       {...rest}
     />
   );
@@ -371,7 +371,7 @@ export function timeAgo(iso) {
 export function Page({ title, count, subtitle, actions, toolbar, refreshing, updatedAt, onRefresh, children }) {
   return (
     <div className="h-full flex flex-col min-w-0">
-      <header className="shrink-0 border-b border-[var(--line-soft)] bg-[var(--bg)] px-6 pt-5 pb-3.5 pl-14 lg:pl-6">
+      <header className="shrink-0 border-b border-[var(--line)] bg-[var(--bg)] px-6 pt-5 pb-3.5">
         <div className="flex items-center gap-3 min-h-[28px]">
           <h1 className="fs-19 font-semibold tracking-tight">{title}</h1>
           {count !== undefined && <span className="mono text-[var(--faint)]"><LiveNumber value={count} delta={false} /></span>}
@@ -510,16 +510,18 @@ export function ErrorLine({ message, onRetry }) {
 /** Segmented filter: [{ value, label, count }] */
 export function Segments({ value, onChange, options }) {
   return (
-    <div className="inline-flex p-0.5 rounded-md border border-[var(--line)] bg-[var(--panel)]">
-      {options.map((o) => (
-        <button key={o.value} onClick={() => onChange(o.value)}
-          className={`h-6 px-2.5 rounded fs-12 inline-flex items-center gap-1.5 ${value === o.value
-            ? 'bg-[var(--raised)] text-[var(--text)] shadow-[inset_0_0_0_1px_var(--line)]'
-            : 'text-[var(--muted)] hover:text-[var(--text-2)]'}`}>
-          {o.label}
-          {o.count !== undefined && <span className="mono fs-10-5 text-[var(--faint)]">{o.count}</span>}
-        </button>
-      ))}
+    <div role="radiogroup" className="inline-flex flex-wrap p-0.5 gap-0.5 rounded-md border border-[var(--line)] bg-[var(--inset)]">
+      {options.map((o) => {
+        const on = value === o.value;
+        return (
+          <button key={o.value} role="radio" aria-checked={on} onClick={() => onChange(o.value)}
+            className={`ctl-sm px-2.5 rounded fs-12-5 inline-flex items-center gap-1.5 transition-colors ${on ? 'seg-on' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}>
+            {on && <Check className="w-3 h-3" />}
+            {o.label}
+            {o.count !== undefined && <span className="mono fs-11 text-[var(--faint)]">{o.count}</span>}
+          </button>
+        );
+      })}
     </div>
   );
 }

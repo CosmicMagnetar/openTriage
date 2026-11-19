@@ -3,7 +3,7 @@
  * (maintainer), saved replies, AI.
  */
 import { useState } from 'react';
-import { Eye, EyeOff, GripVertical, Trash2 } from 'lucide-react';
+import { Check, Eye, EyeOff, GripVertical, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
 import { keys, parseGitHubRef, workApi } from '../../services/workApi';
@@ -152,8 +152,10 @@ function Appearance({ ws }) {
           <div className="flex gap-2">
             {Object.entries(ACCENTS).map(([name, a]) => (
               <button key={name} onClick={() => prefs.set({ accent: { ...prefs.accent, [ws]: name } })} aria-label={`${name} accent`} aria-pressed={current === name} title={name}
-                className={`w-7 h-7 rounded-md border ${current === name ? 'border-[var(--text)]' : 'border-transparent'}`}
-                style={{ background: a.hex }} />
+                className="w-8 h-8 rounded-full inline-flex items-center justify-center transition-transform hover:scale-105"
+                style={{ background: a.hex, boxShadow: current === name ? `0 0 0 2px var(--bg), 0 0 0 4px ${a.hex}` : 'none' }}>
+                {current === name && <Check className="w-4 h-4" style={{ color: a.ink }} />}
+              </button>
             ))}
           </div>
         </Field>
@@ -166,37 +168,51 @@ function Appearance({ ws }) {
   );
 }
 
-/** Drag to reorder, eye to hide. Today can't be hidden. */
+/** Drag to reorder within each group, eye to hide. Home can't be hidden. */
 function SidebarSettings({ ws }) {
   const prefs = usePrefs();
-  const items = NAV[ws].flatMap((g) => g.items);
-  const ordered = arrangeNav(items, { ...prefs, navHidden: { [ws]: [] } }, ws);
   const hidden = new Set(prefs.navHidden?.[ws] ?? []);
-  const setOrder = (list) => prefs.set({ navOrder: { ...prefs.navOrder, [ws]: list.map((n) => n.path) } });
+  const all = NAV[ws].flatMap((g) => g.items);
+  const arranged = arrangeNav(all, { ...prefs, navHidden: { [ws]: [] } }, ws);
+  const setGroupOrder = (gid, list) => {
+    const order = NAV[ws].flatMap((g) => (g.id === gid ? list : arranged.filter((n) => g.items.some((i) => i.path === n.path))));
+    prefs.set({ navOrder: { ...prefs.navOrder, [ws]: order.map((n) => n.path) } });
+  };
   const toggle = (path) => {
     const next = hidden.has(path) ? [...hidden].filter((p) => p !== path) : [...hidden, path];
     prefs.set({ navHidden: { ...prefs.navHidden, [ws]: next } });
   };
   return (
     <Block title="Sidebar" right={<Button size="sm" variant="subtle" onClick={() => prefs.set({ navOrder: { ...prefs.navOrder, [ws]: [] }, navHidden: { ...prefs.navHidden, [ws]: [] } })}>Reset</Button>}>
-      <p className="fs-12 text-[var(--muted)] mb-2">Drag to reorder pages within their group. Hidden pages stay reachable from ⌘K.</p>
-      <Reorder.Group axis="y" values={ordered} onReorder={setOrder} className="max-w-sm space-y-1">
-        {ordered.map((n) => {
-          const Icon = n.icon;
+      <p className="fs-12-5 text-[var(--muted)] mb-3">Drag to reorder pages inside a group. Hidden pages stay reachable from ⌘K.</p>
+      <div className="grid sm:grid-cols-2 gap-4 max-w-2xl">
+        {NAV[ws].map((g) => {
+          const items = arranged.filter((n) => g.items.some((i) => i.path === n.path));
           return (
-            <Reorder.Item key={n.path} value={n} className="flex items-center gap-2.5 h-9 px-2.5 rounded-md border border-[var(--line-soft)] bg-[var(--panel)] cursor-grab active:cursor-grabbing">
-              <GripVertical className="w-3.5 h-3.5 text-[var(--faint)]" />
-              <Icon className="w-4 h-4 text-[var(--muted)]" />
-              <span className={`flex-1 fs-13 ${hidden.has(n.path) ? 'text-[var(--faint)] line-through' : 'text-[var(--text-2)]'}`}>{n.label}</span>
-              {n.path !== '/dashboard' && (
-                <button onClick={() => toggle(n.path)} aria-label={hidden.has(n.path) ? `Show ${n.label}` : `Hide ${n.label}`} className="p-1 text-[var(--muted)] hover:text-[var(--text)]">
-                  {hidden.has(n.path) ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-              )}
-            </Reorder.Item>
+            <div key={g.id}>
+              <p className="fs-12 font-semibold text-[var(--muted)] mb-1.5">{g.title}</p>
+              <Reorder.Group axis="y" values={items} onReorder={(list) => setGroupOrder(g.id, list)} className="space-y-1">
+                {items.map((n) => {
+                  const Icon = n.icon;
+                  const off = hidden.has(n.path);
+                  return (
+                    <Reorder.Item key={n.path} value={n} className="ctl-lg flex items-center gap-2.5 px-2.5 rounded-md border border-[var(--line)] bg-[var(--panel)] cursor-grab active:cursor-grabbing">
+                      <GripVertical className="w-3.5 h-3.5 text-[var(--faint)]" />
+                      <Icon className="w-4 h-4 text-[var(--muted)]" />
+                      <span className={`flex-1 fs-13 ${off ? 'text-[var(--faint)] line-through' : 'text-[var(--text)]'}`}>{n.label}</span>
+                      {n.path !== '/dashboard' && (
+                        <button onClick={() => toggle(n.path)} aria-label={off ? `Show ${n.label}` : `Hide ${n.label}`} className="p-1 text-[var(--muted)] hover:text-[var(--text)]">
+                          {off ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </Reorder.Item>
+                  );
+                })}
+              </Reorder.Group>
+            </div>
           );
         })}
-      </Reorder.Group>
+      </div>
     </Block>
   );
 }

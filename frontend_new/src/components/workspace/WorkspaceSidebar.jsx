@@ -1,59 +1,17 @@
 /**
- * One sidebar, shaped per workspace. Contributor and Maintainer are switchable
- * workspaces on the same account; each gets its own nav groups and its own
+ * Sidebar, shaped per workspace (identity, switch and search live in the
+ * context bar). Each workspace gets its own nav groups and its own
  * small live panels (what needs you, your PRs, pinned repos, deadlines).
  * Sections collapse, nav order/visibility comes from Settings → Sidebar.
  */
 import { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronDown, HelpCircle, LogOut, Menu, Pin, Search, Settings, X } from 'lucide-react';
-import { openHelp } from './HelpOverlay';
+import { ChevronDown, LogOut, Menu, Pin, Settings, X } from 'lucide-react';
 import { useLive } from '../../lib/live';
-import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
 import usePrefs, { arrangeNav } from '../../stores/prefsStore';
-import Logo from '../Logo';
-import { Kbd, LiveNumber, useMotionOn } from './ui';
-
-function WorkspaceToggle() {
-  const navigate = useNavigate();
-  const { role, updateRole } = useAuthStore();
-  const [busy, setBusy] = useState(false);
-  const current = role === 'MAINTAINER' ? 'MAINTAINER' : 'CONTRIBUTOR';
-
-  const switchTo = async (next) => {
-    if (next === current || busy) return;
-    setBusy(true);
-    const ok = await updateRole(next);
-    setBusy(false);
-    if (ok) navigate('/dashboard');
-    else toast.error('Could not switch workspace');
-  };
-
-  return (
-    <div role="radiogroup" aria-label="Workspace" className="grid grid-cols-2 p-0.5 rounded-md border border-[var(--line)] bg-[var(--bg)]">
-      {[['CONTRIBUTOR', 'Contributor'], ['MAINTAINER', 'Maintainer']].map(([value, label]) => {
-        const active = current === value;
-        return (
-          <button
-            key={value}
-            role="radio"
-            aria-checked={active}
-            data-testid={`workspace-${value.toLowerCase()}`}
-            disabled={busy}
-            onClick={() => switchTo(value)}
-            className={`h-7 rounded fs-12 font-medium transition-colors ${active
-              ? 'bg-[var(--raised)] text-[var(--text)] shadow-[inset_0_-2px_0_var(--accent)]'
-              : 'text-[var(--muted)] hover:text-[var(--text-2)]'}`}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+import { LiveNumber, useMotionOn } from './ui';
 
 /** Live (webhook push) vs. timed refresh, so it's clear how fresh the data is. */
 function LiveStatus() {
@@ -125,32 +83,18 @@ export default function WorkspaceSidebar({ ws, groups, counts = {}, panels = [],
   const isActive = (path) =>
     path === '/dashboard' ? location.pathname === '/dashboard' || location.pathname === '/dashboard/' : location.pathname.startsWith(path);
 
-  const openPalette = () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
-
   const pinned = prefs.pinned.slice(0, 8);
 
   return (
     <>
       <button onClick={() => setOpen(!open)} aria-label="Toggle navigation"
-        className="lg:hidden fixed top-3 left-3 z-50 w-9 h-9 inline-flex items-center justify-center rounded-md border border-[var(--line)] bg-[var(--panel)] text-[var(--text-2)]">
+        className="lg:hidden fixed top-2 left-2 z-50 w-9 h-9 inline-flex items-center justify-center rounded-md border border-[var(--line)] bg-[var(--panel)] text-[var(--text-2)]">
         {open ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
       </button>
       {open && <div className="lg:hidden fixed inset-0 bg-black/60 z-30" onClick={() => setOpen(false)} />}
 
       <aside data-testid="workspace-sidebar"
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-60 shrink-0 bg-[var(--panel)] border-r border-[var(--line-soft)] flex flex-col transition-transform duration-150 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="px-3 pt-3 pb-2 space-y-2">
-          <button className="h-9 px-1.5 w-full flex items-center gap-2.5 text-left" onClick={() => go('/dashboard')}>
-            <Logo size="sm" />
-            <span className="fs-13-5 font-semibold tracking-tight flex-1">OpenTriage</span>
-          </button>
-          <WorkspaceToggle />
-          <button onClick={openPalette}
-            className="w-full h-8 px-2.5 flex items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--bg)] fs-12-5 text-[var(--faint)] hover:text-[var(--muted)]">
-            <Search className="w-3.5 h-3.5" /> <span className="flex-1 text-left">Search or jump to…</span> <Kbd>⌘K</Kbd>
-          </button>
-        </div>
-
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-60 shrink-0 bg-[var(--inset)] border-r border-[var(--line)] pt-2 flex flex-col transition-transform duration-150 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <nav className="flex-1 min-h-0 scroll pb-2" aria-label={`${ws} navigation`}>
           {groups.map((g) => {
             const items = arrangeNav(g.items, prefs, ws);
@@ -216,10 +160,6 @@ export default function WorkspaceSidebar({ ws, groups, counts = {}, panels = [],
               <div className="fs-12-5 text-[var(--text)] truncate">{user?.username}</div>
               <div className="fs-11 text-[var(--faint)] capitalize">{ws}</div>
             </div>
-            <button onClick={openHelp} aria-label="Help (?)" title="Help (?)"
-              className="w-8 h-8 inline-flex items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]">
-              <HelpCircle className="w-4 h-4" />
-            </button>
             <button onClick={() => go('/dashboard/settings')} aria-label="Settings" title="Settings"
               className={`w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-[var(--hover)] ${isActive('/dashboard/settings') ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>
               <Settings className="w-4 h-4" />

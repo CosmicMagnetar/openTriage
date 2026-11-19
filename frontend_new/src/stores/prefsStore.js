@@ -6,19 +6,20 @@
 import { create } from "zustand";
 
 const KEY = "ot:prefs";
+const VERSION = 5;
 
 /** Curated accents; each keeps ≥4.5:1 contrast on the workspace background. */
 export const ACCENTS = {
-  teal: { hex: "#2bb3a3", ink: "#0b1513" },
-  amber: { hex: "#d9a441", ink: "#1a1408" },
-  blue: { hex: "#5b9fe0", ink: "#08121c" },
-  green: { hex: "#5fb86f", ink: "#0a160d" },
-  rose: { hex: "#e07a8a", ink: "#1c0b0e" },
-  sand: { hex: "#c9b48a", ink: "#17130b" },
+  green: { hex: "#57ab5a", ink: "#0f1a10" },
+  amber: { hex: "#c69026", ink: "#1a1206" },
+  blue: { hex: "#478be6", ink: "#0a1526" },
+  teal: { hex: "#39a7a0", ink: "#081a19" },
+  orange: { hex: "#cc6b2c", ink: "#1f0f05" },
+  pink: { hex: "#c96198", ink: "#1f0a15" },
 };
 
 /** Default accent per workspace (contributor = growth teal, maintainer = stewardship amber). */
-export const DEFAULT_ACCENT = { contributor: "teal", maintainer: "amber" };
+export const DEFAULT_ACCENT = { contributor: "green", maintainer: "amber" };
 
 /** Today widgets that can be shown, hidden and reordered. */
 export const TODAY_WIDGETS = {
@@ -31,7 +32,7 @@ const DEFAULTS = {
   repos: [],
   exclude: [],
   newcomer: true,
-  accent: { contributor: "teal", maintainer: "amber" },
+  accent: { contributor: "green", maintainer: "amber" },
   density: "comfortable",
   textSize: "15",
   motion: true,
@@ -52,6 +53,8 @@ function load() {
     if (!parsed || typeof parsed !== "object") return { ...DEFAULTS };
     // v3 stored one accent name for both workspaces
     if (typeof parsed.accent === "string") delete parsed.accent;
+    // v5 changed palette and defaults: drop stale accent/density from earlier versions
+    if (parsed.v !== VERSION) { delete parsed.accent; delete parsed.density; delete parsed.textSize; }
     return { ...DEFAULTS, ...parsed };
   } catch {
     return { ...DEFAULTS };
@@ -62,6 +65,7 @@ function save(state) {
   try {
     const out = {};
     for (const k of Object.keys(DEFAULTS)) out[k] = state[k];
+    out.v = VERSION;
     localStorage.setItem(KEY, JSON.stringify(out));
   } catch {
     /* ignore */
