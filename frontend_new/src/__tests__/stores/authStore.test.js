@@ -117,9 +117,9 @@ describe('Auth Store', () => {
       expect(state.isLoading).toBe(false);
     });
 
-    it('should clear auth on API error', async () => {
+    it('should clear auth when the token is rejected (401)', async () => {
       localStorage.getItem.mockReturnValue('invalid-token');
-      axios.get.mockRejectedValue(new Error('Unauthorized'));
+      axios.get.mockRejectedValue(Object.assign(new Error('Unauthorized'), { response: { status: 401 } }));
 
       await useAuthStore.getState().loadUser();
       const state = useAuthStore.getState();
@@ -127,6 +127,18 @@ describe('Auth Store', () => {
       expect(state.user).toBeNull();
       expect(state.token).toBeNull();
       expect(localStorage.removeItem).toHaveBeenCalledWith('token');
+    });
+
+    it('should keep the token on network/server errors', async () => {
+      localStorage.getItem.mockReturnValue('valid-token');
+      axios.get.mockRejectedValue(new Error('Network Error'));
+
+      await useAuthStore.getState().loadUser();
+      const state = useAuthStore.getState();
+
+      expect(state.user).toBeNull();
+      expect(state.isLoading).toBe(false);
+      expect(localStorage.removeItem).not.toHaveBeenCalledWith('token');
     });
   });
 

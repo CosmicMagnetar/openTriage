@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { reconcileSingleIssue, reconcileOpenTriageIssue1 } from "@/lib/sync/github-sync";
+import { reconcileSingleIssue } from "@/lib/sync/github-sync";
 
 export async function POST(request: NextRequest) {
     try {
@@ -24,19 +24,9 @@ export async function POST(request: NextRequest) {
 
         // Parse request body
         const body = await request.json().catch(() => ({}));
-        const { owner, repo, issueNumber, reconcileOpenTriage } = body;
+        const { owner, repo, issueNumber } = body;
 
-        // Option 1: Reconcile the specific openTriage#1 issue
-        if (reconcileOpenTriage) {
-            const result = await reconcileOpenTriageIssue1(user.githubAccessToken);
-            return NextResponse.json({
-                success: result.success,
-                message: result.message,
-                result,
-            });
-        }
-
-        // Option 2: Reconcile a specific issue by owner/repo/number
+        // Reconcile a specific issue by owner/repo/number
         if (owner && repo && issueNumber) {
             const result = await reconcileSingleIssue(
                 user.githubAccessToken,

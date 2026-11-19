@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        if (user.role !== "MAINTAINER" && user.role !== "maintainer") {
+        if (user.role !== "MAINTAINER") {
             return NextResponse.json({ error: "Maintainer access required" }, { status: 403 });
         }
 

@@ -60,9 +60,17 @@ const useAuthStore = create((set, get) => ({
         isLoading: false,
       });
     } catch (error) {
-      localStorage.removeItem("token");
-      delete axios.defaults.headers.common["Authorization"];
-      set({ token: null, user: null, role: null, isLoading: false });
+      const status = error?.response?.status;
+      if (status === 401 || status === 403) {
+        // Token is invalid or expired: sign out.
+        localStorage.removeItem("token");
+        delete axios.defaults.headers.common["Authorization"];
+        set({ token: null, user: null, role: null, isLoading: false });
+      } else {
+        // Network error / server hiccup: keep the token so a reload can recover.
+        console.error("[AuthStore] Could not load user:", error?.message);
+        set({ user: null, role: null, isLoading: false });
+      }
     } finally {
       // Always reset lock, even on error
       loadUserInProgress = false;

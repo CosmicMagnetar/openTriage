@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { runMaintainerSync, runContributorSync, syncContributorPRsDirect, reconcileOpenTriageIssue1 } from "@/lib/sync/github-sync";
+import { runMaintainerSync, runContributorSync, syncContributorPRsDirect } from "@/lib/sync/github-sync";
 
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -60,9 +60,6 @@ export async function POST(request: NextRequest) {
                 directSync = await syncContributorPRsDirect(user.id, user.username, user.githubAccessToken);
             }
 
-            // Always reconcile the critical openTriage#1 issue to ensure immediate state sync
-            const reconcileResult = await reconcileOpenTriageIssue1(user.githubAccessToken);
-
             console.log(`[SyncRun] Sync completed for user ${user.id}`);
 
             return NextResponse.json({
@@ -71,9 +68,6 @@ export async function POST(request: NextRequest) {
                 role: userRole,
                 stats,
                 directSync,  // Include direct sync results for contributors
-                reconcile: {
-                    openTriageIssue1: reconcileResult,
-                },
                 nextSyncIntervalMs: SYNC_INTERVAL_MS,
             });
 

@@ -1,5 +1,5 @@
 import { useEffect, useCallback, lazy, Suspense } from "react";
-import axios from "axios";
+import { toast } from "sonner";
 import {
   BrowserRouter,
   Routes,
@@ -58,15 +58,22 @@ function App() {
       return;
     }
 
-    // Check for token in URL (from OAuth callback) FIRST before loading user
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
-    const error = urlParams.get("error");
+    // OAuth callback hands the token over in the URL fragment (#token=...),
+    // which never reaches servers or Referer headers. Errors come as ?error=.
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const token = hashParams.get("token");
+    const error = new URLSearchParams(window.location.search).get("error");
 
-    // Handle OAuth errors
+    // Handle OAuth errors: tell the user and leave the splash screen.
     if (error) {
       console.error("OAuth error:", error);
       window.history.replaceState({}, document.title, window.location.pathname);
+      toast.error(
+        error === "access_denied"
+          ? "GitHub sign-in was cancelled."
+          : "GitHub sign-in failed. Please try again."
+      );
+      useAuthStore.setState({ isLoading: false });
       return;
     }
 
@@ -90,33 +97,6 @@ function App() {
     loadUser();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggingOut]);  // Only isLoggingOut in deps - loadUser should be stable
-
-  // Logged in but no role selected - AUTO SELECT CONTRIBUTOR
-  // This effectively removes the manual role selection screen
-  useEffect(() => {
-    if (user && !role && !isLoading) {
-      const autoSelectRole = async () => {
-        try {
-          console.log("Auto-assigning CONTRIBUTOR role...");
-          const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
-          const response = await axios.post(`${API}/auth/select-role`, {
-            role: "CONTRIBUTOR",
-          });
-          const { token } = response.data;
-          if (token) {
-            localStorage.setItem("token", token);
-            axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-            // Reload user to get the new role and proceed to dashboard
-            await loadUser();
-          }
-        } catch (error) {
-          console.error("Auto-role selection failed:", error);
-        }
-      };
-      autoSelectRole();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, role, isLoading]);
 
   if (isLoading) {
     return <SplashScreen />;
@@ -145,13 +125,8 @@ function App() {
     );
   }
 
-
-
-  if (!role) {
-    return <SplashScreen />;
-  }
-
-  // Logged in with role
+  // Logged in. Workspace is never missing: the backend normalizes it, and
+  // anything other than MAINTAINER falls back to the contributor workspace.
   return (
     <>
       <BrowserRouter

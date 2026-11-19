@@ -1,111 +1,122 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { createJwtToken } from "@/lib/auth";
+import { createJwtToken, normalizeWorkspace, OAUTH_STATE_COOKIE } from "@/lib/auth";
 import { generateId, now } from "@/lib/utils";
 import { eq } from "drizzle-orm";
 
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID!;
-const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET!;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+function fail(reason: string) {
+    const response = NextResponse.redirect(`${FRONTEND_URL}/?error=${encodeURIComponent(reason)}`);
+    response.cookies.delete({ name: OAUTH_STATE_COOKIE, path: "/api/auth/github" });
+    return response;
+}
+
+function statesMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+    if (!a || !b) return false;
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+}
 
 /**
  * GET /api/auth/github/callback
  * Handle GitHub OAuth callback and create user session.
+ *
+ * The session JWT is handed to the frontend in the URL *fragment* (`#token=`),
+ * which browsers never send to servers or put in Referer headers.
  */
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
+    const state = searchParams.get("state");
 
-    if (!code) {
-        return NextResponse.redirect(`${FRONTEND_URL}/?error=no_code`);
+    if (searchParams.get("error")) return fail("access_denied");
+    if (!code) return fail("no_code");
+    if (!statesMatch(state, request.cookies.get(OAUTH_STATE_COOKIE)?.value)) {
+        return fail("invalid_state");
+    }
+
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+        console.error("[auth] GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET not configured");
+        return fail("not_configured");
     }
 
     try {
-        // Exchange code for access token
-        const tokenResponse = await fetch(
-            "https://github.com/login/oauth/access_token",
-            {
-                method: "POST",
-                headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    client_id: GITHUB_CLIENT_ID,
-                    client_secret: GITHUB_CLIENT_SECRET,
-                    code,
-                }),
-            }
-        );
-
-        const tokenData = await tokenResponse.json();
-        const accessToken = tokenData.access_token;
-
-        if (!accessToken) {
-            console.error("No access token:", tokenData);
-            return NextResponse.redirect(`${FRONTEND_URL}/?error=no_token`);
+        const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
+            method: "POST",
+            headers: { Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, code }),
+        });
+        const tokenData = await tokenResponse.json().catch(() => ({}));
+        const accessToken: string | undefined = tokenData.access_token;
+        if (!tokenResponse.ok || !accessToken) {
+            console.error("[auth] Token exchange failed:", tokenData.error || tokenResponse.status);
+            return fail("no_token");
         }
 
-        // Get user info from GitHub
         const userResponse = await fetch("https://api.github.com/user", {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
+            headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github+json" },
         });
-
+        if (!userResponse.ok) {
+            console.error("[auth] GitHub /user failed:", userResponse.status);
+            return fail("github_user_failed");
+        }
         const githubUser = await userResponse.json();
+        if (typeof githubUser?.id !== "number" || !githubUser.login) {
+            return fail("github_user_failed");
+        }
 
-        // Check if user exists
-        // NOTE: sync_status columns excluded until Turso migration is applied
-        const existingUsers = await db
-            .select({
-                id: users.id,
-                githubId: users.githubId,
-                username: users.username,
-                avatarUrl: users.avatarUrl,
-                role: users.role,
-                githubAccessToken: users.githubAccessToken,
-                createdAt: users.createdAt,
-                updatedAt: users.updatedAt,
-            })
+        const existing = await db
+            .select({ id: users.id, role: users.role })
             .from(users)
             .where(eq(users.githubId, githubUser.id))
             .limit(1);
 
-        let userData;
+        let userId: string;
+        let role: string | null;
 
-        if (existingUsers.length > 0) {
-            // Update existing user with new GitHub token
+        if (existing.length > 0) {
+            userId = existing[0].id;
+            // Legacy rows may hold "MENTOR" (old sync bug) or null; workspaces are only these two.
+            role = normalizeWorkspace(existing[0].role);
+            // Refresh token and profile fields that can change on GitHub (rename, new avatar).
             await db
                 .update(users)
-                .set({ githubAccessToken: accessToken, updatedAt: now() })
-                .where(eq(users.githubId, githubUser.id));
-
-            userData = { ...existingUsers[0], githubAccessToken: accessToken };
+                .set({
+                    role,
+                    githubAccessToken: accessToken,
+                    username: githubUser.login,
+                    avatarUrl: githubUser.avatar_url,
+                    updatedAt: now(),
+                })
+                .where(eq(users.id, userId));
         } else {
-            // Create new user
-            const newUser = {
-                id: generateId(),
+            userId = generateId();
+            // New accounts start in the contributor workspace; it can be switched anytime.
+            role = "CONTRIBUTOR";
+            await db.insert(users).values({
+                id: userId,
                 githubId: githubUser.id,
                 username: githubUser.login,
                 avatarUrl: githubUser.avatar_url,
-                role: null,
+                role,
                 githubAccessToken: accessToken,
                 createdAt: now(),
                 updatedAt: now(),
-            };
-
-            await db.insert(users).values(newUser);
-            userData = newUser;
+            });
         }
 
-        // Create JWT token
-        const token = createJwtToken(userData.id, userData.role);
-
-        return NextResponse.redirect(`${FRONTEND_URL}/?token=${token}`);
+        const token = createJwtToken(userId, role);
+        const response = NextResponse.redirect(`${FRONTEND_URL}/#token=${encodeURIComponent(token)}`);
+        response.cookies.delete({ name: OAUTH_STATE_COOKIE, path: "/api/auth/github" });
+        return response;
     } catch (error) {
-        console.error("GitHub auth error:", error);
-        return NextResponse.redirect(`${FRONTEND_URL}/?error=auth_failed`);
+        console.error("[auth] GitHub auth error:", error);
+        return fail("auth_failed");
     }
 }
