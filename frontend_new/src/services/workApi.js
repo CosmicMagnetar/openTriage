@@ -61,6 +61,10 @@ export const workApi = {
   profileSettings: () => get("/profile/settings"),
   saveProfileSettings: (settings) => send("put", "/profile/settings", settings),
   publicProfile: (login) => get(`/u/${encodeURIComponent(login)}`),
+  removeLabels: (owner, repo, number, labels) => send("post", `/work/item/${ref(owner, repo, number)}`, { action: "unlabel", labels }),
+  community: (o) => get("/maintainer/community", fresh(o)),
+  docsHealth: (repo, o) => get("/maintainer/docs-health", { repo, ...fresh(o) }),
+  createDoc: (repo, item) => send("post", "/maintainer/docs-health/create", { repo, item }),
 };
 
 /** Cache keys: one place so pages, panel and prefetch agree. */
@@ -81,6 +85,8 @@ export const keys = {
   opportunities: (params) => `opp:${JSON.stringify(params)}`,
   journey: () => "journey",
   programs: () => "programs",
+  community: () => "community",
+  docs: (repo) => `docs:${repo}`.toLowerCase(),
 };
 
 /**

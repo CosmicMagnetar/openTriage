@@ -597,3 +597,23 @@ export function Stat({ label, value, color, hint, onClick }) {
 export function Progress({ value = 0, color }) {
   return <div className="bar"><span style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, ...(color ? { background: color } : {}) }} /></div>;
 }
+
+/**
+ * Confirm before changing anything on GitHub. Says exactly what will happen.
+ * Usage: <Confirm open title body confirmLabel onConfirm onCancel busy />
+ */
+export function Confirm({ open, title, children, confirmLabel = 'Confirm', onConfirm, onCancel, busy }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="card w-full max-w-md p-5" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        <h2 className="fs-16 font-semibold">{title}</h2>
+        <div className="fs-13-5 text-[var(--text-2)] mt-2">{children}</div>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button onClick={onCancel} disabled={busy}>Cancel</Button>
+          <Button variant="primary" onClick={onConfirm} disabled={busy}>{busy ? 'Working…' : confirmLabel}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -4,7 +4,7 @@
  * Each page has its own hue: its icon, header tint and key numbers use it,
  * so you can tell where you are at a glance.
  */
-import { BookOpen, Compass, GitPullRequest, Home, Inbox, Layers, LayoutDashboard, Settings, Sparkles, Trophy } from 'lucide-react';
+import { BookOpen, Columns3, Compass, FileCheck2, GitPullRequest, Home, Inbox, Layers, LayoutDashboard, Settings, Sparkles, Trophy, Users } from 'lucide-react';
 
 export const HUES = {
   green: '#57ab5a',
@@ -36,10 +36,15 @@ export const NAV = {
   maintainer: [
     { id: 'focus', title: 'Focus', items: [
       { icon: LayoutDashboard, label: 'Command center', path: '/dashboard', countKey: 'today', hue: HUES.amber },
-      { icon: Inbox, label: 'Inbox', path: '/dashboard/inbox', countKey: 'inbox', hue: HUES.blue },
+      { icon: Columns3, label: 'Triage', path: '/dashboard/triage', hue: HUES.blue },
+      { icon: Inbox, label: 'Inbox', path: '/dashboard/inbox', countKey: 'inbox', hue: HUES.orange },
     ] },
     { id: 'review', title: 'Review', items: [
       { icon: GitPullRequest, label: 'Pull requests', path: '/dashboard/prs', countKey: 'prs', hue: HUES.green },
+    ] },
+    { id: 'people', title: 'People and docs', items: [
+      { icon: Users, label: 'Community', path: '/dashboard/community', hue: HUES.pink },
+      { icon: FileCheck2, label: 'Docs health', path: '/dashboard/docs', hue: HUES.teal },
     ] },
     { id: 'understand', title: 'Understand', items: [
       { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.magenta },
