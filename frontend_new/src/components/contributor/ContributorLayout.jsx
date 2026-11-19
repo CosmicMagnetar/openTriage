@@ -1,109 +1,37 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
-import { useState, useCallback, createContext, useContext } from 'react';
-import { Bot } from 'lucide-react';
-import ContributorSidebar from './ContributorSidebar';
+import { Routes, Route } from 'react-router-dom';
+import WorkspaceSidebar from '../workspace/WorkspaceSidebar';
+import TodayPage from '../workspace/TodayPage';
+import FindWorkPage from '../workspace/FindWorkPage';
+import IssueWorkspacePage from '../workspace/IssueWorkspacePage';
+import RepoLensPage from '../workspace/RepoLensPage';
 import MyIssuesDashboard from './MyIssuesDashboard';
-import ContributorMetrics from './ContributorMetrics';
-import ProfilePage from './ProfilePage';
-import PublicProfilePage from './PublicProfilePage';
-import MessagesPage from './MessagesPage';
 import Settings from '../Settings';
-import ContributorAIChat from './ContributorAIChat';
-import DiscoveryPage from './DiscoveryPage';
 import AIDisabledBanner from '../settings/AIDisabledBanner';
 
-// Context for managing chat states globally
-const ChatContext = createContext();
-
-export const useChatContext = () => useContext(ChatContext);
-
-const ContributorLayout = () => {
-  const [showAIChat, setShowAIChat] = useState(false);
-  const [showMentorshipChat, setShowMentorshipChat] = useState(false);
-  const location = useLocation();
-
-  // Hide floating button on messages page (has its own inline button)
-  const isMessagesPage = location.pathname.includes('/messages');
-
-  // Mutex: Opening one chat closes the other
-  const openAIChat = useCallback(() => {
-    setShowMentorshipChat(false);
-    setShowAIChat(true);
-  }, []);
-
-  const closeAIChat = useCallback(() => {
-    setShowAIChat(false);
-  }, []);
-
-  const openMentorshipChat = useCallback(() => {
-    setShowAIChat(false);
-    setShowMentorshipChat(true);
-  }, []);
-
-  const closeMentorshipChat = useCallback(() => {
-    setShowMentorshipChat(false);
-  }, []);
-
-  const toggleAIChat = useCallback(() => {
-    if (showAIChat) {
-      setShowAIChat(false);
-    } else {
-      setShowMentorshipChat(false);
-      setShowAIChat(true);
-    }
-  }, [showAIChat]);
-
-  const chatContextValue = {
-    showAIChat,
-    showMentorshipChat,
-    openAIChat,
-    closeAIChat,
-    openMentorshipChat,
-    closeMentorshipChat,
-    toggleAIChat
-  };
-
-  return (
-    <ChatContext.Provider value={chatContextValue}>
-      <div className="w-full h-screen bg-[hsl(220,13%,5%)] flex overflow-hidden relative">
-        <ContributorSidebar />
-        <div className="flex-1 overflow-hidden flex flex-col">
-          <AIDisabledBanner />
-          <div className="flex-1 overflow-hidden">
-          <Routes>
-            <Route index element={<MyIssuesDashboard />} />
-            <Route path="profile" element={<ProfilePage />} />
-            <Route path="user/:username" element={<PublicProfilePage />} />
-            <Route path="messages" element={<MessagesPage />} />
-            <Route path="metrics" element={<ContributorMetrics />} />
-            <Route path="discover" element={<DiscoveryPage />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="*" element={<MyIssuesDashboard />} />
-          </Routes>
-          </div>
-        </div>
-
-        {/* Global AI Chat */}
-        {showAIChat && (
-          <ContributorAIChat onClose={closeAIChat} />
-        )}
-
-        {/* Floating AI Button - hidden on messages page (has inline button) */}
-        {!isMessagesPage && (
-          <button
-            data-testid="ai-chat-button"
-            onClick={toggleAIChat}
-            className={`fixed bottom-6 right-6 z-[60] p-4 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 ${showAIChat
-              ? 'bg-[hsl(220,13%,15%)] text-[hsl(210,11%,60%)]'
-              : 'bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black'
-              }`}
-          >
-            <Bot className="w-6 h-6" />
-          </button>
-        )}
+/**
+ * Contributor workspace: discovery (find work), understanding (issue workspace,
+ * repo lens) and coordination (today). The generic AI chatbot, messaging,
+ * metrics and profile pages are no longer part of the workspace.
+ */
+const ContributorLayout = () => (
+  <div className="w-full h-screen bg-[hsl(220,13%,5%)] flex overflow-hidden relative">
+    <WorkspaceSidebar />
+    <div className="flex-1 overflow-hidden flex flex-col">
+      <AIDisabledBanner />
+      <div className="flex-1 overflow-hidden">
+        <Routes>
+          <Route index element={<TodayPage />} />
+          <Route path="find" element={<FindWorkPage />} />
+          <Route path="work/:owner/:repo/:number" element={<IssueWorkspacePage />} />
+          <Route path="lens" element={<RepoLensPage />} />
+          <Route path="lens/:owner/:repo" element={<RepoLensPage />} />
+          <Route path="mine" element={<MyIssuesDashboard />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="*" element={<TodayPage />} />
+        </Routes>
       </div>
-    </ChatContext.Provider>
-  );
-};
+    </div>
+  </div>
+);
 
 export default ContributorLayout;

@@ -1,55 +1,39 @@
 import { Routes, Route } from 'react-router-dom';
-import { useState } from 'react';
-import { Bot } from 'lucide-react';
-import Sidebar from './Sidebar';
+import WorkspaceSidebar from '../workspace/WorkspaceSidebar';
+import TodayPage from '../workspace/TodayPage';
+import IssueWorkspacePage from '../workspace/IssueWorkspacePage';
+import RepoLensPage from '../workspace/RepoLensPage';
 import DashboardPage from './DashboardPage';
 import PRManagementPage from './PRManagementPage';
-import MaintainerPortal from './MaintainerPortal';
-import MaintainerProfilePage from './MaintainerProfilePage';
-import PublicProfilePage from '../contributor/PublicProfilePage';
 import Settings from '../Settings';
 import { IssueDetailPage } from './issue-detail';
-import AIChat from './AIChat';
 import AIDisabledBanner from '../settings/AIDisabledBanner';
 
-const MaintainerLayout = () => {
-  const [showChat, setShowChat] = useState(false);
-
-  return (
-    <div className="w-full h-screen bg-[hsl(220,13%,5%)] flex overflow-hidden">
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <AIDisabledBanner />
-        <div className="flex-1 overflow-hidden">
-          <Routes>
-          <Route index element={<DashboardPage />} />
+/**
+ * Maintainer workspace: today (what waits on you), triage inbox, PRs, repo lens.
+ * The generic AI chatbot, hub (hype/cookie-licking/mentors) and profile pages are
+ * no longer part of the workspace.
+ */
+const MaintainerLayout = () => (
+  <div className="w-full h-screen bg-[hsl(220,13%,5%)] flex overflow-hidden">
+    <WorkspaceSidebar />
+    <div className="flex-1 overflow-hidden flex flex-col">
+      <AIDisabledBanner />
+      <div className="flex-1 overflow-hidden">
+        <Routes>
+          <Route index element={<TodayPage />} />
+          <Route path="inbox" element={<DashboardPage />} />
           <Route path="prs" element={<PRManagementPage />} />
-          <Route path="hub" element={<MaintainerPortal />} />
-          <Route path="profile" element={<MaintainerProfilePage />} />
-          <Route path="user/:username" element={<PublicProfilePage />} />
           <Route path="issue/:issueId" element={<IssueDetailPage />} />
+          <Route path="work/:owner/:repo/:number" element={<IssueWorkspacePage />} />
+          <Route path="lens" element={<RepoLensPage />} />
+          <Route path="lens/:owner/:repo" element={<RepoLensPage />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="*" element={<DashboardPage />} />
+          <Route path="*" element={<TodayPage />} />
         </Routes>
-        </div>
       </div>
-
-      {/* Floating AI Chat Button - Global */}
-      <button
-        data-testid="ai-chat-button-global"
-        onClick={() => setShowChat(true)}
-        className="fixed bottom-6 right-6 z-40 w-12 h-12 bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,50%)] text-black rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all"
-      >
-        <Bot className="w-6 h-6" />
-      </button>
-
-      {/* AI Chat Modal */}
-      {showChat && <AIChat onClose={() => setShowChat(false)} />}
     </div>
-  );
-};
+  </div>
+);
 
 export default MaintainerLayout;

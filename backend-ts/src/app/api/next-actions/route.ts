@@ -31,10 +31,14 @@ export async function GET(request: NextRequest) {
                 }).filter((r) => r.owner && r.repo && validRepo(r.owner, r.repo));
             } else {
                 const rows = await db
-                    .select({ owner: repositories.owner, repo: repositories.name })
+                    .select({ owner: repositories.owner, name: repositories.name })
                     .from(repositories)
                     .where(and(eq(repositories.userId, gh.user.id), eq(repositories.addedByUser, true)));
-                repos = rows;
+                // `name` is stored as "owner/repo" by add-repo (older rows may hold just "repo").
+                repos = rows.map((r) => {
+                    const [maybeOwner, maybeRepo] = r.name.split("/");
+                    return maybeRepo ? { owner: maybeOwner, repo: maybeRepo } : { owner: r.owner, repo: r.name };
+                });
             }
             if (repos.length === 0) {
                 return NextResponse.json({
