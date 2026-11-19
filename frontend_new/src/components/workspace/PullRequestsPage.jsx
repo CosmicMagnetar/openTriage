@@ -46,7 +46,7 @@ export default function PullRequestsPage() {
       {q.data && !q.data.hint && rows.length === 0 && <Empty title="No open pull requests" />}
       {groups.map(([label, list]) => (
         <Fragment key={label}>
-          <SectionLabel right={<span className="mono text-[11px] text-[var(--faint)]">{list.length}</span>}>{label}</SectionLabel>
+          <SectionLabel right={<span className="mono fs-11 text-[var(--faint)]">{list.length}</span>}>{label}</SectionLabel>
           {list.map((r) => {
             i += 1;
             const at = i;

@@ -49,6 +49,7 @@ export const workApi = {
   addLabels: (owner, repo, number, labels) => send("post", `/work/item/${ref(owner, repo, number)}`, { action: "label", labels }),
   thread: (owner, repo, number, o) => get(`/work/item/${ref(owner, repo, number)}/thread`, fresh(o)),
   signals: () => get("/me/signals"),
+  contributor: (owner, repo, login, o) => get(`/work/contributor/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(login)}`, fresh(o)),
   opportunities: (params, o) => get("/work/opportunities", { ...params, ...fresh(o) }),
   savedReplies: () => get("/maintainer/templates"),
   saveReply: (name, body) => send("post", "/maintainer/templates", { name, body }),
@@ -69,6 +70,7 @@ export const keys = {
   replies: () => "replies",
   thread: (o, r, n) => `thread:${o}/${r}#${n}`.toLowerCase(),
   signals: () => "signals",
+  contributor: (o, r, login) => `contrib:${o}/${r}:${login}`.toLowerCase(),
   opportunities: (params) => `opp:${JSON.stringify(params)}`,
 };
 

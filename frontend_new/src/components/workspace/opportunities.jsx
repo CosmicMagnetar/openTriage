@@ -86,7 +86,7 @@ export function InterestsEditor({ compact = false }) {
   return (
     <div className="space-y-3">
       <div>
-        <p className="text-[12px] text-[var(--muted)] mb-1.5">
+        <p className="fs-12 text-[var(--muted)] mb-1.5">
           Languages {signals.isLoading ? '(reading your GitHub…)' : prefs.languages.length ? '' : '(detected from your repos — pick the ones you want)'}
         </p>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -94,7 +94,7 @@ export function InterestsEditor({ compact = false }) {
             const on = prefs.languages.includes(l);
             return (
               <button key={l} onClick={() => prefs.toggleIn('languages', l)}
-                className={`h-6 px-2 rounded-full border text-[12px] transition-colors ${on
+                className={`h-6 px-2 rounded-full border fs-12 transition-colors ${on
                   ? 'border-[var(--accent)] text-[var(--text)] bg-[var(--accent-soft)]'
                   : 'border-[var(--line)] text-[var(--muted)] hover:text-[var(--text-2)]'}`}>
                 {l}
@@ -105,7 +105,7 @@ export function InterestsEditor({ compact = false }) {
         </div>
       </div>
       <div>
-        <p className="text-[12px] text-[var(--muted)] mb-1.5">Repos you want to follow</p>
+        <p className="fs-12 text-[var(--muted)] mb-1.5">Repos you want to follow</p>
         <div className="flex flex-wrap items-center gap-1.5">
           {prefs.repos.map((r) => (
             <span key={r} className="h-6 pl-2 pr-1 inline-flex items-center gap-1 rounded-full border border-[var(--line)] mono text-[var(--text-2)]">
@@ -119,12 +119,12 @@ export function InterestsEditor({ compact = false }) {
           </form>
         </div>
         {!compact && signals.data?.contributedTo?.length > 0 && (
-          <p className="text-[11.5px] text-[var(--faint)] mt-1.5">Also included automatically: {signals.data.contributedTo.length} repos you contributed to and {signals.data.starred.length} you starred.</p>
+          <p className="fs-11-5 text-[var(--faint)] mt-1.5">Also included automatically: {signals.data.contributedTo.length} repos you contributed to and {signals.data.starred.length} you starred.</p>
         )}
       </div>
       {prefs.exclude.length > 0 && (
         <div>
-          <p className="text-[12px] text-[var(--muted)] mb-1.5">Hidden repos</p>
+          <p className="fs-12 text-[var(--muted)] mb-1.5">Hidden repos</p>
           <div className="flex flex-wrap gap-1.5">
             {prefs.exclude.map((r) => (
               <button key={r} onClick={() => prefs.toggleIn('exclude', r)} className="h-6 px-2 rounded-full border border-[var(--line)] mono text-[var(--faint)] hover:text-[var(--text-2)]" title="Show again">
@@ -146,8 +146,8 @@ export function SetupCard() {
       <div className="flex items-start gap-3">
         <Sparkles className="w-4 h-4 mt-0.5 text-[var(--accent)]" />
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium text-[var(--text)]">Make it yours</p>
-          <p className="text-[12px] text-[var(--muted)] mt-0.5 mb-3">We read your GitHub to suggest issues you'd enjoy. Tweak it — you can change this any time in Settings.</p>
+          <p className="fs-13 font-medium text-[var(--text)]">Make it yours</p>
+          <p className="fs-12 text-[var(--muted)] mt-0.5 mb-3">We read your GitHub to suggest issues you'd enjoy. Tweak it — you can change this any time in Settings.</p>
           <InterestsEditor compact />
           <div className="mt-3 flex gap-2">
             <Button variant="primary" onClick={() => set({ onboarded: true })}>Looks good</Button>

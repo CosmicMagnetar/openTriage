@@ -3,9 +3,11 @@
  * Pages are lazy so switching workspace never loads code it doesn't need.
  */
 import { Suspense, lazy, useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, Compass, GitPullRequest, Inbox, Layers, Sun } from 'lucide-react';
+import { NAV, flatNav } from './nav';
+import { prBucket } from './prRows';
+import { ACTION, STATE } from './ui';
 import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
 import { REFRESH_MS, prefetch, useQuery } from '../../lib/query';
@@ -15,8 +17,8 @@ import WorkspaceSidebar from './WorkspaceSidebar';
 import ItemPanel from './ItemPanel';
 import CommandPalette from './CommandPalette';
 import HelpOverlay from './HelpOverlay';
-import usePrefs, { ACCENTS, opportunityParams } from '../../stores/prefsStore';
-import { Ambient, useMotionOn } from './ui';
+import usePrefs, { accentFor, opportunityParams } from '../../stores/prefsStore';
+import { useMotionOn } from './ui';
 import './theme.css';
 
 // Page code loaders, kept so they can be preloaded before the user clicks.
@@ -41,33 +43,38 @@ const SettingsPage = lazy(loaders.settings);
 
 const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300));
 
-const NAV = {
-  CONTRIBUTOR: [
-    { icon: Sun, label: 'Today', path: '/dashboard', countKey: 'today' },
-    { icon: Compass, label: 'Find work', path: '/dashboard/find' },
-    { icon: Layers, label: 'My work', path: '/dashboard/mine' },
-    { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens' },
-  ],
-  MAINTAINER: [
-    { icon: Sun, label: 'Today', path: '/dashboard', countKey: 'today' },
-    { icon: Inbox, label: 'Inbox', path: '/dashboard/inbox' },
-    { icon: GitPullRequest, label: 'Pull requests', path: '/dashboard/prs' },
-    { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens' },
-  ],
-};
+const PR_COLORS = { 'Ready to merge': 'green', 'Needs review or reply': 'blue', 'Waiting on author': 'amber', 'Stalled or other': 'gray', 'In progress': 'blue', Drafts: 'gray' };
 
 export default function WorkspaceLayout() {
   const { role } = useAuthStore();
   const prefs = usePrefs();
   const ws = role === 'MAINTAINER' ? 'maintainer' : 'contributor';
-  const nav = NAV[role === 'MAINTAINER' ? 'MAINTAINER' : 'CONTRIBUTOR'];
+  const accent = accentFor(prefs, ws);
   // Shared with TodayPage via the cache, so this costs nothing extra.
   const today = useQuery(keys.today(ws), (o) => workApi.nextActions(ws, o), { staleMs: REFRESH_MS });
 
   const location = useLocation();
+  const navigate = useNavigate();
   const motionOn = useMotionOn();
   const panel = useItemPanel();
   const prs = useQuery(keys.prs(ws === 'maintainer' ? 'maintainer' : 'mine'), (o) => workApi.prs(ws === 'maintainer' ? 'maintainer' : 'mine', o), { staleMs: REFRESH_MS });
+
+  const inbox = useQuery(ws === 'maintainer' ? keys.inbox() : null, (o) => workApi.inbox(o), { staleMs: REFRESH_MS });
+  const prRows = (ws === 'maintainer' ? prs.data?.rows : prs.data?.mine) ?? [];
+  const actions = today.data?.actions ?? [];
+
+  // Small live panels under the nav, different per workspace.
+  const panels = ws === 'maintainer'
+    ? [{
+        id: 'needs', title: 'Needs you',
+        rows: Object.entries(actions.reduce((m, a) => ({ ...m, [a.type]: (m[a.type] ?? 0) + 1 }), {}))
+          .map(([type, n]) => ({ label: ACTION[type]?.label ?? type, value: n, color: STATE[ACTION[type]?.color ?? 'gray'], onClick: () => navigate('/dashboard') })),
+      }]
+    : [{
+        id: 'myprs', title: 'Your pull requests',
+        rows: Object.entries(prRows.reduce((m, r) => { const b = prBucket(r); return { ...m, [b]: (m[b] ?? 0) + 1 }; }, {}))
+          .map(([b, n]) => ({ label: b, value: n, color: STATE[PR_COLORS[b] ?? 'gray'], onClick: () => navigate('/dashboard/mine') })),
+      }];
 
   // Live updates: connect once, watch the repos that are on screen.
   useEffect(() => { startLive(); return () => stopLive(); }, []);
@@ -98,10 +105,11 @@ export default function WorkspaceLayout() {
 
   return (
     <div className="ot w-full h-screen flex overflow-hidden"
-      data-density={prefs.density} data-motion={prefs.motion ? 'on' : 'off'}
-      style={{ '--accent': ACCENTS[prefs.accent] ?? ACCENTS.indigo, '--accent-soft': `${ACCENTS[prefs.accent] ?? ACCENTS.indigo}1f` }}>
-      <WorkspaceSidebar onPreload={(path) => { const k = path.split('/')[2] || 'today'; loaders[k]?.().catch(() => {}); }} nav={nav} counts={{ today: today.data?.actions?.length ?? 0 }} />
-      <Ambient />
+      data-ws={ws} data-density={prefs.density} data-text={prefs.textSize} data-motion={prefs.motion ? 'on' : 'off'}
+      style={{ '--accent': accent.hex, '--accent-ink': accent.ink }}>
+      <WorkspaceSidebar ws={ws} groups={NAV[ws]} panels={panels}
+        onPreload={(path) => { const k = path.split('/')[2] || 'today'; loaders[k]?.().catch(() => {}); }}
+        counts={{ today: actions.length, inbox: inbox.data?.rows?.length, prs: prRows.length }} />
       <main className="relative z-[1] flex-1 min-w-0 flex flex-col">
         <div className="flex-1 min-h-0">
           <Suspense fallback={null}>
@@ -128,7 +136,7 @@ export default function WorkspaceLayout() {
         </div>
       </main>
       <ItemPanel />
-      <CommandPalette nav={nav} />
+      <CommandPalette nav={flatNav(ws)} />
       <HelpOverlay workspace={ws} />
     </div>
   );

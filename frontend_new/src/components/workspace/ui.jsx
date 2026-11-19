@@ -18,15 +18,9 @@ export function useMotionOn() {
   return usePrefs((s) => s.motion) && !reducedMotion();
 }
 
-/** Slow drifting light behind the workspace, tinted by the accent colour. */
+/** Kept for older imports; the workspace no longer paints ambient light. */
 export function Ambient() {
-  return (
-    <div aria-hidden className="ambient">
-      <span className="ambient-a" />
-      <span className="ambient-b" />
-      <span className="ambient-grain" />
-    </div>
-  );
+  return null;
 }
 
 /** Rows fade/slide in with a short stagger the first time a list appears. */
@@ -51,27 +45,75 @@ export function StaggerItem({ children }) {
   );
 }
 
-/** Number that counts up when it changes. */
-export function CountUp({ value }) {
+/**
+ * A number that stays still until its value really changes (background
+ * refresh, webhook). Then it rolls to the new value, tints briefly and shows
+ * the difference for a few seconds. First render never animates.
+ * `null`/`undefined` renders an en dash, so pages can draw before data exists.
+ */
+export function LiveNumber({ value, delta = true, format = (n) => n.toLocaleString() }) {
   const motionOn = usePrefs((s) => s.motion) && !reducedMotion();
   const [shown, setShown] = useState(value);
+  const [diff, setDiff] = useState(0);
+  const [flash, setFlash] = useState(0);
   const prev = useRef(value);
   useEffect(() => {
-    if (!motionOn || typeof value !== 'number') { setShown(value); return undefined; }
-    const from = typeof prev.current === 'number' ? prev.current : 0;
+    const from = prev.current;
     prev.current = value;
-    if (from === value) { setShown(value); return undefined; }
+    if (typeof value !== 'number' || typeof from !== 'number' || from === value) { setShown(value); return undefined; }
+    setDiff(value - from);
+    setFlash((f) => f + 1);
+    const clear = setTimeout(() => setDiff(0), 4000);
+    if (!motionOn) { setShown(value); return () => clearTimeout(clear); }
     const start = performance.now();
     let raf;
     const tick = (t) => {
-      const k = Math.min(1, (t - start) / 400);
+      const k = Math.min(1, (t - start) / 500);
       setShown(Math.round(from + (value - from) * (1 - (1 - k) ** 3)));
       if (k < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf); clearTimeout(clear); };
   }, [value, motionOn]);
-  return <>{shown}</>;
+  if (typeof shown !== 'number') return <span className="tnum">{shown ?? '–'}</span>;
+  return (
+    <span className="tnum">
+      <span key={flash} className={flash ? 'num-changed' : ''}>{format(shown)}</span>
+      {delta && diff !== 0 && (
+        <span className="delta" style={{ color: diff > 0 ? 'var(--green)' : 'var(--muted)' }}>
+          {diff > 0 ? '▲' : '▼'}{Math.abs(diff)}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Older name; same behaviour without the delta chip. */
+export function CountUp({ value }) {
+  return <LiveNumber value={value} delta={false} />;
+}
+
+/**
+ * Tracks which list items changed between refreshes. Returns a function
+ * `changed(id)` that is true only for rows whose signature differs from the
+ * previous data (or are new), so a refresh highlights just those rows.
+ * The first data set never highlights anything.
+ */
+export function useChangedRows(items, idOf, sigOf = (x) => JSON.stringify(x)) {
+  const prev = useRef(null);
+  const [changed, setChanged] = useState(() => new Set());
+  useEffect(() => {
+    if (!items) return;
+    const next = new Map(items.map((x) => [idOf(x), sigOf(x)]));
+    if (prev.current) {
+      const diff = new Set();
+      next.forEach((sig, id) => { if (prev.current.get(id) !== sig) diff.add(id); });
+      setChanged(diff);
+    }
+    prev.current = next;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+  return (id) => changed.has(id);
 }
 
 /** A small burst of coloured dots from a point (e.g. the button that was clicked). */
@@ -243,7 +285,7 @@ export function Tag({ color, children, title, mono = false }) {
   return (
     <span
       title={title}
-      className={`inline-flex items-center gap-1.5 h-5 px-1.5 rounded border text-[11px] whitespace-nowrap ${mono ? 'mono' : ''}`}
+      className={`inline-flex items-center gap-1.5 h-5 px-1.5 rounded border fs-11 whitespace-nowrap ${mono ? 'mono' : ''}`}
       style={{ borderColor: 'var(--line)', color: 'var(--text-2)' }}
     >
       {color && <Dot color={color} />}
@@ -254,7 +296,7 @@ export function Tag({ color, children, title, mono = false }) {
 
 export function Kbd({ children }) {
   return (
-    <kbd className="mono inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border text-[10px]"
+    <kbd className="mono inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded border fs-10"
       style={{ borderColor: 'var(--line)', color: 'var(--muted)', background: 'var(--raised)' }}>
       {children}
     </kbd>
@@ -263,9 +305,9 @@ export function Kbd({ children }) {
 
 export const Button = forwardRef(function Button({ variant = 'ghost', size = 'md', className = '', children, ...rest }, ref) {
   const base = 'btn inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none';
-  const sizes = { sm: 'h-6 px-2 text-[12px]', md: 'h-7 px-2.5 text-[12.5px]' };
+  const sizes = { sm: 'h-7 px-2.5 fs-12', md: 'h-8 px-3 fs-12-5' };
   const variants = {
-    primary: 'btn-primary text-[#0b0c0e] bg-[var(--accent)] hover:brightness-110',
+    primary: 'btn-primary text-[var(--accent-ink)] bg-[var(--accent)] hover:brightness-110',
     ghost: 'text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--hover)] border border-[var(--line)]',
     subtle: 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]',
     danger: 'text-[var(--red)] hover:bg-[rgba(248,81,73,0.1)] border border-[var(--line)]',
@@ -281,7 +323,7 @@ export const Input = forwardRef(function Input({ className = '', ...rest }, ref)
   return (
     <input
       ref={ref}
-      className={`h-7 px-2.5 rounded-md text-[12.5px] bg-[var(--panel)] border border-[var(--line)] text-[var(--text)] placeholder:text-[var(--faint)] focus:outline-none focus:border-[var(--accent)] ${className}`}
+      className={`h-8 px-3 rounded-md fs-12-5 bg-[var(--panel)] border border-[var(--line)] text-[var(--text)] placeholder:text-[var(--faint)] focus:outline-none focus:border-[var(--accent)] ${className}`}
       {...rest}
     />
   );
@@ -290,7 +332,7 @@ export const Input = forwardRef(function Input({ className = '', ...rest }, ref)
 export function Textarea({ className = '', ...rest }) {
   return (
     <textarea
-      className={`w-full px-2.5 py-2 rounded-md text-[12.5px] bg-[var(--panel)] border border-[var(--line)] text-[var(--text)] placeholder:text-[var(--faint)] focus:outline-none focus:border-[var(--accent)] resize-y ${className}`}
+      className={`w-full px-2.5 py-2 rounded-md fs-12-5 bg-[var(--panel)] border border-[var(--line)] text-[var(--text)] placeholder:text-[var(--faint)] focus:outline-none focus:border-[var(--accent)] resize-y ${className}`}
       {...rest}
     />
   );
@@ -329,20 +371,20 @@ export function timeAgo(iso) {
 export function Page({ title, count, subtitle, actions, toolbar, refreshing, updatedAt, onRefresh, children }) {
   return (
     <div className="h-full flex flex-col min-w-0">
-      <header className="shrink-0 border-b border-[var(--line-soft)] px-5 pt-4 pb-3 pl-14 lg:pl-5">
+      <header className="shrink-0 border-b border-[var(--line-soft)] bg-[var(--bg)] px-6 pt-5 pb-3.5 pl-14 lg:pl-6">
         <div className="flex items-center gap-3 min-h-[28px]">
-          <h1 className="text-[15px] font-semibold tracking-tight">{title}</h1>
-          {count !== undefined && <span className="mono text-[var(--faint)]"><CountUp value={count} /></span>}
+          <h1 className="fs-19 font-semibold tracking-tight">{title}</h1>
+          {count !== undefined && <span className="mono text-[var(--faint)]"><LiveNumber value={count} delta={false} /></span>}
           {onRefresh && (
             <button onClick={onRefresh} title="Refresh (r)"
-              className="ml-1 inline-flex items-center gap-1.5 text-[11px] text-[var(--faint)] hover:text-[var(--text-2)]">
-              <Dot color={refreshing ? 'blue' : 'gray'} pulse={refreshing} />
-              {refreshing ? 'updating' : updatedAt ? `updated ${timeAgo(new Date(updatedAt).toISOString())} ago` : ''}
+              className="ml-1 inline-flex items-center gap-1.5 fs-11 text-[var(--faint)] hover:text-[var(--text-2)]">
+              <Dot color={refreshing ? 'blue' : 'gray'} />
+              {updatedAt ? `Updated ${timeAgo(new Date(updatedAt).toISOString())} ago` : ''}
             </button>
           )}
           <div className="ml-auto flex items-center gap-2">{actions}</div>
         </div>
-        {subtitle && <p className="text-[12px] text-[var(--muted)] mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="fs-12 text-[var(--muted)] mt-0.5">{subtitle}</p>}
         {toolbar && <div className="mt-3 flex flex-wrap items-center gap-2">{toolbar}</div>}
       </header>
       <div className="flex-1 scroll">{children}</div>
@@ -353,14 +395,14 @@ export function Page({ title, count, subtitle, actions, toolbar, refreshing, upd
 export function SectionLabel({ children, right }) {
   return (
     <div className="flex items-center justify-between px-5 pt-4 pb-1.5">
-      <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--faint)]">{children}</h2>
+      <h2 className="fs-12 font-semibold text-[var(--text-2)]">{children}</h2>
       {right}
     </div>
   );
 }
 
 /** Dense list row. `selected` is driven by keyboard navigation. */
-export function Row({ selected, onClick, onMouseEnter, lead, title, meta, right, children, id }) {
+export function Row({ selected, changed, onClick, onMouseEnter, lead, title, meta, right, children, id }) {
   return (
     <div
       id={id}
@@ -369,14 +411,14 @@ export function Row({ selected, onClick, onMouseEnter, lead, title, meta, right,
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       style={{ paddingTop: 'var(--row-py)', paddingBottom: 'var(--row-py)' }}
-      className={`ot-row group relative flex items-start gap-3 px-5 border-b border-[var(--line-soft)] cursor-pointer hover:bg-[var(--hover)] transition-colors ${selected ? 'row-selected' : ''}`}
+      className={`ot-row group relative flex items-start gap-3 px-5 border-b border-[var(--line-soft)] cursor-pointer hover:bg-[var(--hover)] transition-colors ${selected ? 'row-selected' : ''} ${changed ? 'row-changed' : ''}`}
     >
       <div className="pt-[3px]">{lead}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 min-w-0">
-          <span className="truncate text-[13px] text-[var(--text)]">{title}</span>
+          <span className="truncate fs-13-5 text-[var(--text)]">{title}</span>
         </div>
-        {meta && <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-[var(--muted)]">{meta}</div>}
+        {meta && <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 fs-12 text-[var(--muted)]">{meta}</div>}
         {children}
       </div>
       {right && <div className="shrink-0 flex items-center gap-1.5 pt-0.5">{right}</div>}
@@ -384,27 +426,14 @@ export function Row({ selected, onClick, onMouseEnter, lead, title, meta, right,
   );
 }
 
-const SCAN_LINES = ['Reading GitHub', 'Checking who is on it', 'Finding who acts next'];
-
 /**
- * First-load state (only when nothing is cached yet): a heartbeat being drawn
- * and what is being checked, instead of grey placeholder bars.
+ * First load with nothing cached: one quiet line, no spinner or shimmer.
+ * (Cached data always renders first, so this shows only on a brand-new device.)
  * Kept as `SkeletonRows` so every page uses it without changes.
  */
-export function SkeletonRows({ n = 6 }) {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI((x) => (x + 1) % SCAN_LINES.length), 1400);
-    return () => clearInterval(t);
-  }, []);
-  const compact = n <= 3;
+export function SkeletonRows() {
   return (
-    <div role="status" aria-live="polite" className={`scan ${compact ? 'scan-compact' : ''}`}>
-      <svg viewBox="0 0 120 30" className="scan-ecg" aria-hidden>
-        <path d="M0 15h34l5-10 7 22 6-18 4 6h64" />
-      </svg>
-      <span className="scan-text">{SCAN_LINES[i]}<span className="scan-dots" /></span>
-    </div>
+    <p role="status" className="px-5 py-4 fs-12-5 text-[var(--faint)]">Getting this from GitHub for the first time.</p>
   );
 }
 
@@ -449,8 +478,8 @@ export function Empty({ title, children, action, art = 'calm' }) {
   return (
     <Wrap className="px-5 py-14 text-center" {...anim}>
       <EmptyArt art={art} />
-      <p className="text-[13.5px] font-medium text-[var(--text)] mt-3">{title}</p>
-      {children && <div className="text-[12px] text-[var(--muted)] mt-1.5 max-w-md mx-auto">{children}</div>}
+      <p className="fs-13-5 font-medium text-[var(--text)] mt-3">{title}</p>
+      {children && <div className="fs-12 text-[var(--muted)] mt-1.5 max-w-md mx-auto">{children}</div>}
       {action && <div className="mt-4">{action}</div>}
     </Wrap>
   );
@@ -470,7 +499,7 @@ export function ListEnd({ count, note = 'That is everything that needs a look.' 
 
 export function ErrorLine({ message, onRetry }) {
   return (
-    <div className="mx-5 my-4 flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">
+    <div className="mx-5 my-4 flex items-center gap-2 fs-12-5 text-[var(--text-2)]">
       <Dot color="red" />
       <span className="flex-1">{message}</span>
       {onRetry && <Button size="sm" onClick={onRetry}>Retry</Button>}
@@ -484,11 +513,11 @@ export function Segments({ value, onChange, options }) {
     <div className="inline-flex p-0.5 rounded-md border border-[var(--line)] bg-[var(--panel)]">
       {options.map((o) => (
         <button key={o.value} onClick={() => onChange(o.value)}
-          className={`h-6 px-2.5 rounded text-[12px] inline-flex items-center gap-1.5 ${value === o.value
+          className={`h-6 px-2.5 rounded fs-12 inline-flex items-center gap-1.5 ${value === o.value
             ? 'bg-[var(--raised)] text-[var(--text)] shadow-[inset_0_0_0_1px_var(--line)]'
             : 'text-[var(--muted)] hover:text-[var(--text-2)]'}`}>
           {o.label}
-          {o.count !== undefined && <span className="mono text-[10.5px] text-[var(--faint)]">{o.count}</span>}
+          {o.count !== undefined && <span className="mono fs-10-5 text-[var(--faint)]">{o.count}</span>}
         </button>
       ))}
     </div>
@@ -501,7 +530,7 @@ export function Block({ title, right, children }) {
     <section className="py-3.5 border-b border-[var(--line-soft)]">
       {title && (
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--faint)]">{title}</h3>
+          <h3 className="fs-11 font-medium uppercase tracking-[0.06em] text-[var(--faint)]">{title}</h3>
           {right}
         </div>
       )}
@@ -515,7 +544,7 @@ export function Evidence({ items }) {
   return (
     <ul className="mt-1.5 space-y-0.5">
       {items.map((e, i) => (
-        <li key={i} className="text-[12px] text-[var(--muted)] flex flex-wrap items-center gap-x-1.5">
+        <li key={i} className="fs-12 text-[var(--muted)] flex flex-wrap items-center gap-x-1.5">
           <span className="text-[var(--faint)]">↳</span>
           {e.url ? <ExtLink href={e.url}>{e.label}</ExtLink> : <span>{e.label}</span>}
           {e.at && <span className="text-[var(--faint)]">{timeAgo(e.at)}</span>}
@@ -523,4 +552,37 @@ export function Evidence({ items }) {
       ))}
     </ul>
   );
+}
+
+/** Bordered panel with an optional title row. */
+export function Card({ title, right, children, className = '', bodyClass = 'px-3.5 pb-3.5' }) {
+  return (
+    <section className={`card ${className}`}>
+      {(title || right) && (
+        <div className="card-h">
+          {title && <h2 className="card-t">{title}</h2>}
+          {right}
+        </div>
+      )}
+      <div className={title || right ? bodyClass : 'p-3.5'}>{children}</div>
+    </section>
+  );
+}
+
+/** Big number with a label; `onClick` makes it a filter button. */
+export function Stat({ label, value, color = 'var(--accent)', hint, onClick }) {
+  const Tag = onClick ? 'button' : 'div';
+  return (
+    <Tag onClick={onClick} className="stat-tile text-left" style={{ '--c': color }} title={hint}>
+      <div className="fs-12 text-[var(--muted)]">{label}</div>
+      <div className="fs-24 font-semibold mt-0.5 leading-none" style={{ color: value ? 'var(--text)' : 'var(--faint)' }}>
+        <LiveNumber value={value} />
+      </div>
+    </Tag>
+  );
+}
+
+/** Thin progress bar 0..1. */
+export function Progress({ value = 0, color }) {
+  return <div className="bar"><span style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, ...(color ? { background: color } : {}) }} /></div>;
 }

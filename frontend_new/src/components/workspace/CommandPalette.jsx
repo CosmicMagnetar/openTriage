@@ -90,7 +90,7 @@ export default function CommandPalette({ nav }) {
               else if (e.key === 'Enter') run(items[sel]);
             }}
             placeholder="Paste a GitHub link, owner/repo#123, or search…"
-            className="flex-1 bg-transparent text-[13.5px] text-[var(--text)] placeholder:text-[var(--faint)] focus:outline-none"
+            className="flex-1 bg-transparent fs-13-5 text-[var(--text)] placeholder:text-[var(--faint)] focus:outline-none"
           />
           <Kbd>esc</Kbd>
         </div>
@@ -98,13 +98,13 @@ export default function CommandPalette({ nav }) {
           {items.map((it, i) => (
             <li key={it.id}>
               <button onMouseEnter={() => setSel(i)} onClick={() => run(it)}
-                className={`w-full flex items-center justify-between px-3 h-9 text-left text-[13px] ${i === sel ? 'bg-[var(--hover)] text-[var(--text)]' : 'text-[var(--text-2)]'}`}>
+                className={`w-full flex items-center justify-between px-3 h-9 text-left fs-13 ${i === sel ? 'bg-[var(--hover)] text-[var(--text)]' : 'text-[var(--text-2)]'}`}>
                 <span className="truncate">{it.label}</span>
                 {it.hint && <Kbd>{it.hint}</Kbd>}
               </button>
             </li>
           ))}
-          {items.length === 0 && <li className="px-3 py-3 text-[12.5px] text-[var(--muted)]">No matches</li>}
+          {items.length === 0 && <li className="px-3 py-3 fs-12-5 text-[var(--muted)]">No matches</li>}
         </ul>
       </div>
     </div>

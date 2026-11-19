@@ -32,7 +32,7 @@ export function PRRow({ r, i, selected, onOpen, me }) {
         {review && <Tag color={review.color}>{review.label}</Tag>}
         {a && <span className="text-[var(--text-2)]">{meta?.label} · waiting on {waitingOnLabel(a.waitingOn, me)}</span>}
       </>}
-      right={<span className="text-[12px] text-[var(--faint)]">{timeAgo(r.updatedAt)}</span>}
+      right={<span className="fs-12 text-[var(--faint)]">{timeAgo(r.updatedAt)}</span>}
     />
   );
 }

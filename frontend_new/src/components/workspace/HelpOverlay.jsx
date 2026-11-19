@@ -64,39 +64,39 @@ export default function HelpOverlay({ workspace }) {
     <div data-palette-open className="fixed inset-0 z-50 flex items-start justify-center pt-[8vh] bg-black/55" onMouseDown={() => setOpen(false)}>
       <div className="w-[min(720px,94vw)] max-h-[84vh] scroll rounded-lg border border-[var(--line)] bg-[var(--panel)] shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center h-11 px-4 border-b border-[var(--line-soft)]">
-          <h2 className="text-[13.5px] font-semibold">How OpenTriage helps</h2>
+          <h2 className="fs-13-5 font-semibold">How OpenTriage helps</h2>
           <button onClick={() => setOpen(false)} aria-label="Close help" className="ml-auto w-7 h-7 inline-flex items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--hover)]">
             <X className="w-4 h-4" />
           </button>
         </div>
         <div className="p-5 grid md:grid-cols-2 gap-6">
           <section>
-            <h3 className="text-[11px] uppercase tracking-[0.06em] text-[var(--faint)] mb-2">Pages</h3>
+            <h3 className="fs-11 uppercase tracking-[0.06em] text-[var(--faint)] mb-2">Pages</h3>
             <ul className="space-y-2.5">
               {PAGES[workspace].map(([t, d]) => (
-                <li key={t}><p className="text-[12.5px] text-[var(--text)]">{t}</p><p className="text-[12px] text-[var(--muted)]">{d}</p></li>
+                <li key={t}><p className="fs-12-5 text-[var(--text)]">{t}</p><p className="fs-12 text-[var(--muted)]">{d}</p></li>
               ))}
             </ul>
-            <p className="mt-3 text-[12px] text-[var(--muted)]">Switch between Contributor and Maintainer at the bottom of the sidebar — same account, different view.</p>
+            <p className="mt-3 fs-12 text-[var(--muted)]">Switch between Contributor and Maintainer at the bottom of the sidebar — same account, different view.</p>
           </section>
           <section className="space-y-5">
             <div>
-              <h3 className="text-[11px] uppercase tracking-[0.06em] text-[var(--faint)] mb-2">Colours</h3>
+              <h3 className="fs-11 uppercase tracking-[0.06em] text-[var(--faint)] mb-2">Colours</h3>
               <ul className="space-y-1.5">
-                {COLOURS.map(([c, d]) => <li key={c} className="flex items-center gap-2 text-[12px] text-[var(--text-2)]"><Dot color={c} />{d}</li>)}
+                {COLOURS.map(([c, d]) => <li key={c} className="flex items-center gap-2 fs-12 text-[var(--text-2)]"><Dot color={c} />{d}</li>)}
               </ul>
             </div>
             <div>
-              <h3 className="text-[11px] uppercase tracking-[0.06em] text-[var(--faint)] mb-2">Keyboard</h3>
+              <h3 className="fs-11 uppercase tracking-[0.06em] text-[var(--faint)] mb-2">Keyboard</h3>
               <ul className="space-y-1.5">
                 {KEYS.map(([ks, d]) => (
-                  <li key={d} className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
+                  <li key={d} className="flex items-center gap-2 fs-12 text-[var(--text-2)]">
                     <span className="inline-flex gap-1 w-14">{ks.map((k) => <Kbd key={k}>{k}</Kbd>)}</span>{d}
                   </li>
                 ))}
               </ul>
             </div>
-            <p className="text-[12px] text-[var(--muted)]">Everything comes from GitHub and works without AI. Replies and claims you post here appear on GitHub as you.</p>
+            <p className="fs-12 text-[var(--muted)]">Everything comes from GitHub and works without AI. Replies and claims you post here appear on GitHub as you.</p>
           </section>
         </div>
       </div>

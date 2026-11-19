@@ -35,7 +35,7 @@ function LensStart() {
       </Empty>
       {groups.map(([label, list]) => (
         <div key={label} className="mt-2 mb-5">
-          <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--faint)] mb-2">{label}</h2>
+          <h2 className="fs-11 font-medium uppercase tracking-[0.06em] text-[var(--faint)] mb-2">{label}</h2>
           <div className="flex flex-wrap gap-1.5">
             {list.slice(0, 12).map((full) => (
               <button key={full} onClick={() => navigate(`/dashboard/lens/${full}`)}
@@ -90,22 +90,22 @@ export default function RepoLensPage() {
                 <Tag color={lens.newcomerIssuesOpen ? 'green' : 'gray'}>{lens.newcomerIssuesOpen} open good-first issues</Tag>
               </button>
             )}
-            <ExtLink href={lens.repo.url} className="ml-auto text-[12px] text-[var(--muted)]">GitHub</ExtLink>
+            <ExtLink href={lens.repo.url} className="ml-auto fs-12 text-[var(--muted)]">GitHub</ExtLink>
           </div>
 
           {lens.warnings.map((w) => (
-            <p key={w} className="flex items-center gap-2 py-2 text-[12.5px] text-[var(--text-2)] border-b border-[var(--line-soft)]">
+            <p key={w} className="flex items-center gap-2 py-2 fs-12-5 text-[var(--text-2)] border-b border-[var(--line-soft)]">
               <Dot color="amber" /> {w}
             </p>
           ))}
 
           <div className="grid md:grid-cols-2 md:gap-x-8">
             <Block title="Will anyone respond?">
-              <p className="text-[12.5px] text-[var(--text-2)]">{lens.responsiveness?.summary ?? 'Could not measure.'}</p>
+              <p className="fs-12-5 text-[var(--text-2)]">{lens.responsiveness?.summary ?? 'Could not measure.'}</p>
             </Block>
 
             <Block title="Contribution docs">
-              <ul className="grid grid-cols-2 gap-y-1 text-[12.5px]">
+              <ul className="grid grid-cols-2 gap-y-1 fs-12-5">
                 {[['README', docs.readme], ['Contributing guide', docs.contributing], ['Code of conduct', docs.codeOfConduct], ['PR template', docs.prTemplate]].map(([label, path]) => (
                   <li key={label} className="flex items-center gap-2">
                     <Dot color={path ? 'green' : 'gray'} />
@@ -121,19 +121,19 @@ export default function RepoLensPage() {
 
           <Block title="Run it locally">
             {lens.setup.length === 0 && Object.keys(lens.scripts).length === 0 ? (
-              <p className="text-[12.5px] text-[var(--muted)]">No setup commands found in the README or contributing guide.</p>
+              <p className="fs-12-5 text-[var(--muted)]">No setup commands found in the README or contributing guide.</p>
             ) : (
               <div className="grid md:grid-cols-2 gap-3">
                 {lens.setup.map((b) => (
                   <div key={`${b.source}-${b.section}`}>
-                    <p className="text-[11.5px] text-[var(--faint)] mb-1">{b.section} · {b.source}</p>
-                    <pre className="mono text-[11.5px] bg-[var(--bg)] border border-[var(--line-soft)] rounded-md p-2.5 overflow-x-auto text-[var(--text-2)]">{b.commands.join('\n')}</pre>
+                    <p className="fs-11-5 text-[var(--faint)] mb-1">{b.section} · {b.source}</p>
+                    <pre className="mono fs-11-5 bg-[var(--bg)] border border-[var(--line-soft)] rounded-md p-2.5 overflow-x-auto text-[var(--text-2)]">{b.commands.join('\n')}</pre>
                   </div>
                 ))}
                 {Object.keys(lens.scripts).length > 0 && (
                   <div>
-                    <p className="text-[11.5px] text-[var(--faint)] mb-1">package.json scripts</p>
-                    <ul className="mono text-[11.5px] space-y-0.5">
+                    <p className="fs-11-5 text-[var(--faint)] mb-1">package.json scripts</p>
+                    <ul className="mono fs-11-5 space-y-0.5">
                       {Object.entries(lens.scripts).map(([k, v]) => (
                         <li key={k} className="truncate"><span className="text-[var(--text)]">{k}</span> <span className="text-[var(--faint)]">{v}</span></li>
                       ))}
@@ -148,7 +148,7 @@ export default function RepoLensPage() {
             <Block title="Layout">
               <ul className="space-y-0.5">
                 {lens.layout.map((d) => (
-                  <li key={d.path} className="flex items-center gap-2 text-[12.5px]">
+                  <li key={d.path} className="flex items-center gap-2 fs-12-5">
                     <ExtLink href={`${lens.repo.url}/tree/${lens.repo.defaultBranch}/${d.path}`} className="mono text-[var(--text-2)]">{d.path}/</ExtLink>
                     {d.role && <span className="text-[var(--faint)]">{d.role}</span>}
                     <span className="ml-auto mono text-[var(--faint)]">{d.files}</span>
@@ -158,10 +158,10 @@ export default function RepoLensPage() {
             </Block>
 
             <Block title="Where work is happening">
-              {lens.activeAreas.length === 0 ? <p className="text-[12.5px] text-[var(--muted)]">No recently merged PRs.</p> : (
+              {lens.activeAreas.length === 0 ? <p className="fs-12-5 text-[var(--muted)]">No recently merged PRs.</p> : (
                 <ul className="space-y-1">
                   {lens.activeAreas.map((a) => (
-                    <li key={a.area} className="flex items-center gap-2 text-[12.5px]">
+                    <li key={a.area} className="flex items-center gap-2 fs-12-5">
                       <span className="mono text-[var(--text-2)] truncate">{a.area}</span>
                       <span className="text-[var(--faint)]">{a.people.map((p) => `@${p}`).join(' ')}</span>
                       <span className="ml-auto mono text-[var(--faint)]">{a.changes}</span>
@@ -176,7 +176,7 @@ export default function RepoLensPage() {
             <Block title="Who reviews what (CODEOWNERS)">
               <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-0.5">
                 {lens.codeowners.map((r) => (
-                  <li key={r.pattern} className="flex items-center justify-between gap-3 text-[12px]">
+                  <li key={r.pattern} className="flex items-center justify-between gap-3 fs-12">
                     <span className="mono text-[var(--text-2)] truncate">{r.pattern}</span>
                     <span className="text-[var(--muted)] truncate">{r.owners.join(' ')}</span>
                   </li>
