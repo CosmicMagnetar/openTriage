@@ -20,6 +20,7 @@ import { ContributionGraph } from './ContributionGraph';
 import { HUES } from './nav';
 import BadgeArt from './badges/BadgeArt';
 import { FAMILIES, TIERS, evaluateAll, featuredBadges, levelTitle } from './badges/registry';
+import { badgeImage, loadImage } from './badges/badgeImage';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -319,55 +320,102 @@ function Customize({ profile, hue, login }) {
   );
 }
 
-/** Share image: avatar initial, level, numbers and featured badges. */
-function drawCard(canvas, { login, title, level, stats, featured, hue }) {
-  const W = 1200; const H = 630;
+/**
+ * Share image (1200×630): your banner style behind, GitHub avatar and name,
+ * level and title, the numbers you chose (line counts are never included)
+ * and your featured badges drawn from the real badge art.
+ */
+async function drawCard(canvas, { login, name, avatar, title, level, stats, featured, hue, banner, weeks }) {
+  const W = 1200; const H = 630; const BH = 230;
   canvas.width = W; canvas.height = H;
   const c = canvas.getContext('2d');
   const font = (w, s) => `${w} ${s}px -apple-system, "Segoe UI", Helvetica, Arial, sans-serif`;
-  c.fillStyle = '#212830'; c.fillRect(0, 0, W, H);
-  c.fillStyle = hue; c.globalAlpha = 0.18; c.fillRect(0, 0, W, 150); c.globalAlpha = 1;
-  c.fillStyle = '#d1d7e0'; c.font = font(700, 58); c.fillText(`@${login}`, 80, 120);
-  c.fillStyle = hue; c.font = font(600, 30); c.fillText(`Level ${level.level} · ${title}`, 80, 205);
-  c.fillStyle = '#9198a1'; c.font = font(400, 26); c.fillText(`${level.xp.toLocaleString()} XP`, 80, 245);
-  stats.slice(0, 4).forEach(([label, v], i) => {
-    const x = 80 + i * 270;
-    c.fillStyle = '#d1d7e0'; c.font = font(700, 66); c.fillText(Number(v).toLocaleString(), x, 360);
-    c.fillStyle = '#9198a1'; c.font = font(400, 24); c.fillText(label, x, 398);
+  const [avatarImg, ...badgeImgs] = await Promise.all([
+    avatar ? loadImage(avatar) : Promise.resolve(null),
+    ...featured.slice(0, 6).map((r) => badgeImage(r.badge, r.tier)),
+  ]);
+
+  c.fillStyle = '#050506'; c.fillRect(0, 0, W, H);
+  // Banner in the chosen style and profile colour
+  c.fillStyle = hue; c.globalAlpha = 0.22; c.fillRect(0, 0, W, BH); c.globalAlpha = 1;
+  if (banner === 'dots') {
+    c.fillStyle = hue; c.globalAlpha = 0.45;
+    for (let x = 8; x < W; x += 20) for (let y = 8; y < BH; y += 20) { c.beginPath(); c.arc(x, y, 2, 0, Math.PI * 2); c.fill(); }
+    c.globalAlpha = 1;
+  } else if (banner === 'lines') {
+    c.strokeStyle = hue; c.globalAlpha = 0.35; c.lineWidth = 3;
+    for (let x = -BH; x < W; x += 22) { c.beginPath(); c.moveTo(x, BH); c.lineTo(x + BH, 0); c.stroke(); }
+    c.globalAlpha = 1;
+  } else if (banner === 'graph' && weeks?.length) {
+    const cols = weeks.slice(-52); const sz = 14; const gap = 4;
+    const x0 = W - cols.length * (sz + gap) - 30; const y0 = 40;
+    const shade = { NONE: 'rgba(255,255,255,0.06)', FIRST_QUARTILE: '#1b4721', SECOND_QUARTILE: '#2b6a30', THIRD_QUARTILE: '#46954a', FOURTH_QUARTILE: '#6bc46d' };
+    cols.forEach((w, i) => w.contributionDays.forEach((d, j) => { c.fillStyle = shade[d.contributionLevel] ?? shade.NONE; c.fillRect(x0 + i * (sz + gap), y0 + j * (sz + gap), sz, sz); }));
+  }
+
+  // Avatar over the banner edge
+  const ax = 80; const ay = BH - 70; const ar = 70;
+  c.save(); c.beginPath(); c.arc(ax + ar, ay + ar, ar + 6, 0, Math.PI * 2); c.fillStyle = '#050506'; c.fill(); c.restore();
+  c.save(); c.beginPath(); c.arc(ax + ar, ay + ar, ar, 0, Math.PI * 2); c.clip();
+  if (avatarImg) c.drawImage(avatarImg, ax, ay, ar * 2, ar * 2);
+  else { c.fillStyle = hue; c.fillRect(ax, ay, ar * 2, ar * 2); c.fillStyle = '#050506'; c.font = font(700, 64); c.textAlign = 'center'; c.fillText((login[0] ?? '?').toUpperCase(), ax + ar, ay + ar + 22); c.textAlign = 'left'; }
+  c.restore();
+
+  const tx = ax + ar * 2 + 32;
+  c.fillStyle = '#ececef'; c.font = font(700, 50); c.fillText(name || login, tx, BH + 30);
+  c.fillStyle = '#8c8c95'; c.font = font(400, 26); c.fillText(`@${login}`, tx, BH + 66);
+  c.fillStyle = hue; c.font = font(700, 26);
+  const lvl = `Level ${level.level} · ${title}`;
+  c.fillText(lvl, tx + c.measureText(`@${login}`).width + 40, BH + 66);
+
+  // Numbers (never line counts)
+  stats.filter(([label]) => !/lines/i.test(label)).slice(0, 4).forEach(([label, v], i) => {
+    const x = 80 + i * 190; const y = BH + 170;
+    c.fillStyle = '#ececef'; c.font = font(700, 54); c.fillText(Number(v).toLocaleString(), x, y);
+    c.fillStyle = '#8c8c95'; c.font = font(400, 22); c.fillText(label, x, y + 32);
   });
+
+  // Featured badges, real art
   featured.slice(0, 6).forEach((r, i) => {
-    const x = 120 + i * 170; const y = 500;
-    const t = TIERS[r.tier];
-    c.beginPath(); c.arc(x, y, 44, 0, Math.PI * 2); c.fillStyle = '#1a1f26'; c.fill();
-    c.lineWidth = 6; c.strokeStyle = t.color; c.stroke();
-    c.fillStyle = '#d1d7e0'; c.font = font(600, 18); c.textAlign = 'center'; c.fillText(r.badge.name.slice(0, 16), x, y + 74);
-    c.fillStyle = t.color; c.font = font(500, 16); c.fillText(t.label, x, y + 96); c.textAlign = 'left';
+    const size = 88; const x = 900 + (i % 3) * 100; const y = BH + 40 + Math.floor(i / 3) * 140;
+    const img = badgeImgs[i];
+    if (img) c.drawImage(img, x, y, size, size);
+    c.fillStyle = '#b9b9c1'; c.font = font(600, 16); c.textAlign = 'center';
+    c.fillText(r.badge.name.length > 12 ? `${r.badge.name.slice(0, 11)}…` : r.badge.name, x + size / 2, y + size + 20);
+    c.textAlign = 'left';
   });
-  c.fillStyle = '#7d848e'; c.font = font(400, 20); c.fillText('OpenTriage · from GitHub data', W - 330, H - 24);
+
+  c.fillStyle = '#6b6b74'; c.font = font(400, 20); c.fillText('OpenTriage · grow in open source, one clear next step a day', 80, H - 28);
 }
 
 function ShareSheet({ onClose, ...card }) {
   const ref = useRef(null);
-  useEffect(() => { if (ref.current) drawCard(ref.current, card); });
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let off = false;
+    setReady(false);
+    if (ref.current) drawCard(ref.current, card).then(() => { if (!off) setReady(true); });
+    return () => { off = true; };
+  }, [card.login, card.avatar, card.banner, card.hue, card.featured.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const download = () => ref.current?.toBlob((blob) => {
-    if (!blob) return;
+    if (!blob) return toast.error('Could not create the image');
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = `opentriage-${card.login}.png`; a.click();
     URL.revokeObjectURL(url);
   });
-  const text = `Level ${card.level.level} ${card.title} on OpenTriage: ${card.stats.map(([l, v]) => `${v} ${l.toLowerCase()}`).join(', ')}.`;
+  const text = `Level ${card.level.level} ${card.title} on OpenTriage: ${card.stats.filter(([l]) => !/lines/i.test(l)).map(([l, v]) => `${v} ${l.toLowerCase()}`).join(', ')}.`;
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
       <div className="card w-full max-w-2xl p-5" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Share your profile">
         <div className="flex items-center mb-3">
           <h2 className="fs-16 font-semibold flex-1">Share your profile</h2>
           <button onClick={onClose} aria-label="Close" className="p-1 text-[var(--muted)] hover:text-[var(--text)]"><X className="w-4 h-4" /></button>
         </div>
-        <canvas ref={ref} className="w-full rounded-lg border border-[var(--line)]" style={{ aspectRatio: '1200 / 630' }} />
-        <p className="fs-12-5 text-[var(--muted)] mt-3">Only your pinned and visible badges and the numbers you chose. Nothing is posted until you post it.</p>
+        <canvas ref={ref} className="w-full rounded-lg border border-[var(--line)]" style={{ aspectRatio: '1200 / 630', opacity: ready ? 1 : 0.6 }} />
+        <p className="fs-12-5 text-[var(--muted)] mt-3">Your banner, avatar, level, the numbers you chose and your featured badges. Nothing is posted until you post it.</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="primary" onClick={download}><Download className="w-3.5 h-3.5" /> Download image</Button>
+          <Button variant="primary" disabled={!ready} onClick={download}><Download className="w-3.5 h-3.5" /> Download image</Button>
           <Button onClick={async () => { try { await navigator.clipboard.writeText(text); toast.success('Copied'); } catch { toast.error('Could not copy'); } }}>Copy text</Button>
         </div>
       </div>
@@ -421,7 +469,7 @@ export default function ProfilePage() {
     <Page title="Profile" hue={hue}
       subtitle="Your open-source journey from GitHub: level, badges and everything you did. Private unless you share it."
       refreshing={q.isRefreshing} updatedAt={q.updatedAt} onRefresh={() => q.refresh()}
-      actions={d && <Button onClick={() => setShare(true)}><Share2 className="w-3.5 h-3.5" /> Share</Button>}>
+      actions={d && <Button variant="primary" onClick={() => setShare(true)}><Share2 className="w-3.5 h-3.5" /> Share</Button>}>
       <div className="px-8 py-6 space-y-6" style={{ '--hue': hue }}>
         {q.error && <ErrorLine message={q.error.message} onRetry={q.refresh} />}
 
@@ -470,7 +518,7 @@ export default function ProfilePage() {
                   <p className="fs-12-5 text-[var(--muted)] mt-1.5">Longest {d.graph?.streak?.longestStreak ?? 0} days</p>
                 </div>
               </section>
-              <section className="card p-5 flex items-center gap-4">
+              <section className={`card p-5 flex items-center gap-4 ${week >= profile.weeklyGoal ? 'is-done' : ''}`}>
                 <GoalRing done={week} goal={profile.weeklyGoal} />
                 <div>
                   <p className="fs-13 text-[var(--text-2)] inline-flex items-center gap-1"><Target className="w-3.5 h-3.5" /> This week</p>
@@ -546,7 +594,8 @@ export default function ProfilePage() {
       </div>
       {open && <BadgeSheet r={open} profile={profile} onClose={() => setOpen(null)} />}
       {share && d && (
-        <ShareSheet onClose={() => setShare(false)} login={login} title={levelTitle(lv.level)} level={lv} hue={hue}
+        <ShareSheet onClose={() => setShare(false)} login={login} name={g?.name} avatar={g?.avatar_url ?? user?.avatarUrl}
+          title={levelTitle(lv.level)} level={lv} hue={hue} banner={profile.banner} weeks={d.graph?.weeks}
           stats={stats.map(([l, v]) => [l, v])} featured={featuredBadges(results, profile, 6)} />
       )}
     </Page>

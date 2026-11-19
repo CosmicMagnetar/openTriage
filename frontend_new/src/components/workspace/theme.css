@@ -5,27 +5,31 @@
  * Type scales from one variable (--fs) set by Settings → Appearance.
  */
 .ot {
-  /* GitHub Primer dark-dimmed */
-  --bg: #212830;
-  --panel: #262c36;
-  --inset: #151b23;
-  --raised: #2a313c;
-  --hover: #2f3742;
-  --line: #3d444d;
-  --line-soft: #3d444db3;
-  --text: #d1d7e0;
-  --text-2: #b7bdc8;
-  --muted: #9198a1;
-  --faint: #7d848e;
-  --link: #478be6;
+  /* Pitch dark. Surfaces step up in lightness; borders are soft white
+     alpha; text is off-white (no halation). One pop colour per workspace. */
+  --bg: #050506;
+  --panel: #0f0f12;
+  --inset: #000000;
+  --raised: #17171b;
+  --hover: #1c1c21;
+  --line: rgba(255, 255, 255, 0.1);
+  --line-soft: rgba(255, 255, 255, 0.06);
+  --text: #ececef;
+  --text-2: #b9b9c1;
+  --muted: #8c8c95;
+  --faint: #6b6b74;
+  --link: #6ea8ff;
   --accent: #57ab5a;
   --accent-ink: #0f1a10;
   --accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
-  --green: #57ab5a;
-  --amber: #c69026;
-  --red: #e5534b;
-  --purple: #986ee2;
-  --blue: #478be6;
+  /* The pop colour: only for the main action on a screen and big wins. */
+  --pop: #ff6fb5;
+  --pop-ink: #2a0517;
+  --green: #5fbf62;
+  --amber: #e3a72f;
+  --red: #f0605a;
+  --purple: #a77ef0;
+  --blue: #5b9dff;
   --radius: 10px;
   --fs: 1.154;
   --font: "Mona Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
@@ -40,7 +44,7 @@
 }
 
 /* Role colour: contributor green (the contribution graph), maintainer amber */
-.ot[data-ws="maintainer"] { --accent: #c69026; --accent-ink: #1a1206; }
+.ot[data-ws="maintainer"] { --accent: #c69026; --accent-ink: #1a1206; --pop: #ffd43b; --pop-ink: #2a2100; }
 .ot, .ot .side-pill, .ot .ctx-badge { transition: --accent .2s; }
 
 /* Text size: Settings → Appearance (default = GitHub's 14px) */
@@ -321,3 +325,9 @@
 .ot .fs-14 { font-size: calc(14px * var(--fs)); }
 .ot .fs-18 { font-size: calc(18px * var(--fs)); }
 .ot .fs-36 { font-size: calc(36px * var(--fs)); }
+
+/* Pop button: the one main action on a screen */
+.ot .btn-pop { background: var(--pop); color: var(--pop-ink); font-weight: 600; }
+.ot .btn-pop:hover { filter: brightness(1.08); }
+/* A finished goal turns the card gold (Streaks) */
+.ot .card.is-done { border-color: color-mix(in srgb, var(--amber) 55%, transparent); background: color-mix(in srgb, var(--amber) 9%, var(--panel)); }

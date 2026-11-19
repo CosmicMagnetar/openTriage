@@ -50,8 +50,8 @@ export default function ContextBar({ ws, repoCount = 0, right }) {
 
       <div className="flex-1" />
       <button onClick={openPalette}
-        className="ctl hidden md:flex w-full max-w-[340px] items-center gap-2 px-2.5 rounded-md border border-[var(--line)] bg-[var(--bg)] fs-13 text-[var(--muted)] hover:border-[var(--muted)]">
-        <Search className="w-3.5 h-3.5" />
+        className="ctl-lg hidden md:flex w-full max-w-[440px] items-center gap-2.5 px-3 rounded-lg border border-[var(--line)] bg-[var(--panel)] fs-13-5 text-[var(--muted)] hover:border-[var(--muted)]">
+        <Search className="w-4 h-4" strokeWidth={2.4} />
         <span className="flex-1 text-left truncate">{ws === 'maintainer' ? 'Search your repos, PRs, contributors' : 'Search issues, repos, programs'}</span>
         <Kbd>⌘K</Kbd>
       </button>

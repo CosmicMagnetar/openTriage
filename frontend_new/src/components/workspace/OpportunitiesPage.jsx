@@ -58,7 +58,7 @@ function ProgramCard({ p }) {
       <div className="flex flex-wrap gap-1.5">{p.tags.map((t) => <Tag key={t}>{t}</Tag>)}</div>
       <div className="mt-auto pt-2 flex items-center gap-2">
         <a href={p.url} target="_blank" rel="noopener noreferrer"
-          className="ctl-sm inline-flex items-center gap-1.5 px-2.5 rounded-md fs-12 font-medium bg-[var(--accent)] text-[var(--accent-ink)] hover:brightness-110">
+          className="ctl-sm btn-pop inline-flex items-center gap-1.5 px-2.5 rounded-md fs-12">
           How to apply <ExternalLink className="w-3 h-3" />
         </a>
         <TrackButton id={p.id} />

@@ -2,9 +2,10 @@
  * App shell for both workspaces: sidebar, page, item panel, ⌘K palette.
  * Pages are lazy so switching workspace never loads code it doesn't need.
  */
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { PageBoundary, PageFallback, lazyRetry } from './PageShell';
 import { NAV, flatNav } from './nav';
 import { prBucket } from './prRows';
 import { ACTION, STATE } from './ui';
@@ -37,16 +38,16 @@ const loaders = {
   profile: () => import('./ProfilePage'),
   opportunities: () => import('./OpportunitiesPage'),
 };
-const TodayPage = lazy(loaders.today);
-const FindWorkPage = lazy(loaders.find);
-const InboxPage = lazy(loaders.inbox);
-const PullRequestsPage = lazy(loaders.prs);
-const MyWorkPage = lazy(loaders.mine);
-const RepoLensPage = lazy(loaders.lens);
-const IssueFullPage = lazy(loaders.issue);
-const SettingsPage = lazy(loaders.settings);
-const ProfilePage = lazy(loaders.profile);
-const OpportunitiesPage = lazy(loaders.opportunities);
+const TodayPage = lazyRetry(loaders.today);
+const FindWorkPage = lazyRetry(loaders.find);
+const InboxPage = lazyRetry(loaders.inbox);
+const PullRequestsPage = lazyRetry(loaders.prs);
+const MyWorkPage = lazyRetry(loaders.mine);
+const RepoLensPage = lazyRetry(loaders.lens);
+const IssueFullPage = lazyRetry(loaders.issue);
+const SettingsPage = lazyRetry(loaders.settings);
+const ProfilePage = lazyRetry(loaders.profile);
+const OpportunitiesPage = lazyRetry(loaders.opportunities);
 
 const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300));
 
@@ -126,12 +127,12 @@ export default function WorkspaceLayout() {
         counts={{ today: actions.length, inbox: inbox.data?.rows?.length, prs: prRows.length, deadlines: dueSoon }} />
       <main className="relative z-[1] flex-1 min-w-0 flex flex-col">
         <div className="flex-1 min-h-0">
-          <Suspense fallback={null}>
-            <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={location.pathname} className="h-full"
-              initial={motionOn ? { opacity: 0, y: 4 } : false}
-              animate={{ opacity: 1, y: 0, transition: { duration: 0.15, ease: [0.2, 0.7, 0.3, 1] } }}
-              exit={motionOn ? { opacity: 0, transition: { duration: 0.08 } } : undefined}>
+          {/* No exit animation: a stalled exit while a page loads used to leave this area blank. */}
+          <motion.div key={location.pathname} className="h-full"
+            initial={motionOn ? { opacity: 0.4 } : false}
+            animate={{ opacity: 1, transition: { duration: 0.12 } }}>
+          <PageBoundary key={location.pathname}>
+          <Suspense fallback={<PageFallback ws={ws} pathname={location.pathname} />}>
             <Routes location={location}>
               <Route index element={<TodayPage />} />
               <Route path="find" element={<FindWorkPage />} />
@@ -147,9 +148,9 @@ export default function WorkspaceLayout() {
               <Route path="opportunities" element={ws === 'contributor' ? <OpportunitiesPage /> : <Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
-            </motion.div>
-            </AnimatePresence>
           </Suspense>
+          </PageBoundary>
+          </motion.div>
         </div>
       </main>
       </div>

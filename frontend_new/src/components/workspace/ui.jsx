@@ -310,7 +310,7 @@ export const Button = forwardRef(function Button({ variant = 'ghost', size = 'md
   const base = 'btn inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none';
   const sizes = { sm: 'ctl-sm px-2.5 fs-12', md: 'ctl px-3 fs-13' };
   const variants = {
-    primary: 'btn-primary text-[var(--accent-ink)] bg-[var(--accent)] hover:brightness-110',
+    primary: 'btn-pop',
     ghost: 'text-[var(--text)] bg-[var(--panel)] hover:bg-[var(--hover)] border border-[var(--line)]',
     subtle: 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]',
     danger: 'text-[var(--red)] hover:bg-[rgba(248,81,73,0.1)] border border-[var(--line)]',
