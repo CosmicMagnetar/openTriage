@@ -456,6 +456,18 @@ export function Empty({ title, children, action, art = 'calm' }) {
   );
 }
 
+/** Quiet end-of-list marker so short lists end on purpose instead of in blank space. */
+export function ListEnd({ count, note = 'That is everything that needs a look.' }) {
+  if (!count) return null;
+  return (
+    <div className="list-end">
+      <DrawnCheck size={20} />
+      <span>{note}</span>
+      <span className="mono text-[var(--faint)]">{count} shown · refreshes every 5 min</span>
+    </div>
+  );
+}
+
 export function ErrorLine({ message, onRetry }) {
   return (
     <div className="mx-5 my-4 flex items-center gap-2 text-[12.5px] text-[var(--text-2)]">

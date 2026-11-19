@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { keys, workApi } from '../../services/workApi';
 import { REFRESH_MS, useQuery } from '../../lib/query';
 import { prefetchItem, useListNav } from './useWorkspace';
-import { ACTION, Button, Dot, Pulse, Empty, ErrorLine, Page, Ref, Row, Segments, SkeletonRows, Tag, timeAgo } from './ui';
+import { ACTION, Button, Dot, Pulse, Empty, ErrorLine, Page, Ref, Row, ListEnd, Segments, SkeletonRows, Tag, timeAgo } from './ui';
 
 const CLASS_LABEL = {
   CRITICAL_BUG: 'critical bug', BUG: 'bug', FEATURE_REQUEST: 'feature', QUESTION: 'question',
@@ -80,6 +80,7 @@ export default function InboxPage() {
           />
         );
       })}
+      <ListEnd count={shown.length} />
     </Page>
   );
 }

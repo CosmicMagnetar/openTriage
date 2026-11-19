@@ -8,7 +8,7 @@ import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
 import { REFRESH_MS, useQuery } from '../../lib/query';
 import { useListNav } from './useWorkspace';
-import { Button, Empty, ErrorLine, Page, SectionLabel, SkeletonRows } from './ui';
+import { Button, Empty, ErrorLine, Page, ListEnd, SectionLabel, SkeletonRows } from './ui';
 import { PRRow, prBucket, prItem } from './prRows';
 
 const ORDER = ['Ready to merge', 'Needs review or reply', 'Waiting on author', 'Stalled or other', 'In progress', 'Drafts'];
@@ -55,6 +55,7 @@ export default function PullRequestsPage() {
           })}
         </Fragment>
       ))}
+      <ListEnd count={rows.length} />
     </Page>
   );
 }

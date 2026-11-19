@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { keys, parseGitHubRef, workApi } from '../../services/workApi';
 import { useQuery } from '../../lib/query';
+import { useSignals } from './opportunities';
 import { Block, Button, Dot, Empty, ErrorLine, ExtLink, Input, Page, RESPONSIVENESS, SkeletonRows, Tag, timeAgo } from './ui';
 
 function RepoPicker({ initial = '' }) {
@@ -19,6 +20,36 @@ function RepoPicker({ initial = '' }) {
   );
 }
 
+/** Starting point: repos you already touch, one click away. */
+function LensStart() {
+  const navigate = useNavigate();
+  const sig = useSignals();
+  const groups = [
+    ['You contributed to', sig.data?.contributedTo ?? []],
+    ['You starred', sig.data?.starred ?? []],
+  ].filter(([, list]) => list.length);
+  return (
+    <div className="px-5 pb-10 max-w-4xl">
+      <Empty art="search" title="Pick a repository to read">
+        Stack, layout, how to run it, who reviews which area, and whether maintainers answer outside contributors.
+      </Empty>
+      {groups.map(([label, list]) => (
+        <div key={label} className="mt-2 mb-5">
+          <h2 className="text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--faint)] mb-2">{label}</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {list.slice(0, 12).map((full) => (
+              <button key={full} onClick={() => navigate(`/dashboard/lens/${full}`)}
+                className="lens-chip mono h-7 px-2.5 rounded-md border border-[var(--line)] bg-[var(--panel)] text-[var(--text-2)] hover:text-[var(--text)] hover:border-[var(--accent)]">
+                {full}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function RepoLensPage() {
   const { owner, repo } = useParams();
   const navigate = useNavigate();
@@ -29,6 +60,7 @@ export default function RepoLensPage() {
     return (
       <Page title="Repo lens" subtitle="Understand a repository before contributing: stack, layout, how to run it, who reviews what, and whether maintainers respond.">
         <div className="px-5 py-6"><RepoPicker /></div>
+        <LensStart />
       </Page>
     );
   }

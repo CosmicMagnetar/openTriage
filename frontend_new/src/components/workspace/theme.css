@@ -240,3 +240,6 @@
 }
 .ot[data-motion="off"] .pulse-line { stroke-dasharray: none; }
 .ot[data-motion="off"] .scan-ecg path, .ot[data-motion="off"] .empty-art .ea-check { stroke-dashoffset: 0; }
+.ot .lens-chip { transition: transform .18s var(--ease-out), border-color .18s, color .18s; }
+.ot .lens-chip:hover { transform: translateY(-1px); }
+.ot .list-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; padding: 28px 20px 40px; font-size: 12px; color: var(--muted); }
