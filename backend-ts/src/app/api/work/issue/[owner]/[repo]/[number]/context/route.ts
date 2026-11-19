@@ -5,8 +5,8 @@
  * With ?ai=1 and AI configured, adds a short "where to start" guide grounded in that pack.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { buildContextPack } from "@/lib/github/services";
-import { githubError, validRepo, withGitHub } from "@/lib/github/route-helpers";
+import { buildContextPack, cached } from "@/lib/github/services";
+import { githubError, validRepo, wantsFresh, withGitHub } from "@/lib/github/route-helpers";
 import { aiEnabled, complete, quoteUntrusted } from "@/lib/ai/llm";
 
 export async function GET(
@@ -22,7 +22,8 @@ export async function GET(
     }
 
     try {
-        const pack = await buildContextPack(gh.octokit, owner, repo, n);
+        const pack = await cached(`ctx:${owner}/${repo}#${n}`.toLowerCase(), 10 * 60_000,
+            () => buildContextPack(gh.octokit, owner, repo, n), wantsFresh(request));
         if (!pack) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
 
         let guide: string | null = null;

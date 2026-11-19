@@ -1,31 +1,16 @@
 /**
  * One sidebar for both workspaces. Contributor and Maintainer are switchable
- * workspaces on the same account (not permission roles); the toggle lives at
- * the bottom, above the account row.
+ * workspaces on the same account (not permission roles); the toggle sits at
+ * the bottom above the account row.
  */
 import { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  BookOpen, Compass, GitPullRequest, Inbox, ListTodo, LogOut, Menu, Settings, Sun, X,
-} from 'lucide-react';
+import { HelpCircle, LogOut, Menu, Search, Settings, X } from 'lucide-react';
+import { openHelp } from './HelpOverlay';
 import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
 import Logo from '../Logo';
-
-const NAV = {
-  CONTRIBUTOR: [
-    { icon: Sun, label: 'Today', path: '/dashboard' },
-    { icon: Compass, label: 'Find work', path: '/dashboard/find' },
-    { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens' },
-    { icon: ListTodo, label: 'My issues & PRs', path: '/dashboard/mine' },
-  ],
-  MAINTAINER: [
-    { icon: Sun, label: 'Today', path: '/dashboard' },
-    { icon: Inbox, label: 'Triage inbox', path: '/dashboard/inbox' },
-    { icon: GitPullRequest, label: 'Pull requests', path: '/dashboard/prs' },
-    { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens' },
-  ],
-};
+import { Kbd } from './ui';
 
 function WorkspaceToggle() {
   const navigate = useNavigate();
@@ -38,16 +23,12 @@ function WorkspaceToggle() {
     setBusy(true);
     const ok = await updateRole(next);
     setBusy(false);
-    if (ok) {
-      navigate('/dashboard');
-      toast.success(`Switched to ${next === 'MAINTAINER' ? 'maintainer' : 'contributor'} workspace`);
-    } else {
-      toast.error('Could not switch workspace');
-    }
+    if (ok) navigate('/dashboard');
+    else toast.error('Could not switch workspace');
   };
 
   return (
-    <div role="radiogroup" aria-label="Workspace" className="grid grid-cols-2 p-1 rounded-lg bg-[hsl(220,13%,10%)] border border-[hsl(220,13%,16%)]">
+    <div role="radiogroup" aria-label="Workspace" className="grid grid-cols-2 p-0.5 rounded-md border border-[var(--line)] bg-[var(--bg)]">
       {[['CONTRIBUTOR', 'Contributor'], ['MAINTAINER', 'Maintainer']].map(([value, label]) => {
         const active = current === value;
         return (
@@ -58,9 +39,9 @@ function WorkspaceToggle() {
             data-testid={`workspace-${value.toLowerCase()}`}
             disabled={busy}
             onClick={() => switchTo(value)}
-            className={`py-1.5 rounded-md text-xs font-medium transition-colors ${active
-              ? 'bg-[hsl(217,91%,60%,0.18)] text-[hsl(217,91%,72%)] border border-[hsl(217,91%,60%,0.3)]'
-              : 'text-[hsl(210,11%,55%)] hover:text-[hsl(210,11%,80%)] border border-transparent'}`}
+            className={`h-6 rounded text-[12px] transition-colors ${active
+              ? 'bg-[var(--raised)] text-[var(--text)] shadow-[inset_0_0_0_1px_var(--line)]'
+              : 'text-[var(--muted)] hover:text-[var(--text-2)]'}`}
           >
             {label}
           </button>
@@ -70,12 +51,11 @@ function WorkspaceToggle() {
   );
 }
 
-export default function WorkspaceSidebar() {
+export default function WorkspaceSidebar({ nav, counts = {} }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, role, logout: storeLogout } = useAuthStore();
+  const { user, logout: storeLogout } = useAuthStore();
   const [open, setOpen] = useState(false);
-  const items = NAV[role === 'MAINTAINER' ? 'MAINTAINER' : 'CONTRIBUTOR'];
 
   const handleLogout = useCallback(() => {
     if (window.handleLogout) window.handleLogout();
@@ -91,59 +71,59 @@ export default function WorkspaceSidebar() {
   const isActive = (path) =>
     path === '/dashboard' ? location.pathname === '/dashboard' || location.pathname === '/dashboard/' : location.pathname.startsWith(path);
 
+  const openPalette = () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
+
   return (
     <>
-      <button
-        onClick={() => setOpen(!open)}
-        aria-label="Toggle navigation"
-        className="lg:hidden fixed top-4 left-4 z-50 bg-[hsl(220,13%,12%)] text-[hsl(210,11%,70%)] p-2.5 rounded-lg border border-[hsl(220,13%,18%)]"
-      >
-        {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      <button onClick={() => setOpen(!open)} aria-label="Toggle navigation"
+        className="lg:hidden fixed top-3 left-3 z-50 w-8 h-8 inline-flex items-center justify-center rounded-md border border-[var(--line)] bg-[var(--panel)] text-[var(--text-2)]">
+        {open ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
       </button>
-      {open && <div className="lg:hidden fixed inset-0 bg-black/60 z-40" onClick={() => setOpen(false)} />}
+      {open && <div className="lg:hidden fixed inset-0 bg-black/60 z-30" onClick={() => setOpen(false)} />}
 
-      <aside
-        data-testid="workspace-sidebar"
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-60 bg-[hsl(220,13%,7%)] border-r border-[hsl(220,13%,14%)] flex flex-col transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
-      >
-        <button className="p-5 border-b border-[hsl(220,13%,14%)] text-left" onClick={() => go('/dashboard')}>
-          <div className="flex items-center gap-3">
-            <Logo size="sm" />
-            <h1 className="text-base font-semibold text-[hsl(210,11%,90%)]">OpenTriage</h1>
-          </div>
+      <aside data-testid="workspace-sidebar"
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-56 shrink-0 bg-[var(--panel)] border-r border-[var(--line-soft)] flex flex-col transition-transform duration-150 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <button className="h-12 px-4 flex items-center gap-2.5 text-left" onClick={() => go('/dashboard')}>
+          <Logo size="sm" />
+          <span className="text-[13.5px] font-semibold tracking-tight">OpenTriage</span>
         </button>
 
-        <nav className="flex-1 py-4 px-3 overflow-y-auto">
-          {items.map(({ icon: Icon, label, path }) => (
-            <button
-              key={path}
-              data-testid={`nav-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`}
-              onClick={() => go(path)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors mb-1 border ${isActive(path)
-                ? 'bg-[hsl(217,91%,60%,0.15)] text-[hsl(217,91%,68%)] border-[hsl(217,91%,60%,0.2)]'
-                : 'text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,12%)] hover:text-[hsl(210,11%,85%)] border-transparent'}`}
-            >
+        <div className="px-3 pb-2">
+          <button onClick={openPalette}
+            className="w-full h-7 px-2 flex items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--bg)] text-[12px] text-[var(--faint)] hover:text-[var(--muted)]">
+            <Search className="w-3.5 h-3.5" /> <span className="flex-1 text-left">Jump to…</span> <Kbd>⌘K</Kbd>
+          </button>
+        </div>
+
+        <nav className="flex-1 px-2 py-1 scroll">
+          {nav.map(({ icon: Icon, label, path, countKey }) => (
+            <button key={path} data-testid={`nav-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`} onClick={() => go(path)}
+              className={`w-full h-8 flex items-center gap-2.5 px-2 rounded-md text-[13px] transition-colors ${isActive(path)
+                ? 'bg-[var(--raised)] text-[var(--text)]'
+                : 'text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text-2)]'}`}>
               <Icon className="w-4 h-4" />
-              <span>{label}</span>
+              <span className="flex-1 text-left">{label}</span>
+              {countKey && counts[countKey] > 0 && <span className="mono text-[11px] text-[var(--text-2)]">{counts[countKey]}</span>}
             </button>
           ))}
         </nav>
 
-        <div className="p-3 border-t border-[hsl(220,13%,14%)] space-y-3">
-          <div>
-            <p className="text-[10px] text-[hsl(210,11%,40%)] uppercase tracking-wider px-1 mb-1.5">Workspace</p>
-            <WorkspaceToggle />
-          </div>
-          <div className="flex items-center gap-2 px-1">
-            <img src={user?.avatarUrl || 'https://github.com/ghost.png'} alt="" className="w-7 h-7 rounded-full" />
-            <span className="flex-1 min-w-0 text-sm text-[hsl(210,11%,80%)] truncate">{user?.username}</span>
+        <div className="p-3 border-t border-[var(--line-soft)] space-y-2.5">
+          <WorkspaceToggle />
+          <div className="flex items-center gap-2">
+            <img src={user?.avatarUrl || 'https://github.com/ghost.png'} alt="" className="w-6 h-6 rounded-full" />
+            <span className="flex-1 min-w-0 text-[12.5px] text-[var(--text-2)] truncate">{user?.username}</span>
+            <button onClick={openHelp} aria-label="Help (?)" title="Help (?)"
+              className="w-7 h-7 inline-flex items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]">
+              <HelpCircle className="w-3.5 h-3.5" />
+            </button>
             <button onClick={() => go('/dashboard/settings')} aria-label="Settings" title="Settings"
-              className={`p-1.5 rounded-md hover:bg-[hsl(220,13%,12%)] ${isActive('/dashboard/settings') ? 'text-[hsl(217,91%,68%)]' : 'text-[hsl(210,11%,55%)]'}`}>
-              <Settings className="w-4 h-4" />
+              className={`w-7 h-7 inline-flex items-center justify-center rounded-md hover:bg-[var(--hover)] ${isActive('/dashboard/settings') ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>
+              <Settings className="w-3.5 h-3.5" />
             </button>
             <button onClick={handleLogout} data-testid="logout-button" aria-label="Log out" title="Log out"
-              className="p-1.5 rounded-md text-[hsl(210,11%,55%)] hover:bg-[hsl(0,60%,50%,0.1)] hover:text-[hsl(0,60%,60%)]">
-              <LogOut className="w-4 h-4" />
+              className="w-7 h-7 inline-flex items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--red)] hover:bg-[var(--hover)]">
+              <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

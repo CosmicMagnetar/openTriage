@@ -15,13 +15,11 @@ import "./App.css";
 
 // Lazy-load heavy components that are only needed post-login
 const AuthPage = lazy(() => import("./components/AuthPage"));
-const MaintainerLayout = lazy(() => import("./components/maintainer/MaintainerLayout"));
-const ContributorLayout = lazy(() => import("./components/contributor/ContributorLayout"));
+const WorkspaceLayout = lazy(() => import("./components/workspace/WorkspaceLayout"));
 
 function App() {
   const {
     user,
-    role,
     isLoading,
     isLoggingOut,
     loadUser,
@@ -135,16 +133,8 @@ function App() {
         <Suspense fallback={<SplashScreen />}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route
-              path="/dashboard/*"
-              element={
-                role === "MAINTAINER" ? (
-                  <MaintainerLayout />
-                ) : (
-                  <ContributorLayout />
-                )
-              }
-            />
+            {/* One shell for both workspaces; role picks the nav and data. */}
+            <Route path="/dashboard/*" element={<WorkspaceLayout />} />
             {/* Catch all unauthorized routes - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

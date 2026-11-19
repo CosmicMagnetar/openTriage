@@ -1,45 +1,21 @@
 /**
- * Today: what needs *you* now, why, and the smallest next step.
- * Same page for both workspaces; the backend decides what "on you" means.
+ * Today: a greeting, what is waiting on you, and (contributors) issues picked
+ * for you — so the page is useful even when nothing is blocked.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Compass, GitPullRequest, Plus, RefreshCw, Users } from 'lucide-react';
+import { GitPullRequest, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
-import { parseGitHubRef, workApi } from '../../services/workApi';
+import usePrefs from '../../stores/prefsStore';
+import { keys, parseGitHubRef, workApi } from '../../services/workApi';
+import { invalidate, useQuery } from '../../lib/query';
+import { prefetchItem, useListNav } from './useWorkspace';
 import {
-  ACTION, Chip, Empty, ErrorBox, Evidence, ExtLink, Loading, Page, Panel, RESPONSIVENESS,
-  buttonClass, ghostButtonClass, inputClass, waitingOnLabel,
+  ACTION, Button, CountUp, Dot, DrawnCheck, ErrorLine, Input, Page, RESPONSIVENESS, Ref, Row, SectionLabel, Segments,
+  SkeletonRows, Stagger, StaggerItem, Tag, waitingOnLabel,
 } from './ui';
-
-const days = (n) => (n < 1 ? 'today' : `${Math.floor(n)}d`);
-
-function ActionCard({ action, me, onOpen }) {
-  const meta = ACTION[action.type] ?? { label: action.type, color: 'gray' };
-  return (
-    <article className="p-4 rounded-xl border border-[hsl(220,13%,15%)] bg-[hsl(220,13%,8%)] hover:border-[hsl(220,13%,22%)] transition-colors">
-      <div className="flex flex-wrap items-center gap-2 mb-2">
-        <Chip color={meta.color}>{meta.label}</Chip>
-        <Chip>waiting on {waitingOnLabel(action.waitingOn, me)}</Chip>
-        {action.waitingDays >= 1 && <Chip>{days(action.waitingDays)}</Chip>}
-        <span className="text-xs text-[hsl(210,11%,45%)] ml-auto">{action.repo}#{action.number}</span>
-      </div>
-      <h3 className="text-sm font-medium text-[hsl(210,11%,90%)]">
-        {action.isPR && <GitPullRequest className="inline w-3.5 h-3.5 mr-1 text-[hsl(210,11%,50%)]" />}
-        <ExtLink href={action.url} className="!text-[hsl(210,11%,90%)]">{action.title}</ExtLink>
-      </h3>
-      <p className="text-sm text-[hsl(210,11%,65%)] mt-1">{action.reason}</p>
-      <p className="text-sm text-[hsl(142,60%,62%)] mt-1">→ {action.suggestion}</p>
-      <Evidence items={action.evidence} />
-      {!action.isPR && (
-        <button onClick={onOpen} className="mt-3 text-xs text-[hsl(217,91%,68%)] hover:underline">
-          Open issue workspace
-        </button>
-      )}
-    </article>
-  );
-}
+import { OpportunityRows, SetupCard, useOpportunities } from './opportunities';
 
 function AddRepo({ onAdded }) {
   const [value, setValue] = useState('');
@@ -61,141 +37,204 @@ function AddRepo({ onAdded }) {
     }
   };
   return (
-    <form onSubmit={submit} className="flex gap-2">
-      <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="owner/repo you maintain" className={`${inputClass} w-64`} />
-      <button disabled={busy || !value} className={buttonClass}><Plus className="w-4 h-4" /> Add</button>
+    <form onSubmit={submit} className="flex items-center gap-1.5">
+      <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="owner/repo you maintain" className="w-52" />
+      <Button disabled={busy || !value}><Plus className="w-3.5 h-3.5" /> Track</Button>
     </form>
+  );
+}
+
+const toItem = (a) => {
+  const [owner, repo] = a.repo.split('/');
+  return { kind: a.isPR ? 'pr' : 'issue', owner, repo, number: a.number };
+};
+
+function greeting(name) {
+  const h = new Date().getHours();
+  const part = h < 5 ? 'Up late' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  return `${part}, ${name}`;
+}
+
+function Stat({ label, value, color, onClick }) {
+  return (
+    <button onClick={onClick} disabled={!onClick}
+      className="flex items-center gap-2 h-8 px-3 rounded-md border border-[var(--line)] bg-[var(--panel)] hover:bg-[var(--hover)] disabled:hover:bg-[var(--panel)] text-left">
+      <Dot color={color} />
+      <span className="mono text-[14px] text-[var(--text)]"><CountUp value={value} /></span>
+      <span className="text-[12px] text-[var(--muted)]">{label}</span>
+    </button>
   );
 }
 
 export default function TodayPage() {
   const navigate = useNavigate();
   const { user, role } = useAuthStore();
-  const workspace = role === 'MAINTAINER' ? 'maintainer' : 'contributor';
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const onboarded = usePrefs((s) => s.onboarded);
+  const ws = role === 'MAINTAINER' ? 'maintainer' : 'contributor';
+  const q = useQuery(keys.today(ws), (o) => workApi.nextActions(ws, o), { staleMs: 90_000 });
+  const opp = useOpportunities();
+  const inbox = useQuery(ws === 'maintainer' ? keys.inbox() : null, (o) => workApi.inbox(o), { staleMs: 90_000 });
   const [filter, setFilter] = useState('all');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setData(await workApi.nextActions(workspace));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [workspace]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const actions = data?.actions ?? [];
+  const actions = useMemo(() => q.data?.actions ?? [], [q.data]);
   const types = useMemo(() => [...new Set(actions.map((a) => a.type))], [actions]);
-  const shown = filter === 'all' ? actions : actions.filter((a) => a.type === filter);
+  const shown = useMemo(() => (filter === 'all' ? actions : actions.filter((a) => a.type === filter)), [actions, filter]);
+  const forYou = useMemo(() => (ws === 'contributor' ? (opp.data?.results ?? []).slice(0, 8) : []), [opp.data, ws]);
+  const untriaged = useMemo(() => (inbox.data?.rows ?? []).filter((r) => r.untriaged).slice(0, 6), [inbox.data]);
 
-  const openIssue = (a) => {
-    const [owner, repo] = a.repo.split('/');
-    navigate(`/dashboard/work/${owner}/${repo}/${a.number}`);
-  };
+  const items = useMemo(() => [
+    ...shown.map(toItem),
+    ...forYou.map((r) => ({ kind: 'issue', owner: r.owner, repo: r.repo, number: r.number })),
+    ...(actions.length === 0 ? untriaged.map((r) => ({ kind: 'issue', owner: r.owner, repo: r.repo, number: r.number })) : []),
+  ], [shown, forYou, untriaged, actions.length]);
+  const refresh = () => { q.refresh(); if (ws === 'contributor') opp.refresh(); else inbox.refresh(); };
+  const { index, setIndex, open } = useListNav(items, { onRefresh: refresh });
+
+  const onTracked = () => { invalidate('today:'); invalidate('inbox'); invalidate('prs:'); q.refresh(); };
+  const name = user?.username ?? 'there';
+  const claimed = q.data?.claimed ?? [];
 
   return (
     <Page
-      title="Today"
-      subtitle={workspace === 'maintainer'
-        ? 'What is waiting on you in the repositories you maintain'
-        : 'Your open work: what is blocked on you, and what changed'}
-      actions={
-        <div className="flex gap-2">
-          {workspace === 'maintainer' && <AddRepo onAdded={load} />}
-          <button onClick={load} disabled={loading} className={ghostButtonClass}>
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
-          </button>
-        </div>
-      }
-    >
-      {error && <ErrorBox message={error} onRetry={load} />}
-      {loading && !data && <Loading label="Checking GitHub for what needs you…" />}
-
-      {data && (
-        <div className="space-y-6">
-          {workspace === 'maintainer' && data.repos?.length > 0 && (
-            <Panel title="Repositories" icon={Users}>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {data.repos.map((r) => {
-                  const resp = r.responsiveness ? RESPONSIVENESS[r.responsiveness.level] : null;
-                  const waiting = Object.values(r.counts || {}).reduce((s, n) => s + n, 0);
-                  return (
-                    <div key={r.repo} className="p-3 rounded-lg border border-[hsl(220,13%,15%)]">
-                      <div className="flex items-center justify-between gap-2">
-                        <button onClick={() => navigate(`/dashboard/lens/${r.repo}`)} className="text-sm font-medium text-[hsl(210,11%,88%)] hover:underline">{r.repo}</button>
-                        <Chip color={waiting ? 'amber' : 'green'}>{waiting} waiting</Chip>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {resp && <Chip color={resp.color} title={r.responsiveness.summary}>{resp.label}</Chip>}
-                        <Chip>{r.openPRs} open PRs</Chip>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {data.skipped?.length > 0 && (
-                <p className="text-xs text-[hsl(210,11%,45%)] mt-3">No write access (skipped): {data.skipped.join(', ')}</p>
-              )}
-            </Panel>
-          )}
-
-          {data.hint && <Empty title="Nothing to coordinate yet">{data.hint}</Empty>}
-
-          {!data.hint && actions.length === 0 && (
-            <Empty title="Nothing is waiting on you">
-              <span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> All clear.</span>{' '}
-              {workspace === 'contributor' && (
-                <button onClick={() => navigate('/dashboard/find')} className="text-[hsl(217,91%,68%)] hover:underline inline-flex items-center gap-1">
-                  <Compass className="w-4 h-4" /> Find something worth working on
-                </button>
-              )}
-            </Empty>
-          )}
-
-          {actions.length > 0 && (
+      title={greeting(name)}
+      subtitle={ws === 'maintainer'
+        ? 'Here is what is waiting on you in the repositories you maintain.'
+        : 'Here is what is waiting on you, and a few issues picked for you.'}
+      refreshing={q.isRefreshing || opp.isRefreshing}
+      updatedAt={q.updatedAt}
+      onRefresh={refresh}
+      actions={ws === 'maintainer' && <AddRepo onAdded={onTracked} />}
+      toolbar={q.data && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Stat label="waiting on you" value={actions.length} color={actions.length ? 'amber' : 'green'} />
+          {ws === 'contributor' ? (
             <>
-              <div className="flex flex-wrap gap-2">
-                {['all', ...types].map((t) => (
-                  <button key={t} onClick={() => setFilter(t)}
-                    className={`px-3 py-1 rounded-full text-xs border ${filter === t
-                      ? 'bg-[hsl(217,91%,60%,0.15)] border-[hsl(217,91%,60%,0.3)] text-[hsl(217,91%,70%)]'
-                      : 'border-[hsl(220,13%,18%)] text-[hsl(210,11%,60%)] hover:bg-[hsl(220,13%,12%)]'}`}>
-                    {t === 'all' ? `All (${actions.length})` : `${ACTION[t]?.label ?? t} (${actions.filter((a) => a.type === t).length})`}
-                  </button>
-                ))}
-              </div>
-              <div className="space-y-3">
-                {shown.map((a) => <ActionCard key={a.id} action={a} me={user?.username} onOpen={() => openIssue(a)} />)}
-              </div>
+              <Stat label="claimed" value={claimed.length} color="blue" onClick={() => navigate('/dashboard/mine')} />
+              <Stat label="picked for you" value={opp.data?.results?.length ?? 0} color="purple" onClick={() => navigate('/dashboard/find')} />
             </>
-          )}
-
-          {workspace === 'contributor' && data.claimed?.length > 0 && (
-            <Panel title="Issues you've claimed">
-              <ul className="space-y-2">
-                {data.claimed.map((c) => (
-                  <li key={`${c.owner}/${c.repo}#${c.number}`} className="flex flex-wrap items-center gap-2 text-sm">
-                    <Chip color={c.overlap.length ? 'red' : c.status === 'stale' ? 'amber' : 'green'}>
-                      {c.overlap.length ? 'Someone else opened a PR' : c.status === 'stale' ? 'Going stale' : 'Active'}
-                    </Chip>
-                    <button onClick={() => navigate(`/dashboard/work/${c.owner}/${c.repo}/${c.number}`)} className="text-[hsl(210,11%,85%)] hover:underline text-left">
-                      {c.title}
-                    </button>
-                    <span className="text-xs text-[hsl(210,11%,45%)]">{c.owner}/{c.repo}#{c.number}</span>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
+          ) : (
+            <>
+              <Stat label="untriaged" value={(inbox.data?.rows ?? []).filter((r) => r.untriaged).length} color="blue" onClick={() => navigate('/dashboard/inbox')} />
+              <Stat label="open PRs" value={(q.data.repos ?? []).reduce((s, r) => s + r.openPRs, 0)} color="green" onClick={() => navigate('/dashboard/prs')} />
+            </>
           )}
         </div>
       )}
+    >
+      {q.error && <ErrorLine message={q.error.message} onRetry={q.refresh} />}
+      {ws === 'contributor' && !onboarded && <SetupCard />}
+
+      {ws === 'maintainer' && q.data?.repos?.length > 0 && (
+        <div className="px-5 py-3 flex flex-wrap gap-2 border-b border-[var(--line-soft)]">
+          {q.data.repos.map((r) => {
+            const waiting = Object.values(r.counts || {}).reduce((s, n) => s + n, 0);
+            const resp = r.responsiveness ? RESPONSIVENESS[r.responsiveness.level] : null;
+            return (
+              <button key={r.repo} onClick={() => navigate(`/dashboard/lens/${r.repo}`)} title={r.responsiveness?.summary}
+                className="h-7 px-2.5 inline-flex items-center gap-2 rounded-md border border-[var(--line)] hover:bg-[var(--hover)] text-[12px]">
+                <Dot color={waiting ? 'amber' : 'green'} />
+                <span className="mono text-[var(--text-2)]">{r.repo}</span>
+                <span className="text-[var(--faint)]">{waiting} waiting · {r.openPRs} PRs</span>
+                {resp && <Dot color={resp.color} title={resp.label} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Waiting on you */}
+      <SectionLabel right={types.length > 1 && (
+        <Segments value={filter} onChange={setFilter} options={[
+          { value: 'all', label: 'All', count: actions.length },
+          ...types.map((t) => ({ value: t, label: ACTION[t]?.label ?? t, count: actions.filter((a) => a.type === t).length })),
+        ]} />
+      )}>Waiting on you</SectionLabel>
+      {q.isLoading && <SkeletonRows n={4} />}
+      {q.data?.hint && (
+        <p className="px-5 pb-3 text-[12.5px] text-[var(--muted)]">{q.data.hint}</p>
+      )}
+      {q.data && !q.data.hint && actions.length === 0 && (
+        <div className="px-5 py-4 flex items-center gap-3 border-b border-[var(--line-soft)]">
+          <DrawnCheck />
+          <div>
+            <p className="text-[13px] text-[var(--text)]">Nothing is waiting on you.</p>
+            <p className="text-[12px] text-[var(--muted)]">New blockers appear here as soon as they show up on GitHub.</p>
+          </div>
+        </div>
+      )}
+      <Stagger>
+        {shown.map((a, i) => {
+          const meta = ACTION[a.type] ?? { label: a.type, color: 'gray' };
+          const [owner, repo] = a.repo.split('/');
+          return (
+            <StaggerItem key={a.id}>
+              <Row id={`row-${i}`} selected={i === index}
+                onClick={() => { setIndex(i); open(items[i]); }}
+                onMouseEnter={() => prefetchItem(items[i])}
+                lead={<Dot color={meta.color} title={meta.label} />}
+                title={<>{a.isPR && <GitPullRequest className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5 text-[var(--faint)]" />}{a.title}</>}
+                meta={<><span className="text-[var(--text-2)]">{meta.label}</span><span>·</span><span>{a.suggestion}</span></>}
+                right={<>
+                  <Ref owner={owner} repo={repo} number={a.number} className="hidden md:inline" />
+                  <Tag>{waitingOnLabel(a.waitingOn, user?.username)}{a.waitingDays >= 1 ? ` · ${Math.floor(a.waitingDays)}d` : ''}</Tag>
+                </>}
+              />
+            </StaggerItem>
+          );
+        })}
+      </Stagger>
+
+      {/* Contributor: picked for you */}
+      {ws === 'contributor' && (
+        <>
+          <SectionLabel right={<button onClick={() => navigate('/dashboard/find')} className="text-[11.5px] text-[var(--muted)] hover:text-[var(--text)]">See all →</button>}>
+            Picked for you{opp.data?.languages?.length ? ` · ${opp.data.languages.join(', ')}` : ''}
+          </SectionLabel>
+          {opp.error && <ErrorLine message={opp.error.message} onRetry={opp.refresh} />}
+          {opp.isLoading && <SkeletonRows n={4} />}
+          {opp.data && forYou.length === 0 && (
+            <p className="px-5 pb-4 text-[12.5px] text-[var(--muted)]">No unclaimed issues match yet. Add languages or repos to follow in Settings, or browse Find work.</p>
+          )}
+          <OpportunityRows results={forYou} selectedIndex={index} offset={shown.length}
+            onOpen={(at, item) => { setIndex(at); open(item); }} />
+        </>
+      )}
+
+      {/* Maintainer with nothing waiting: show the inbox instead of a blank page */}
+      {ws === 'maintainer' && q.data && actions.length === 0 && untriaged.length > 0 && (
+        <>
+          <SectionLabel right={<button onClick={() => navigate('/dashboard/inbox')} className="text-[11.5px] text-[var(--muted)] hover:text-[var(--text)]">Open inbox →</button>}>
+            Untriaged in your inbox
+          </SectionLabel>
+          {untriaged.map((r, i) => {
+            const at = shown.length + i;
+            const item = { kind: 'issue', owner: r.owner, repo: r.repo, number: r.number };
+            return (
+              <Row key={`${r.owner}/${r.repo}#${r.number}`} id={`row-${at}`} selected={at === index}
+                onClick={() => { setIndex(at); open(item); }} onMouseEnter={() => prefetchItem(item)}
+                lead={<Dot color={r.authorIsNewcomer ? 'purple' : 'blue'} />} title={r.title}
+                meta={<><Ref owner={r.owner} repo={r.repo} number={r.number} /><span>@{r.author}</span></>} />
+            );
+          })}
+        </>
+      )}
+
+      {ws === 'contributor' && claimed.length > 0 && (
+        <>
+          <SectionLabel>Issues you've claimed</SectionLabel>
+          {claimed.map((c) => {
+            const item = { kind: 'issue', owner: c.owner, repo: c.repo, number: c.number };
+            const state = c.overlap.length ? ['red', 'Someone else opened a PR'] : c.status === 'stale' ? ['amber', 'Going stale — post an update'] : ['green', 'Active'];
+            return (
+              <Row key={`${c.owner}/${c.repo}#${c.number}`} onClick={() => open(item)} onMouseEnter={() => prefetchItem(item)}
+                lead={<Dot color={state[0]} />} title={c.title} meta={<span>{state[1]}</span>}
+                right={<Ref owner={c.owner} repo={c.repo} number={c.number} />} />
+            );
+          })}
+        </>
+      )}
+
+      <p className="px-5 py-5 text-[11.5px] text-[var(--faint)]">j / k move · enter open · esc close · r refresh · ⌘K jump · ? help</p>
     </Page>
   );
 }

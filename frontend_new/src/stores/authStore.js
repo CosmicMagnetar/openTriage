@@ -1,7 +1,27 @@
 import { create } from "zustand";
 import axios from "axios";
+import { clearQueryCache, setQueryScope } from "../lib/query";
 
 const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
+const USER_KEY = "ot_user";
+
+function readCachedUser() {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedUser(user) {
+  try {
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 // Flag to prevent re-auth during logout
 let isLoggingOut = false;
@@ -49,10 +69,19 @@ const useAuthStore = create((set, get) => ({
 
     // Set lock before async operations
     loadUserInProgress = true;
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+    // Render immediately with the last known user; verify in the background.
+    const cachedUser = readCachedUser();
+    if (cachedUser) {
+      setQueryScope(cachedUser.id);
+      set({ token, user: cachedUser, role: cachedUser.role, isLoading: false });
+    }
 
     try {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       const response = await axios.get(`${API}/auth/me`);
+      setQueryScope(response.data.id);
+      writeCachedUser(response.data);
       set({
         token,
         user: response.data,
@@ -64,13 +93,16 @@ const useAuthStore = create((set, get) => ({
       if (status === 401 || status === 403) {
         // Token is invalid or expired: sign out.
         localStorage.removeItem("token");
+        writeCachedUser(null);
+        clearQueryCache();
         delete axios.defaults.headers.common["Authorization"];
         set({ token: null, user: null, role: null, isLoading: false });
-      } else {
-        // Network error / server hiccup: keep the token so a reload can recover.
+      } else if (!cachedUser) {
+        // Network error / server hiccup with nothing cached: keep the token so a reload can recover.
         console.error("[AuthStore] Could not load user:", error?.message);
         set({ user: null, role: null, isLoading: false });
       }
+      // With a cached user, stay signed in and keep working from cache.
     } finally {
       // Always reset lock, even on error
       loadUserInProgress = false;
@@ -88,6 +120,8 @@ const useAuthStore = create((set, get) => ({
     // Clear all localStorage items that might trigger re-auth
     localStorage.removeItem("ably-auth");
     localStorage.removeItem("realtimeToken");
+    writeCachedUser(null);
+    clearQueryCache();
 
     // Update state with isLoggingOut flag
     set({
@@ -134,11 +168,11 @@ const useAuthStore = create((set, get) => ({
       localStorage.setItem("token", token);
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-      set((state) => ({
-        token,
-        role,
-        user: { ...state.user, role },
-      }));
+      set((state) => {
+        const user = { ...state.user, role };
+        writeCachedUser(user);
+        return { token, role, user };
+      });
       return true;
     } catch (error) {
       console.error("Failed to update role:", error);
