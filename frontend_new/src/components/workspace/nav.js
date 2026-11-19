@@ -2,7 +2,7 @@
  * Workspace navigation, grouped per role. Shared by the layout, the sidebar,
  * the ⌘K palette and Settings → Sidebar (reorder / hide).
  */
-import { BookOpen, Compass, GitPullRequest, Home, Inbox, Layers, LayoutDashboard } from 'lucide-react';
+import { BookOpen, Compass, GitPullRequest, Home, Inbox, Layers, LayoutDashboard, LineChart, Trophy } from 'lucide-react';
 
 /** Role-specific nav, grouped. Each workspace gets pages for its own job. */
 export const NAV = {
@@ -13,8 +13,10 @@ export const NAV = {
     ] },
     { id: 'discover', title: 'Discover', items: [
       { icon: Compass, label: 'Find work', path: '/dashboard/find' },
+      { icon: Trophy, label: 'Opportunities', path: '/dashboard/opportunities', countKey: 'deadlines' },
     ] },
     { id: 'grow', title: 'Grow', items: [
+      { icon: LineChart, label: 'Journey', path: '/dashboard/journey' },
       { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens' },
     ] },
   ],

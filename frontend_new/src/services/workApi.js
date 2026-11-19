@@ -6,6 +6,8 @@ import axios from "axios";
 
 const API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}/api`;
 
+export const API_BASE = API;
+
 function errorMessage(err) {
   return err?.response?.data?.error || err?.message || "Request failed";
 }
@@ -54,6 +56,8 @@ export const workApi = {
   savedReplies: () => get("/maintainer/templates"),
   saveReply: (name, body) => send("post", "/maintainer/templates", { name, body }),
   deleteReply: (id) => send("delete", "/maintainer/templates", undefined, { id }),
+  journey: (o) => get("/journey", fresh(o)),
+  programs: (params) => get("/programs", params),
 };
 
 /** Cache keys: one place so pages, panel and prefetch agree. */
@@ -72,6 +76,8 @@ export const keys = {
   signals: () => "signals",
   contributor: (o, r, login) => `contrib:${o}/${r}:${login}`.toLowerCase(),
   opportunities: (params) => `opp:${JSON.stringify(params)}`,
+  journey: () => "journey",
+  programs: () => "programs",
 };
 
 /**

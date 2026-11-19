@@ -42,6 +42,8 @@ const DEFAULTS = {
   navHidden: { contributor: [], maintainer: [] },
   collapsed: [],
   pinned: [],
+  // Program ids the contributor tracks (deadlines on Home, sidebar, calendar feed).
+  trackedPrograms: [],
   // Today widgets per workspace, in order; missing ids are hidden.
   widgets: { contributor: null, maintainer: null },
 };

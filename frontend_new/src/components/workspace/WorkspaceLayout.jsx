@@ -15,6 +15,8 @@ import { startLive, stopLive, watchRepos } from '../../lib/live';
 import { useItemPanel } from './useWorkspace';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ContextBar from './ContextBar';
+import { useDeadlines } from './todayWidgets';
+import { daysUntil, whenText } from './programs';
 import ItemPanel from './ItemPanel';
 import CommandPalette from './CommandPalette';
 import HelpOverlay from './HelpOverlay';
@@ -32,6 +34,8 @@ const loaders = {
   lens: () => import('./RepoLensPage'),
   issue: () => import('./IssueFullPage'),
   settings: () => import('./SettingsPage'),
+  journey: () => import('./JourneyPage'),
+  opportunities: () => import('./OpportunitiesPage'),
 };
 const TodayPage = lazy(loaders.today);
 const FindWorkPage = lazy(loaders.find);
@@ -41,6 +45,8 @@ const MyWorkPage = lazy(loaders.mine);
 const RepoLensPage = lazy(loaders.lens);
 const IssueFullPage = lazy(loaders.issue);
 const SettingsPage = lazy(loaders.settings);
+const JourneyPage = lazy(loaders.journey);
+const OpportunitiesPage = lazy(loaders.opportunities);
 
 const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300));
 
@@ -63,6 +69,8 @@ export default function WorkspaceLayout() {
   const inbox = useQuery(ws === 'maintainer' ? keys.inbox() : null, (o) => workApi.inbox(o), { staleMs: REFRESH_MS });
   const prRows = (ws === 'maintainer' ? prs.data?.rows : prs.data?.mine) ?? [];
   const actions = today.data?.actions ?? [];
+  const deadlines = useDeadlines(3);
+  const dueSoon = deadlines.list.filter((p) => daysUntil(p.nextDeadline.date) <= 14).length;
 
   // Small live panels under the nav, different per workspace.
   const panels = ws === 'maintainer'
@@ -72,6 +80,9 @@ export default function WorkspaceLayout() {
           .map(([type, n]) => ({ label: ACTION[type]?.label ?? type, value: n, color: STATE[ACTION[type]?.color ?? 'gray'], onClick: () => navigate('/dashboard') })),
       }]
     : [{
+        id: 'deadlines', title: 'Next deadlines',
+        rows: deadlines.list.map((p) => ({ label: p.name, suffix: 'd', value: Math.max(0, daysUntil(p.nextDeadline.date)), title: `${p.nextDeadline.name} ${whenText(p.nextDeadline.date)}`, color: daysUntil(p.nextDeadline.date) <= 14 ? STATE.amber : STATE.blue, onClick: () => navigate('/dashboard/opportunities') })),
+      }, {
         id: 'myprs', title: 'Your pull requests',
         rows: Object.entries(prRows.reduce((m, r) => { const b = prBucket(r); return { ...m, [b]: (m[b] ?? 0) + 1 }; }, {}))
           .map(([b, n]) => ({ label: b, value: n, color: STATE[PR_COLORS[b] ?? 'gray'], onClick: () => navigate('/dashboard/mine') })),
@@ -112,7 +123,7 @@ export default function WorkspaceLayout() {
       <div className="flex-1 min-h-0 flex">
       <WorkspaceSidebar ws={ws} groups={NAV[ws]} panels={panels}
         onPreload={(path) => { const k = path.split('/')[2] || 'today'; loaders[k]?.().catch(() => {}); }}
-        counts={{ today: actions.length, inbox: inbox.data?.rows?.length, prs: prRows.length }} />
+        counts={{ today: actions.length, inbox: inbox.data?.rows?.length, prs: prRows.length, deadlines: dueSoon }} />
       <main className="relative z-[1] flex-1 min-w-0 flex flex-col">
         <div className="flex-1 min-h-0">
           <Suspense fallback={null}>
@@ -131,6 +142,8 @@ export default function WorkspaceLayout() {
               <Route path="lens/:owner/:repo" element={<RepoLensPage />} />
               <Route path="work/:owner/:repo/:number" element={<IssueFullPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="journey" element={ws === 'contributor' ? <JourneyPage /> : <Navigate to="/dashboard" replace />} />
+              <Route path="opportunities" element={ws === 'contributor' ? <OpportunitiesPage /> : <Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
             </motion.div>

@@ -51,12 +51,12 @@ function Section({ id, title, children, right }) {
 }
 
 /** Small row used by the live panels: dot, label, number. */
-function PanelRow({ color, label, value, onClick, title }) {
+function PanelRow({ color, label, value, suffix = '', onClick, title }) {
   return (
     <button onClick={onClick} title={title} className="side-item">
       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
       <span className="flex-1 text-left truncate">{label}</span>
-      <span className="mono fs-11-5 text-[var(--muted)]"><LiveNumber value={value} delta={false} /></span>
+      <span className="mono fs-11-5 text-[var(--muted)]"><LiveNumber value={value} delta={false} />{suffix}</span>
     </button>
   );
 }

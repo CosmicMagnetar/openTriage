@@ -302,6 +302,6 @@
 /* Context bar */
 .ot .ctx { height: calc(48px * var(--fs)); background: var(--inset); border-bottom: 1px solid var(--line); }
 .ot .ctx-badge { display: inline-flex; align-items: center; gap: 6px; height: calc(22px * var(--fs)); padding: 0 10px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); font-size: calc(12px * var(--fs)); font-weight: 600; }
-.ot a, .ot .link { color: var(--link); }
+.ot .link { color: var(--link); }
 .ot .seg-on { background: var(--accent-soft); color: var(--text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
 .ot .state-icon { display: inline-flex; width: 16px; height: 16px; }
