@@ -167,7 +167,7 @@
 .ot .ot-row:hover .pulse-line { animation-duration: 0.9s; }
 
 /* Baton strip: whose turn it is */
-.ot .baton { margin-top: 8px; max-width: 320px; padding: 0 4px 14px; }
+.ot .baton { margin-top: 8px; max-width: 320px; padding: 0 4px 20px; }
 .ot .baton-track { position: relative; height: 2px; background: var(--line); border-radius: 2px; }
 .ot .baton-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--c)); }
 .ot .baton-stop { position: absolute; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; }
@@ -176,9 +176,9 @@
 .ot .baton-stop.is-holder .baton-dot { width: 10px; height: 10px; border-color: var(--c); background: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 22%, transparent); animation: ot-hold 2s ease-in-out infinite; }
 .ot .baton-label { position: absolute; top: 9px; font-size: 10px; white-space: nowrap; color: var(--faint); }
 .ot .baton-stop.is-holder .baton-label { color: var(--text-2); font-weight: 500; }
-.ot .baton-stop:first-child { transform: translate(0, -50%); align-items: flex-start; }
+.ot .baton-stop:nth-child(2) { transform: translate(0, -50%); align-items: flex-start; }
 .ot .baton-stop:last-child { transform: translate(-100%, -50%); align-items: flex-end; }
-.ot .baton-stop:first-child .baton-label { left: 0; }
+.ot .baton-stop:nth-child(2) .baton-label { left: 0; }
 .ot .baton-stop:last-child .baton-label { right: 0; }
 @keyframes ot-hold { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--c) 8%, transparent); } }
 

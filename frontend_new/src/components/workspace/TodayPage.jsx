@@ -59,7 +59,7 @@ function Stat({ label, value, color, onClick }) {
   return (
     <button onClick={onClick} disabled={!onClick} className="stat-tile text-left" style={{ '--c': STATE[color] }}>
       <span className="flex items-center justify-between gap-3">
-        <span className="mono text-[20px] leading-none font-semibold text-[var(--text)]"><CountUp value={value} /></span>
+        <span className="mono leading-none font-semibold text-[var(--text)]" style={{ fontSize: 22 }}><CountUp value={value} /></span>
         <Pulse color={color} size={22} />
       </span>
       <span className="block mt-1.5 text-[11.5px] text-[var(--muted)]">{label}</span>
