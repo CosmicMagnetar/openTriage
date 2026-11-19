@@ -42,6 +42,8 @@ const DEFAULTS = {
   navHidden: { contributor: [], maintainer: [] },
   collapsed: [],
   pinned: [],
+  // Profile: what you show and how it looks. seen = highest tier already celebrated per badge.
+  profile: { hidden: [], featured: [], banner: "graph", hue: "magenta", stats: ["merged", "opened", "repos", "reviews"], public: false, weeklyGoal: 3, seen: {} },
   // Program ids the contributor tracks (deadlines on Home, sidebar, calendar feed).
   trackedPrograms: [],
   // Today widgets per workspace, in order; missing ids are hidden.
@@ -124,6 +126,12 @@ export function arrangeNav(nav, prefs, ws) {
     .map((n, i) => ({ ...n, _i: i }))
     .sort((a, b) => rank(a.path) - rank(b.path) || a._i - b._i)
     .filter((n) => !hidden.has(n.path) || n.path === "/dashboard");
+}
+
+/** Merge a patch into prefs.profile. */
+export function setProfile(patch) {
+  const s = usePrefs.getState();
+  s.set({ profile: { ...s.profile, ...patch } });
 }
 
 export default usePrefs;

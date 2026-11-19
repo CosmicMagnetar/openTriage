@@ -34,8 +34,7 @@ const loaders = {
   lens: () => import('./RepoLensPage'),
   issue: () => import('./IssueFullPage'),
   settings: () => import('./SettingsPage'),
-  journey: () => import('./JourneyPage'),
-  profile: () => import('./JourneyPage'),
+  profile: () => import('./ProfilePage'),
   opportunities: () => import('./OpportunitiesPage'),
 };
 const TodayPage = lazy(loaders.today);
@@ -46,7 +45,7 @@ const MyWorkPage = lazy(loaders.mine);
 const RepoLensPage = lazy(loaders.lens);
 const IssueFullPage = lazy(loaders.issue);
 const SettingsPage = lazy(loaders.settings);
-const JourneyPage = lazy(loaders.journey);
+const ProfilePage = lazy(loaders.profile);
 const OpportunitiesPage = lazy(loaders.opportunities);
 
 const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300));
@@ -144,7 +143,7 @@ export default function WorkspaceLayout() {
               <Route path="work/:owner/:repo/:number" element={<IssueFullPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="journey" element={<Navigate to="/dashboard/profile" replace />} />
-              <Route path="profile" element={<JourneyPage />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="opportunities" element={ws === 'contributor' ? <OpportunitiesPage /> : <Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

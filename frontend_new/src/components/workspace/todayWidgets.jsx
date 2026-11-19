@@ -25,7 +25,7 @@ function JourneyWidget() {
   const lv = d.level;
   const next = d.milestones.filter((m) => !m.achievedAt).sort((a, b) => b.progress - a.progress)[0];
   return (
-    <Card title="Your journey" right={<button className={link} onClick={() => navigate('/dashboard/journey')}>Open</button>}>
+    <Card title="Your journey" right={<button className={link} onClick={() => navigate('/dashboard/profile')}>Open</button>}>
       <div className="flex items-center gap-3">
         <span className="w-10 h-10 rounded-full border-2 border-[var(--accent)] inline-flex items-center justify-center fs-15 font-semibold tnum">{lv.level}</span>
         <div className="flex-1 min-w-0">
