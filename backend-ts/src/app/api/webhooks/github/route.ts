@@ -27,6 +27,7 @@ import { db } from "@/db";
 import { repositories } from "@/db/schema";
 import { eq, and, sql, like } from "drizzle-orm";
 import { syncSingleRepository } from "@/lib/sync/github-sync";
+import { invalidateRepo } from "@/lib/github/services";
 import { users } from "@/db/schema";
 
 /**
@@ -36,20 +37,23 @@ import { users } from "@/db/schema";
 function verifyGitHubSignature(payload: string, signature: string): boolean {
     const secret = process.env.GITHUB_WEBHOOK_SECRET;
     if (!secret) {
-        console.warn("[Webhook] GITHUB_WEBHOOK_SECRET not set. Skipping signature verification.");
-        return true; // In dev, allow unsigned webhooks if secret not configured
+        if (process.env.NODE_ENV === "production") {
+            console.error("[Webhook] GITHUB_WEBHOOK_SECRET not set in production. Rejecting.");
+            return false;
+        }
+        console.warn("[Webhook] GITHUB_WEBHOOK_SECRET not set. Skipping verification (dev only).");
+        return true;
     }
 
     const hash = crypto
         .createHmac("sha256", secret)
         .update(payload)
         .digest("hex");
-    const expectedSignature = `sha256=${hash}`;
+    const expected = Buffer.from(`sha256=${hash}`);
+    const received = Buffer.from(signature);
 
-    return crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
-    );
+    // timingSafeEqual throws on length mismatch; a wrong-length signature is just invalid.
+    return received.length === expected.length && crypto.timingSafeEqual(received, expected);
 }
 
 /**
@@ -113,6 +117,9 @@ export async function POST(request: NextRequest) {
         const [owner, repoShort] = repoName.split("/");
 
         console.log(`[Webhook] Received ${eventType} event for ${repoName}`);
+
+        // Live updates: drop cached lens / issue / next-action views for this repo.
+        invalidateRepo(owner, repoShort);
 
         // ============================================================================
         // HANDLE DIFFERENT EVENT TYPES

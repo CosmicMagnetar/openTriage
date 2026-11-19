@@ -30,7 +30,10 @@ describe('Route Configuration', () => {
             expect(isMaintainerRoute('/api/maintainer')).toBe(true);
             expect(isMaintainerRoute('/api/maintainer/dashboard')).toBe(true);
             expect(isMaintainerRoute('/api/repositories')).toBe(true);
-            expect(isMaintainerRoute('/api/sync')).toBe(true);
+        });
+
+        it('should treat /api/sync as shared by both workspaces', () => {
+            expect(isMaintainerRoute('/api/sync')).toBe(false);
         });
 
         it('should return false for non-maintainer routes', () => {

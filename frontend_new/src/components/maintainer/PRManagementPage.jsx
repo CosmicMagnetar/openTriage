@@ -56,8 +56,9 @@ const PRManagementPage = () => {
                 axios.get(`${API}/repositories`),
                 axios.get(`${API}/maintainer/templates`)
             ]);
-            setRepositories(reposRes.data);
-            setTemplates(templatesRes.data);
+            // Guard against error/empty payloads so the page doesn't crash on .map
+            setRepositories(Array.isArray(reposRes.data) ? reposRes.data : []);
+            setTemplates(Array.isArray(templatesRes.data) ? templatesRes.data : []);
             setLoading(false);
 
             if (reposRes.data.length > 0 && !selectedRepo) {

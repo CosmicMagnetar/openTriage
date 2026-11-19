@@ -11,6 +11,7 @@ import { db } from "@/db";
 import { issues, repositories, triageData, users } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { heuristicTriage } from "@/lib/coordination/triage";
 import { GitHubIssue, AuthorAssociation } from "@/lib/types/github";
 import { publishIssueCreated, publishIssueUpdated, publishIssueDeleted, publishSyncComplete, isAblyConfigured } from "@/lib/ably-client";
 
@@ -204,22 +205,10 @@ async function syncRepository(
 
         // Track GitHub issue numbers we've seen from the open list
         const openNumbers = new Set<number>();
-        // Track potential mentors to update roles
-        const potentialMentors = new Set<string>();
 
         let created = 0;
         let updated = 0;
         let deleted = 0;
-
-        // Helper to check for mentor status
-        const checkMentorStatus = (item: any) => {
-            const assoc = item.author_association;
-            if (assoc === "OWNER" || assoc === "MEMBER" || assoc === "COLLABORATOR") {
-                if (item.user?.login) {
-                    potentialMentors.add(item.user.login);
-                }
-            }
-        };
 
         // For Contributors: filter to only their authored items (PRs and issues)
         const shouldIncludeItem = (item: GitHubIssue): boolean => {
@@ -234,8 +223,7 @@ async function syncRepository(
         // Process open items
         for (const ghItem of openItems) {
             openNumbers.add(ghItem.number);
-            checkMentorStatus(ghItem);
-            
+
             // Skip items that don't match role filter
             if (!shouldIncludeItem(ghItem)) {
                 continue;
@@ -245,8 +233,10 @@ async function syncRepository(
             const existingIssue = dbIssuesByNumber.get(ghItem.number);
 
             if (existingIssue) {
-                // Update if state changed or other fields
-                if (existingIssue.state !== ghItem.state ||
+                // GitHub bumps updated_at on any change (body, labels, comments, ...).
+                const ghUpdatedAt = (ghItem as { updated_at?: string }).updated_at ?? null;
+                if (existingIssue.updatedAt !== ghUpdatedAt ||
+                    existingIssue.state !== ghItem.state ||
                     existingIssue.title !== ghItem.title ||
                     existingIssue.authorAssociation !== ghItem.author_association) {
                     await db.update(issues)
@@ -255,6 +245,7 @@ async function syncRepository(
                             title: ghItem.title,
                             body: ghItem.body || null,
                             authorAssociation: ghItem.author_association,
+                            updatedAt: ghUpdatedAt,
                         })
                         .where(eq(issues.id, existingIssue.id));
                     updated++;
@@ -291,9 +282,29 @@ async function syncRepository(
                     state: ghItem.state,
                     isPR,
                     authorAssociation: ghItem.author_association,
-                    createdAt: new Date().toISOString(),
+                    updatedAt: (ghItem as { updated_at?: string }).updated_at ?? null,
+                    // Use GitHub's creation time so item age is real, not first-sync time.
+                    createdAt: (ghItem as { created_at?: string }).created_at ?? new Date().toISOString(),
                 }).onConflictDoNothing();
                 created++;
+
+                // Auto-triage new items with the no-AI heuristic so the inbox is classified
+                // immediately; maintainers can re-triage (optionally with AI) later.
+                try {
+                    const t = heuristicTriage({
+                        title: ghItem.title,
+                        body: ghItem.body,
+                        labels: ((ghItem as { labels?: Array<string | { name?: string }> }).labels ?? [])
+                            .map((l) => (typeof l === "string" ? l : l.name ?? ""))
+                            .filter(Boolean),
+                    });
+                    await db.insert(triageData).values({
+                        id: uuidv4(), issueId: newId, classification: t.classification, summary: t.summary,
+                        suggestedLabel: t.suggestedLabel, sentiment: "NEUTRAL", analyzedAt: new Date().toISOString(),
+                    });
+                } catch (triageErr) {
+                    console.warn(`[Sync] ${repoName}#${ghItem.number}: auto-triage skipped`, triageErr);
+                }
 
                 if (isAblyConfigured()) {
                     await publishIssueCreated({
@@ -340,22 +351,8 @@ async function syncRepository(
             }
         }
 
-        // Update Mentor Roles
-        if (potentialMentors.size > 0) {
-            for (const username of potentialMentors) {
-                // Determine if user exists and upgrade role if eligible
-                // We only upgrade if role is null or CONTRIBUTOR. We don't touch MAINTAINER.
-                const user = await db.select().from(users).where(eq(users.username, username)).limit(1);
-                if (user.length > 0) {
-                    const currentRole = user[0].role;
-                    if (!currentRole || currentRole === 'CONTRIBUTOR') {
-                        await db.update(users)
-                            .set({ role: 'MENTOR' })
-                            .where(eq(users.id, user[0].id));
-                    }
-                }
-            }
-        }
+        // NOTE: sync must never change a user's workspace. (It used to rewrite
+        // repo members to a "MENTOR" role, which broke their workspace.)
 
         return { repoId, repoName, success: true, created, updated, deleted, skipped: false };
     } catch (error) {
@@ -835,14 +832,6 @@ export async function reconcileSingleIssue(
             message: `Error reconciling issue: ${errorMessage}`,
         };
     }
-}
-
-/**
- * Reconcile the critical tracked issue: cosmicMagnetar/openTriage#1
- * This ensures the issue state is immediately synced from GitHub.
- */
-export async function reconcileOpenTriageIssue1(accessToken: string): Promise<IssueReconcileResult> {
-    return reconcileSingleIssue(accessToken, 'cosmicMagnetar', 'openTriage', 1);
 }
 
 /**

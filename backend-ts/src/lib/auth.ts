@@ -4,7 +4,32 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+/** Cookie holding the OAuth `state` between /api/auth/github and its callback. */
+export const OAUTH_STATE_COOKIE = "ot_oauth_state";
+
+export type Workspace = "MAINTAINER" | "CONTRIBUTOR";
+
+/**
+ * Maintainer/Contributor are switchable workspaces on one account, not permission roles.
+ * Anything else (null, legacy "MENTOR") maps to CONTRIBUTOR.
+ */
+export function normalizeWorkspace(role: string | null | undefined): Workspace {
+    return role?.toUpperCase() === "MAINTAINER" ? "MAINTAINER" : "CONTRIBUTOR";
+}
+
+/**
+ * Routes that may authenticate with `?token=` because EventSource/WebSocket
+ * clients cannot set an Authorization header. Everything else must use the header.
+ */
+const QUERY_TOKEN_PATHS: string[] = [];
+
+function getJwtSecret(): string {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        throw new Error("JWT_SECRET is not configured");
+    }
+    return secret;
+}
 
 /**
  * Create a JWT token for a user.
@@ -15,7 +40,7 @@ export function createJwtToken(userId: string, role: string | null): string {
         role: role,
         exp: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // 30 days
     };
-    return jwt.sign(payload, JWT_SECRET, { algorithm: "HS256" });
+    return jwt.sign(payload, getJwtSecret(), { algorithm: "HS256" });
 }
 
 /**
@@ -23,76 +48,61 @@ export function createJwtToken(userId: string, role: string | null): string {
  */
 export function verifyJwtToken(token: string): { user_id: string; role: string | null } {
     try {
-        const payload = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] }) as {
+        return jwt.verify(token, getJwtSecret(), { algorithms: ["HS256"] }) as {
             user_id: string;
             role: string | null;
         };
-        return payload;
-    } catch (error) {
+    } catch {
         throw new Error("Invalid or expired token");
     }
 }
 
+function extractToken(request: NextRequest): string | null {
+    const authHeader = request.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+        return authHeader.substring(7);
+    }
+    const url = new URL(request.url);
+    if (QUERY_TOKEN_PATHS.some((p) => url.pathname.startsWith(p))) {
+        return url.searchParams.get("token");
+    }
+    return null;
+}
+
 /**
- * Extract user from Authorization header or query param (for SSE).
+ * Extract the current user from the Authorization header
+ * (or `?token=` for streaming endpoints only).
  */
 export async function getCurrentUser(request: NextRequest) {
-    let token: string | null = null;
+    const token = extractToken(request);
+    if (!token) return null;
 
-    // Try Authorization header first
-    const authHeader = request.headers.get("Authorization");
-    console.log("[getCurrentUser] Authorization header:", authHeader ? "Present" : "Missing");
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
-        console.log("[getCurrentUser] Found token in Authorization header");
-    }
-
-    // Fallback to query param for SSE connections
-    if (!token) {
-        const url = new URL(request.url);
-        token = url.searchParams.get("token");
-        if (token) {
-            console.log("[getCurrentUser] Found token in query params");
-        }
-    }
-
-    if (!token) {
-        console.log("[getCurrentUser] No token found in header or query params");
-        return null;
-    }
-
+    let payload: { user_id: string };
     try {
-        const payload = verifyJwtToken(token);
-        console.log("[getCurrentUser] Token verified, user_id:", payload.user_id);
-
-        // Fetch full user from database
-        // NOTE: sync_status columns excluded until Turso migration is applied
-        const userRecords = await db
-            .select({
-                id: users.id,
-                githubId: users.githubId,
-                username: users.username,
-                avatarUrl: users.avatarUrl,
-                role: users.role,
-                githubAccessToken: users.githubAccessToken,
-                createdAt: users.createdAt,
-                updatedAt: users.updatedAt,
-            })
-            .from(users)
-            .where(eq(users.id, payload.user_id))
-            .limit(1);
-
-        if (userRecords.length === 0) {
-            console.log("[getCurrentUser] User not found in database for user_id:", payload.user_id);
-            return null;
-        }
-
-        console.log("[getCurrentUser] User found:", userRecords[0].username);
-        return userRecords[0];
-    } catch (error: any) {
-        console.error("[getCurrentUser] Token verification failed:", error?.message);
+        payload = verifyJwtToken(token);
+    } catch {
         return null;
     }
+
+    // NOTE: sync_status columns excluded until Turso migration is applied
+    const userRecords = await db
+        .select({
+            id: users.id,
+            githubId: users.githubId,
+            username: users.username,
+            avatarUrl: users.avatarUrl,
+            role: users.role,
+            githubAccessToken: users.githubAccessToken,
+            createdAt: users.createdAt,
+            updatedAt: users.updatedAt,
+        })
+        .from(users)
+        .where(eq(users.id, payload.user_id))
+        .limit(1);
+
+    if (userRecords.length === 0) return null;
+    const user = userRecords[0];
+    return { ...user, role: normalizeWorkspace(user.role) };
 }
 
 /**
@@ -104,10 +114,7 @@ export async function requireAuth(request: NextRequest) {
     if (!user) {
         return {
             user: null,
-            error: NextResponse.json(
-                { error: "Unauthorized" },
-                { status: 401 }
-            ),
+            error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
         };
     }
 
