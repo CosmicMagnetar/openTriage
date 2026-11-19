@@ -1,0 +1,81 @@
+/*
+ * Workspace design tokens. Quiet, dense, dark.
+ * One accent; colour is reserved for state (who acts, CI, availability).
+ */
+.ot {
+  --bg: #0b0c0e;
+  --panel: #101114;
+  --raised: #15171b;
+  --hover: #1a1c21;
+  --line: #22252b;
+  --line-soft: #1a1c20;
+  --text: #e4e5e8;
+  --text-2: #b3b6bd;
+  --muted: #8a8f98;
+  --faint: #5f646d;
+  --accent: #8b9cff;
+  --accent-soft: rgba(139, 156, 255, 0.12);
+  --green: #3fb950;
+  --amber: #d29922;
+  --red: #f85149;
+  --purple: #a371f7;
+  --blue: #58a6ff;
+  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ot ::selection {
+  background: var(--accent-soft);
+}
+
+.ot .mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.ot :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+.ot .scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.ot .row-selected {
+  background: var(--hover);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+@keyframes ot-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.ot .pulse {
+  animation: ot-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes ot-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+.ot .skeleton {
+  background: linear-gradient(90deg, var(--raised) 0px, var(--hover) 80px, var(--raised) 160px);
+  background-size: 400px 100%;
+  animation: ot-shimmer 1.4s linear infinite;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ot .pulse, .ot .skeleton { animation: none; }
+}

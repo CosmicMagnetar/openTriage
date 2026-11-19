@@ -15,20 +15,37 @@ import {
 } from "./graphql";
 
 const cache = new TTLCache<unknown>(5 * 60 * 1000);
+const inflight = new Map<string, Promise<unknown>>();
 const HOUR = 60 * 60 * 1000;
+export const MINUTE = 60 * 1000;
 
-async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
-    const hit = cache.get(key) as T | undefined;
-    if (hit !== undefined) return hit;
-    const value = await fn();
-    cache.set(key, value, ttlMs);
-    return value;
+/**
+ * Cache with in-flight dedupe: concurrent requests for the same key share one
+ * GitHub round-trip. `fresh` skips the cached value (user pressed refresh).
+ */
+export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>, fresh = false): Promise<T> {
+    if (!fresh) {
+        const hit = cache.get(key) as T | undefined;
+        if (hit !== undefined) return hit;
+    }
+    const pending = inflight.get(key) as Promise<T> | undefined;
+    if (pending) return pending;
+    const p = fn()
+        .then((value) => {
+            cache.set(key, value, ttlMs);
+            return value;
+        })
+        .finally(() => inflight.delete(key));
+    inflight.set(key, p);
+    return p;
 }
 
-/** Drop cached views of a repo (called from the webhook). */
+/** Drop cached views of a repo (webhook, or after the user writes to GitHub). */
 export function invalidateRepo(owner: string, repo: string) {
     const r = `${owner}/${repo}`.toLowerCase();
-    for (const prefix of ["lens:", "resp:", "files:", "issue:", "na:"]) cache.invalidatePrefix(`${prefix}${r}`);
+    for (const prefix of ["lens:", "resp:", "files:", "issue:", "ctx:", "pr:", "inbox:"]) cache.invalidatePrefix(`${prefix}${r}`);
+    // Per-user lists can contain this repo; they are short-lived, so drop them all.
+    for (const prefix of ["na:", "prs:", "find:"]) cache.invalidatePrefix(prefix);
 }
 
 // ---------------------------------------------------------------------------

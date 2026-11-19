@@ -1,5 +1,5 @@
 /**
- * Client for the coordination APIs (discovery, understanding, next actions).
+ * Client for the coordination APIs + query keys for the SWR cache (lib/query.js).
  * Auth header is set globally on axios by the auth store.
  */
 import axios from "axios";
@@ -19,9 +19,9 @@ async function get(path, params) {
   }
 }
 
-async function post(path, body) {
+async function send(method, path, body, params) {
   try {
-    const res = await axios.post(`${API}${path}`, body);
+    const res = await axios({ method, url: `${API}${path}`, data: body, params });
     return res.data;
   } catch (err) {
     throw new Error(errorMessage(err));
@@ -29,26 +29,58 @@ async function post(path, body) {
 }
 
 const enc = encodeURIComponent;
+const fresh = (o) => (o?.fresh ? { fresh: 1 } : {});
+const ref = (owner, repo, number) => `${enc(owner)}/${enc(repo)}/${enc(number)}`;
 
 export const workApi = {
-  nextActions: (workspace, repos) =>
-    get("/next-actions", { workspace, ...(repos?.length ? { repos: repos.join(",") } : {}) }),
-  findWork: (filters) => get("/work/find", filters),
-  issue: (owner, repo, number) => get(`/work/issue/${enc(owner)}/${enc(repo)}/${enc(number)}`),
+  nextActions: (workspace, o) => get("/next-actions", { workspace, ...fresh(o) }),
+  findWork: (filters, o) => get("/work/find", { ...filters, ...fresh(o) }),
+  issue: (owner, repo, number, o) => get(`/work/issue/${ref(owner, repo, number)}`, fresh(o)),
   contextPack: (owner, repo, number, ai = false) =>
-    get(`/work/issue/${enc(owner)}/${enc(repo)}/${enc(number)}/context`, ai ? { ai: 1 } : undefined),
+    get(`/work/issue/${ref(owner, repo, number)}/context`, ai ? { ai: 1 } : undefined),
+  pr: (owner, repo, number, o) => get(`/work/pr/${ref(owner, repo, number)}`, fresh(o)),
+  prs: (scope, o) => get("/work/prs", { scope, ...fresh(o) }),
+  inbox: (o) => get("/work/inbox", fresh(o)),
   repoLens: (owner, repo) => get(`/repo-lens/${enc(owner)}/${enc(repo)}`),
-  addRepo: (owner, repo) => post("/sync/add-repo", { owner, repo }),
+  trackedRepos: () => get("/work/repos"),
+  untrackRepo: (full) => send("delete", "/work/repos", undefined, { repo: full }),
+  addRepo: (owner, repo) => send("post", "/sync/add-repo", { owner, repo }),
+  comment: (owner, repo, number, body) => send("post", `/work/item/${ref(owner, repo, number)}`, { action: "comment", body }),
+  addLabels: (owner, repo, number, labels) => send("post", `/work/item/${ref(owner, repo, number)}`, { action: "label", labels }),
+  savedReplies: () => get("/maintainer/templates"),
+  saveReply: (name, body) => send("post", "/maintainer/templates", { name, body }),
+  deleteReply: (id) => send("delete", "/maintainer/templates", undefined, { id }),
+};
+
+/** Cache keys: one place so pages, panel and prefetch agree. */
+export const keys = {
+  today: (ws) => `today:${ws}`,
+  find: (filters) => `find:${JSON.stringify(filters)}`,
+  issue: (o, r, n) => `issue:${o}/${r}#${n}`.toLowerCase(),
+  context: (o, r, n) => `ctx:${o}/${r}#${n}`.toLowerCase(),
+  pr: (o, r, n) => `pr:${o}/${r}#${n}`.toLowerCase(),
+  prs: (scope) => `prs:${scope}`,
+  inbox: () => "inbox",
+  lens: (o, r) => `lens:${o}/${r}`.toLowerCase(),
+  repos: () => "repos",
+  replies: () => "replies",
 };
 
 /**
  * Parse "owner/repo", "owner/repo#12", or a github.com issue/PR/repo URL.
- * Returns { owner, repo, number? } or null.
+ * Returns { owner, repo, number?, kind? } or null.
  */
 export function parseGitHubRef(input) {
   const s = (input || "").trim();
-  const url = s.match(/github\.com\/([\w.-]+)\/([\w.-]+)(?:\/(?:issues|pull)\/(\d+))?/i);
-  if (url) return { owner: url[1], repo: url[2].replace(/\.git$/, ""), number: url[3] ? Number(url[3]) : undefined };
+  const url = s.match(/github\.com\/([\w.-]+)\/([\w.-]+)(?:\/(issues|pull)\/(\d+))?/i);
+  if (url) {
+    return {
+      owner: url[1],
+      repo: url[2].replace(/\.git$/, ""),
+      number: url[4] ? Number(url[4]) : undefined,
+      kind: url[3] === "pull" ? "pr" : url[3] ? "issue" : undefined,
+    };
+  }
   const short = s.match(/^([\w.-]+)\/([\w.-]+?)(?:#(\d+))?$/);
   if (short) return { owner: short[1], repo: short[2], number: short[3] ? Number(short[3]) : undefined };
   return null;

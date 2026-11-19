@@ -4,8 +4,8 @@
  * with availability (is someone on it?) and repo responsiveness as evidence.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { findWork } from "@/lib/github/services";
-import { githubError, withGitHub } from "@/lib/github/route-helpers";
+import { cached, findWork } from "@/lib/github/services";
+import { githubError, wantsFresh, withGitHub } from "@/lib/github/route-helpers";
 
 const SAFE = /^[\w .#+/-]{0,80}$/;
 
@@ -25,12 +25,14 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        const results = await findWork(gh.octokit, {
+        const query = {
             ...params,
             newcomer: sp.get("newcomer") !== "false",
             minStars: sp.has("minStars") ? Math.max(0, Number(sp.get("minStars")) || 0) : undefined,
             limit: Math.max(1, Math.min(30, Number(sp.get("limit")) || 20)),
-        });
+        };
+        const key = `find:${gh.user.username}:${JSON.stringify(query)}`.toLowerCase();
+        const results = await cached(key, 5 * 60_000, () => findWork(gh.octokit, query), wantsFresh(request));
         return NextResponse.json({ results });
     } catch (err) {
         return githubError(err, "work search");

@@ -1,55 +1,36 @@
 /**
- * GET /api/next-actions?workspace=contributor|maintainer[&repos=owner/a,owner/b]
+ * GET /api/next-actions?workspace=contributor|maintainer[&repos=owner/a,owner/b][&fresh=1]
  * Coordination: what needs *me* now, why (evidence), and the smallest next step.
- *
- * Contributor: my open PRs, review requests, issues I claimed (stale claims, overlap).
- * Maintainer: repos I can push to (tracked repos, or ?repos=) — newcomers waiting,
- * reviews pending, ready to merge, duplicate effort, stale claims, possible duplicates.
+ * Cached ~90s per user; `fresh=1` forces a refetch.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
-import { db } from "@/db";
-import { repositories } from "@/db/schema";
-import { contributorToday, maintainerToday } from "@/lib/github/services";
-import { githubError, validRepo, withGitHub } from "@/lib/github/route-helpers";
+import { cached, contributorToday, maintainerToday } from "@/lib/github/services";
+import { githubError, resolveRepos, wantsFresh, withGitHub } from "@/lib/github/route-helpers";
 
 export async function GET(request: NextRequest) {
     const gh = await withGitHub(request);
     if ("error" in gh) return gh.error;
 
-    const sp = new URL(request.url).searchParams;
-    const workspace = (sp.get("workspace") ?? gh.user.role).toLowerCase();
+    const workspace = (new URL(request.url).searchParams.get("workspace") ?? gh.user.role).toLowerCase();
+    const fresh = wantsFresh(request);
+    const login = gh.user.username;
 
     try {
         if (workspace === "maintainer") {
-            let repos: Array<{ owner: string; repo: string }>;
-            const explicit = sp.get("repos");
-            if (explicit) {
-                repos = explicit.split(",").map((s) => s.trim()).filter(Boolean).map((s) => {
-                    const [owner, repo] = s.split("/");
-                    return { owner, repo };
-                }).filter((r) => r.owner && r.repo && validRepo(r.owner, r.repo));
-            } else {
-                const rows = await db
-                    .select({ owner: repositories.owner, name: repositories.name })
-                    .from(repositories)
-                    .where(and(eq(repositories.userId, gh.user.id), eq(repositories.addedByUser, true)));
-                // `name` is stored as "owner/repo" by add-repo (older rows may hold just "repo").
-                repos = rows.map((r) => {
-                    const [maybeOwner, maybeRepo] = r.name.split("/");
-                    return maybeRepo ? { owner: maybeOwner, repo: maybeRepo } : { owner: r.owner, repo: r.name };
-                });
-            }
+            const repos = await resolveRepos(request, gh.user.id);
             if (repos.length === 0) {
                 return NextResponse.json({
                     workspace: "maintainer", actions: [], repos: [], skipped: [],
                     hint: "Add a repository you maintain to see what needs your attention.",
                 });
             }
-            return NextResponse.json({ workspace: "maintainer", ...(await maintainerToday(gh.octokit, gh.user.username, repos)) });
+            const key = `na:m:${login}:${repos.map((r) => `${r.owner}/${r.repo}`).sort().join(",")}`.toLowerCase();
+            const data = await cached(key, 90_000, () => maintainerToday(gh.octokit, login, repos), fresh);
+            return NextResponse.json({ workspace: "maintainer", ...data });
         }
 
-        return NextResponse.json({ workspace: "contributor", ...(await contributorToday(gh.octokit, gh.user.username)) });
+        const data = await cached(`na:c:${login}`.toLowerCase(), 90_000, () => contributorToday(gh.octokit, login), fresh);
+        return NextResponse.json({ workspace: "contributor", ...data });
     } catch (err) {
         return githubError(err, "next actions");
     }

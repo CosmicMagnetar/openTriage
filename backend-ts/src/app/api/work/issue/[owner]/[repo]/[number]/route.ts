@@ -4,8 +4,8 @@
  * possible duplicates, who acts next, and an overlap guard for the viewer.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { buildIssueView } from "@/lib/github/services";
-import { githubError, validRepo, withGitHub } from "@/lib/github/route-helpers";
+import { buildIssueView, cached } from "@/lib/github/services";
+import { githubError, validRepo, wantsFresh, withGitHub } from "@/lib/github/route-helpers";
 
 export async function GET(
     request: NextRequest,
@@ -20,7 +20,8 @@ export async function GET(
     }
 
     try {
-        const view = await buildIssueView(gh.octokit, owner, repo, n, gh.user.username);
+        const key = `issue:${owner}/${repo}#${n}:${gh.user.username}`.toLowerCase();
+        const view = await cached(key, 2 * 60_000, () => buildIssueView(gh.octokit, owner, repo, n, gh.user.username), wantsFresh(request));
         if (!view) return NextResponse.json({ error: "Issue not found" }, { status: 404 });
         return NextResponse.json(view);
     } catch (err) {
