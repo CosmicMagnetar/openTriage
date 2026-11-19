@@ -10,6 +10,8 @@ export const publicRoutes: string[] = [
     '/api/auth/github',
     '/api/auth/github/callback',
     '/api/health',
+    // GitHub calls this without a bearer token; it is authenticated by HMAC signature instead.
+    '/api/webhooks/github',
 ];
 
 // Routes that require MAINTAINER role

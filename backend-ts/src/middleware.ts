@@ -11,35 +11,50 @@ const allowedOrigins = [
     "https://open-triage-6r2y.vercel.app", // Specific preview deployment
 ];
 
-// JWT Secret for token verification
-const JWT_SECRET = process.env.JWT_SECRET;
+function base64UrlToBytes(input: string): Uint8Array {
+    const b64 = input.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(input.length / 4) * 4, "=");
+    const bin = atob(b64);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+}
+
+let hmacKey: Promise<CryptoKey> | null = null;
+function getKey(secret: string) {
+    hmacKey ??= crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+    return hmacKey;
+}
 
 /**
- * Verify JWT token and extract payload
+ * Verify an HS256 JWT (signature + expiry) with Web Crypto, which works in the
+ * edge runtime. Previously the payload was only base64-decoded, so the role
+ * claim used for gating below could be forged.
  */
-function verifyToken(token: string): { user_id: string; role: string | null } | null {
+async function verifyToken(token: string): Promise<{ user_id: string; role: string | null } | null> {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) return null;
     try {
-        // Simple JWT verification (base64 decode and verify signature)
-        const parts = token.split('.');
-        if (parts.length !== 3) return null;
+        const [header, body, signature] = token.split(".");
+        if (!header || !body || !signature) return null;
+        if (JSON.parse(new TextDecoder().decode(base64UrlToBytes(header))).alg !== "HS256") return null;
 
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+        const ok = await crypto.subtle.verify(
+            "HMAC",
+            await getKey(secret),
+            base64UrlToBytes(signature) as BufferSource,
+            new TextEncoder().encode(`${header}.${body}`)
+        );
+        if (!ok) return null;
 
-        // Check expiration
-        if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-            return null;
-        }
-
-        return {
-            user_id: payload.user_id,
-            role: payload.role || null
-        };
+        const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(body)));
+        if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+        return { user_id: payload.user_id, role: payload.role || null };
     } catch {
         return null;
     }
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const origin = request.headers.get("origin") || "";
     // Allow any Vercel preview deployment or listed origins
     const isAllowedOrigin = allowedOrigins.includes(origin) || origin.endsWith(".vercel.app");
@@ -76,7 +91,7 @@ export function middleware(request: NextRequest) {
         }
 
         const token = authHeader.substring(7);
-        const payload = verifyToken(token);
+        const payload = await verifyToken(token);
 
         if (!payload) {
             return NextResponse.json(
@@ -91,9 +106,10 @@ export function middleware(request: NextRequest) {
             );
         }
 
-        // Check role-based access
+        // Check role-based access (legacy/null roles count as CONTRIBUTOR)
         const requiredRole = getRequiredRole(pathname);
-        if (requiredRole && payload.role !== requiredRole) {
+        const workspace = payload.role?.toUpperCase() === "MAINTAINER" ? "MAINTAINER" : "CONTRIBUTOR";
+        if (requiredRole && workspace !== requiredRole) {
             return NextResponse.json(
                 { error: "Forbidden", message: `${requiredRole} role required` },
                 {

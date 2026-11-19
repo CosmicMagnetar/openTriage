@@ -11,6 +11,7 @@ import { db } from "@/db";
 import { issues, repositories, triageData, users } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { heuristicTriage } from "@/lib/coordination/triage";
 import { GitHubIssue, AuthorAssociation } from "@/lib/types/github";
 import { publishIssueCreated, publishIssueUpdated, publishIssueDeleted, publishSyncComplete, isAblyConfigured } from "@/lib/ably-client";
 
@@ -286,6 +287,24 @@ async function syncRepository(
                     createdAt: (ghItem as { created_at?: string }).created_at ?? new Date().toISOString(),
                 }).onConflictDoNothing();
                 created++;
+
+                // Auto-triage new items with the no-AI heuristic so the inbox is classified
+                // immediately; maintainers can re-triage (optionally with AI) later.
+                try {
+                    const t = heuristicTriage({
+                        title: ghItem.title,
+                        body: ghItem.body,
+                        labels: ((ghItem as { labels?: Array<string | { name?: string }> }).labels ?? [])
+                            .map((l) => (typeof l === "string" ? l : l.name ?? ""))
+                            .filter(Boolean),
+                    });
+                    await db.insert(triageData).values({
+                        id: uuidv4(), issueId: newId, classification: t.classification, summary: t.summary,
+                        suggestedLabel: t.suggestedLabel, sentiment: "NEUTRAL", analyzedAt: new Date().toISOString(),
+                    });
+                } catch (triageErr) {
+                    console.warn(`[Sync] ${repoName}#${ghItem.number}: auto-triage skipped`, triageErr);
+                }
 
                 if (isAblyConfigured()) {
                     await publishIssueCreated({
