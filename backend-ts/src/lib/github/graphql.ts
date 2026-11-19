@@ -42,7 +42,7 @@ export const PR_FIELDS = `
   author { ${ACTOR} }
   labels(first: 20) { nodes { name } }
   reviewDecision mergeable
-  reviewRequests(first: 10) { nodes { requestedReviewer { __typename ... on User { login } ... on Team { slug } } } }
+  reviewRequests(first: 10) { nodes { requestedReviewer { __typename ... on User { login } } } }
   reviews(last: 30) { nodes { state submittedAt authorAssociation author { ${ACTOR} } } }
   comments(last: 30) { nodes { body createdAt url authorAssociation author { ${ACTOR} } } }
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { state } } } }
@@ -168,8 +168,9 @@ export function normalizePR(raw: RawPR): PRItem {
         reviewDecision: raw.reviewDecision,
         checks: head?.statusCheckRollup?.state ?? null,
         mergeable: raw.mergeable,
+        // Team names need the read:org scope, which we don't request; teams show as "team".
         requestedReviewers: raw.reviewRequests.nodes
-            .map((n) => n.requestedReviewer?.login ?? (n.requestedReviewer?.slug ? `team:${n.requestedReviewer.slug}` : null))
+            .map((n) => n.requestedReviewer?.login ?? (n.requestedReviewer?.__typename === "Team" ? "team" : null))
             .filter((x): x is string => Boolean(x)),
         reviews: raw.reviews.nodes
             .filter((r) => r.submittedAt)

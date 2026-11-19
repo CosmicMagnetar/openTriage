@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         const results = await findWork(gh.octokit, {
             ...params,
             newcomer: sp.get("newcomer") !== "false",
+            minStars: sp.has("minStars") ? Math.max(0, Number(sp.get("minStars")) || 0) : undefined,
             limit: Math.max(1, Math.min(30, Number(sp.get("limit")) || 20)),
         });
         return NextResponse.json({ results });

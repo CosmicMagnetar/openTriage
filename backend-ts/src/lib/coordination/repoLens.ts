@@ -24,12 +24,16 @@ const MANIFESTS: Array<[RegExp, string]> = [
     [/^(Dockerfile|docker-compose\.ya?ml)$/, "Docker"],
 ];
 
-export function detectStack(rootFiles: string[]): StackHint[] {
+/** Accepts root files and/or paths one level deep (monorepos: `backend/go.mod`). Root files win. */
+export function detectStack(files: string[]): StackHint[] {
     const hints: StackHint[] = [];
     const seen = new Set<string>();
-    for (const file of rootFiles) {
+    const ordered = [...files].sort((a, b) => a.split("/").length - b.split("/").length);
+    for (const file of ordered) {
+        if (file.split("/").length > 2 || /(^|\/)(node_modules|vendor|examples?|test|tests|docs?)\//.test(file)) continue;
+        const name = file.split("/").pop()!;
         for (const [re, eco] of MANIFESTS) {
-            if (re.test(file) && !seen.has(eco)) {
+            if (re.test(name) && !seen.has(eco)) {
                 seen.add(eco);
                 hints.push({ ecosystem: eco, evidence: file });
             }

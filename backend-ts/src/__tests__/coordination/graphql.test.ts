@@ -47,14 +47,14 @@ describe("normalizePR", () => {
             number: 3, title: "t", body: "", url: "u", state: "OPEN", isDraft: false, createdAt: "c", updatedAt: "u",
             authorAssociation: "CONTRIBUTOR", repository: { name: "r", owner: { login: "o" } },
             author: { login: "dev" }, labels: { nodes: [] }, reviewDecision: "REVIEW_REQUIRED", mergeable: "MERGEABLE",
-            reviewRequests: { nodes: [{ requestedReviewer: { __typename: "User", login: "m" } }, { requestedReviewer: { __typename: "Team", slug: "core" } }] },
+            reviewRequests: { nodes: [{ requestedReviewer: { __typename: "User", login: "m" } }, { requestedReviewer: { __typename: "Team" } }] },
             reviews: { nodes: [{ state: "PENDING", submittedAt: null, authorAssociation: "MEMBER", author: { login: "m" } }] },
             comments: { nodes: [] },
             commits: { nodes: [{ commit: { committedDate: "d", statusCheckRollup: { state: "FAILURE" } } }] },
             closingIssuesReferences: { nodes: [{ number: 1 }] },
         } as RawPR);
         expect(p.checks).toBe("FAILURE");
-        expect(p.requestedReviewers).toEqual(["m", "team:core"]);
+        expect(p.requestedReviewers).toEqual(["m", "team"]);
         expect(p.reviews).toEqual([]);
         expect(p.closingIssues).toEqual([1]);
     });

@@ -89,7 +89,6 @@ export async function buildRepoLens(octokit: Octokit, owner: string, repo: strin
                 .catch(() => null),
         ]);
 
-        const rootFiles = paths.filter((p) => !p.includes("/"));
         const codeownerRules = codeowners ? parseCodeowners(codeowners.text) : [];
         const recentFiles = recent.flatMap((p) => p.files);
 
@@ -106,7 +105,7 @@ export async function buildRepoLens(octokit: Octokit, owner: string, repo: strin
             repo: { fullName: meta.full_name, description: meta.description, url: meta.html_url, defaultBranch: branch,
                 stars: meta.stargazers_count, openIssues: meta.open_issues_count, license: meta.license?.spdx_id ?? null,
                 archived: meta.archived, pushedAt: meta.pushed_at, topics: meta.topics ?? [] },
-            stack: detectStack(rootFiles),
+            stack: detectStack(paths.filter((p) => p.split("/").length <= 2)),
             layout: summarizeTree(paths),
             fileCount: paths.length,
             setup: [
@@ -280,11 +279,14 @@ export interface FindWorkQuery {
     text?: string;
     newcomer?: boolean;
     limit?: number;
+    minStars?: number;
 }
 
 export async function findWork(octokit: Octokit, q: FindWorkQuery) {
     const parts = ["is:open", "archived:false", "no:assignee", "-linked:pr"];
     if (q.repo) parts.push(`repo:${q.repo}`);
+    // Without a repo, skip brand-new/throwaway repos that farm "good first issue" labels.
+    else parts.push(`stars:>=${q.minStars ?? 10}`);
     if (q.language) parts.push(`language:${q.language}`);
     if (q.label) parts.push(`label:"${q.label.replace(/"/g, "")}"`);
     else if (q.newcomer !== false) parts.push('label:"good first issue","help wanted"');
@@ -357,7 +359,14 @@ export async function contributorToday(octokit: Octokit, login: string) {
                 waitingDays: 0,
             });
         } else if (mine.stale) {
-            actions.push(...issueNextActions(issue).filter((a) => a.type === "stale_claim" && isOnMe(a, login, false)));
+            // Same rule as for others, but phrased for the claimant themselves.
+            actions.push(...issueNextActions(issue)
+                .filter((a) => a.type === "stale_claim" && isOnMe(a, login, false))
+                .map((a) => ({
+                    ...a,
+                    reason: `You claimed this ${a.waitingDays >= 1 ? `${Math.floor(a.waitingDays)} days` : "recently"} ago with no activity since.`,
+                    suggestion: "Post a short update if you're still on it, or say you're stepping back so someone else can pick it up.",
+                })));
         }
     }
 

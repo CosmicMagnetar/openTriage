@@ -98,6 +98,11 @@ describe("repoLens", () => {
             .toEqual(["Node.js / JavaScript", "TypeScript"]);
     });
 
+    it("detects stacks one level deep in monorepos, ignoring examples", () => {
+        expect(detectStack(["Dockerfile", "backend/requirements.txt", "web/package.json", "examples/go.mod"]).map((s) => [s.ecosystem, s.evidence]))
+            .toEqual([["Docker", "Dockerfile"], ["Python", "backend/requirements.txt"], ["Node.js / JavaScript", "web/package.json"]]);
+    });
+
     it("summarizes top-level layout and roles", () => {
         const s = summarizeTree(["src/a.ts", "src/b.ts", "tests/a.test.ts", "node_modules/x/y.js", "README.md"]);
         expect(s[0]).toEqual({ path: "src", files: 2, role: "main source" });

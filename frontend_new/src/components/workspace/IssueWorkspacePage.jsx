@@ -74,7 +74,10 @@ export default function IssueWorkspacePage() {
     setGuide({ loading: true, text: null });
     try {
       const data = await workApi.contextPack(owner, repo, number, true);
-      setGuide({ loading: false, text: data.ai?.guide || 'AI could not produce a guide for this issue.' });
+      setGuide({
+        loading: false,
+        text: data.ai?.guide || 'The AI provider is unavailable right now. Everything else on this page works without it.',
+      });
     } catch (e) {
       setGuide({ loading: false, text: null });
       toast.error(e.message);

@@ -168,7 +168,7 @@ export function prNextActions(pr: PRItem, opts: NextActionOptions = {}): NextAct
             actions.push({
                 ...base, id: key(repo, pr.number, newcomer ? "newcomer_waiting" : "review_pending"),
                 type: newcomer ? "newcomer_waiting" : "review_pending",
-                waitingOn: pr.requestedReviewers.length === 1
+                waitingOn: pr.requestedReviewers.length === 1 && pr.requestedReviewers[0] !== "team"
                     ? { kind: "user", login: pr.requestedReviewers[0] }
                     : { kind: "maintainers" },
                 priority: newcomer ? 1 : 2,

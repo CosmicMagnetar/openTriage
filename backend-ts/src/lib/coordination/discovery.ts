@@ -48,7 +48,10 @@ export function assessPickup(
             break;
     }
 
-    if (responsiveness) {
+    if (!responsiveness || responsiveness.level === "unknown") {
+        // No evidence either way: rank below repos proven to respond.
+        score -= 5;
+    } else {
         if (responsiveness.level === "responsive") {
             score += 15;
             reasons.push("Maintainers respond quickly to outside contributors");
