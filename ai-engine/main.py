@@ -225,7 +225,7 @@ async def test_openrouter(auth: dict = Depends(require_api_key_or_auth)):
         
         # Try a simple completion
         response = client.chat.completions.create(
-            model="meta-llama/llama-3.3-70b-instruct:free",
+            model="cohere/rerank-4-pro",
             messages=[
                 {"role": "user", "content": "Say 'test successful' in one word"}
             ],
