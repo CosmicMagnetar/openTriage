@@ -319,7 +319,7 @@ class RAGChatbotService:
         # Use the same fallback models as chat service
         models = [
             "google/gemini-2.0-flash-001",
-            "meta-llama/llama-3.3-70b-instruct:free",
+            "cohere/rerank-4-pro",
             "arcee-ai/trinity-large-preview:free",
             "liquid/lfm-2.5-1.2b-thinking:free",
         ]

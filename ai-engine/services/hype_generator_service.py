@@ -135,7 +135,7 @@ Guidelines:
 Do NOT use placeholder brackets like [username] - use the actual values provided."""
 
             response = client.chat.completions.create(
-                model="google/gemini-2.0-flash-001",
+                model="cohere/rerank-4-pro",
                 messages=[
                     {"role": "system", "content": "You are a social media content creator specializing in tech and open source."},
                     {"role": "user", "content": prompt}
@@ -175,7 +175,7 @@ Requirements:
 - Use actual values, not placeholders"""
 
             response = client.chat.completions.create(
-                model="google/gemini-2.0-flash-001",
+                model="cohere/rerank-4-pro",
                 messages=[
                     {"role": "user", "content": prompt}
                 ],
@@ -413,7 +413,7 @@ Examples:
 Generate ONE impact summary:"""
 
             response = client.chat.completions.create(
-                model="google/gemini-2.0-flash-001",
+                model="cohere/rerank-4-pro",
                 messages=[
                     {"role": "user", "content": prompt}
                 ],

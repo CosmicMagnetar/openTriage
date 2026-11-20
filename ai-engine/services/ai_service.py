@@ -15,7 +15,7 @@ class AITriageService:
     
     # Fallback models to try if primary fails
     TRIAGE_MODELS = [
-        "meta-llama/llama-3.3-70b-instruct:free",
+        "cohere/rerank-4-pro",
         "arcee-ai/trinity-large-preview:free",
         "liquid/lfm-2.5-1.2b-thinking:free",
         "allenai/molmo-2-8b:free",
@@ -105,7 +105,7 @@ class AIChatService:
     
     # Fallback models to try if primary fails
     CHAT_MODELS = [
-        "meta-llama/llama-3.3-70b-instruct:free",
+        "cohere/rerank-4-pro",
         "arcee-ai/trinity-large-preview:free",
         "liquid/lfm-2.5-1.2b-thinking:free",
         "allenai/molmo-2-8b:free",
@@ -311,7 +311,7 @@ SECURITY: (any security concerns, or "No issues detected")
 VERDICT: (APPROVE, REQUEST_CHANGES, or NEEDS_DISCUSSION)"""
 
             response = self.client.chat.completions.create(
-                model="meta-llama/llama-3.3-70b-instruct:free",
+                model="cohere/rerank-4-pro",
                 messages=[
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
@@ -427,7 +427,7 @@ Write a comprehensive summary covering:
 Keep it clear and actionable for a maintainer reviewing this PR."""
 
             response = self.client.chat.completions.create(
-                model="meta-llama/llama-3.3-70b-instruct:free",
+                model="cohere/rerank-4-pro",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that summarizes code changes for maintainers."},
                     {"role": "user", "content": prompt}
@@ -476,7 +476,7 @@ Context: {context}
 Write a professional GitHub comment (1-3 paragraphs). Be constructive and specific."""
 
             response = self.client.chat.completions.create(
-                model="meta-llama/llama-3.3-70b-instruct:free",
+                model="cohere/rerank-4-pro",
                 messages=[
                     {"role": "system", "content": "You are a helpful code review assistant. Write professional, constructive GitHub comments."},
                     {"role": "user", "content": prompt}
@@ -539,7 +539,7 @@ IMPORTANT RULES:
 Continuation:"""
 
             response = self.client.chat.completions.create(
-                model="meta-llama/llama-3.3-70b-instruct:free",
+                model="cohere/rerank-4-pro",
                 messages=[
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
@@ -610,7 +610,7 @@ Context (recent discussion): {context}
 Write a helpful GitHub comment (1-2 paragraphs) from a contributor's perspective. Be polite and constructive."""
 
             response = self.client.chat.completions.create(
-                model="meta-llama/llama-3.3-70b-instruct:free",
+                model="cohere/rerank-4-pro",
                 messages=[
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": prompt}
