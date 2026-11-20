@@ -27,6 +27,8 @@ export interface Program {
     phases: Phase[];
     source: string;
     checkedAt: string;
+    /** Dates follow the program's usual yearly timing; next round not announced yet. */
+    estimated?: boolean;
 }
 
 export type ProgramStatus = "open" | "upcoming" | "closed";

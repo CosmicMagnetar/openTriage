@@ -14,6 +14,8 @@ import { Button, Card, ErrorLine, Input, Page, Segments, SkeletonRows, Tag } fro
 import { OpportunityRows, useOpportunities } from './opportunities';
 import { useListNav } from './useWorkspace';
 
+const RANK = { open: 0, upcoming: 1, closed: 2 };
+
 export const STATUS = {
   open: { label: 'Applications open', color: 'green' },
   upcoming: { label: 'Upcoming', color: 'blue' },
@@ -50,12 +52,19 @@ function ProgramCard({ p }) {
           {daysUntil(p.nextDeadline.date) < 45 && <span className="text-[var(--muted)]"> · {new Date(p.nextDeadline.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>}
         </p>
       )}
-      {p.rolling && !p.nextDeadline && <p className="fs-13 text-[var(--muted)]">Rolling applications</p>}
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 fs-12-5">
-        <dt className="text-[var(--muted)]">Who can apply</dt><dd>{p.eligibility}</dd>
-        {p.stipend && <><dt className="text-[var(--muted)]">Stipend</dt><dd>{p.stipend}</dd></>}
-      </dl>
-      <div className="flex flex-wrap gap-1.5">{p.tags.map((t) => <Tag key={t}>{t}</Tag>)}</div>
+      {p.rolling && !p.nextDeadline && <p className="fs-13 text-[var(--muted)]">Open any time</p>}
+      {p.estimated && (
+        <p className="fs-12 text-[var(--muted)]" title="The next round has not been announced. Dates follow the usual yearly timing.">
+          Usual timing · next round not announced yet
+        </p>
+      )}
+      <details className="prog-details fs-12-5">
+        <summary className="cursor-pointer text-[var(--muted)] hover:text-[var(--text-2)]">Who can apply{p.stipend ? ' · stipend' : ''}</summary>
+        <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+          <dt className="text-[var(--muted)]">Eligibility</dt><dd>{p.eligibility}</dd>
+          {p.stipend && <><dt className="text-[var(--muted)]">Stipend</dt><dd>{p.stipend}</dd></>}
+        </dl>
+      </details>
       <div className="mt-auto pt-2 flex items-center gap-2">
         <a href={p.url} target="_blank" rel="noopener noreferrer"
           className="ctl-sm btn-pop inline-flex items-center gap-1.5 px-2.5 rounded-md fs-12">
@@ -77,7 +86,13 @@ function MonthCalendar({ programs }) {
   const lead = (first.getDay() + 6) % 7; // Monday first
   const iso = (d) => `${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   const today = new Date().toISOString().slice(0, 10);
-  const phasesOn = (date) => programs.flatMap((p) => p.phases.filter((ph) => ph.start <= date && date <= ph.end).map((ph) => ({ p, ph })));
+  // Only the days that matter get a label (opens / deadline / ends); days in between
+  // just show how many things are running, so long phases don't fill every cell.
+  const marksOn = (date) => programs.flatMap((p) => p.phases.flatMap((ph) => [
+    ph.start === date && { p, ph, what: ph.kind === 'application' ? 'Opens' : 'Starts' },
+    ph.end === date && ph.end !== ph.start && { p, ph, what: ph.kind === 'application' ? 'Deadline' : 'Ends' },
+  ].filter(Boolean)));
+  const ongoingOn = (date) => programs.reduce((n, p) => n + p.phases.filter((ph) => ph.start < date && date < ph.end).length, 0);
   const nextDate = programs.map((p) => p.nextDeadline?.date).filter(Boolean).sort()[0];
   const KIND_COLOR = { application: 'var(--amber)', work: 'var(--green)', event: 'var(--blue)', other: 'var(--muted)' };
   return (
@@ -100,19 +115,21 @@ function MonthCalendar({ programs }) {
           {Array.from({ length: lead }).map((_, i) => <div key={`l${i}`} className="bg-[var(--bg)] min-h-[84px]" />)}
           {Array.from({ length: days }).map((_, i) => {
             const date = iso(i + 1);
-            const on = phasesOn(date);
+            const on = marksOn(date);
+            const running = ongoingOn(date);
             return (
               <div key={date} className="bg-[var(--panel)] min-h-[84px] p-1.5">
                 <div className={`fs-12 mb-1 ${date === today ? 'inline-flex w-5 h-5 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] font-semibold' : 'text-[var(--muted)]'}`}>{i + 1}</div>
                 <div className="space-y-0.5">
-                  {on.slice(0, 3).map(({ p, ph }) => (
-                    <a key={`${p.id}:${ph.name}`} href={p.url} target="_blank" rel="noopener noreferrer" title={`${p.name}: ${ph.name} (${ph.start} → ${ph.end})`}
+                  {on.slice(0, 3).map(({ p, ph, what }) => (
+                    <a key={`${p.id}:${ph.name}:${what}`} href={p.url} target="_blank" rel="noopener noreferrer" title={`${p.name}: ${ph.name} (${ph.start} → ${ph.end})`}
                       className="block truncate fs-11 px-1 rounded-sm text-[var(--text)] hover:brightness-125"
-                      style={{ background: `color-mix(in srgb, ${KIND_COLOR[ph.kind] ?? KIND_COLOR.other} 28%, transparent)` }}>
-                      {p.name}
+                      style={{ background: `color-mix(in srgb, ${KIND_COLOR[ph.kind] ?? KIND_COLOR.other} ${what === 'Deadline' ? 45 : 24}%, transparent)` }}>
+                      <span className={what === 'Deadline' ? 'font-semibold' : 'text-[var(--text-2)]'}>{what}</span> · {p.name}
                     </a>
                   ))}
                   {on.length > 3 && <span className="fs-11 text-[var(--muted)]">+{on.length - 3} more</span>}
+                  {running > 0 && on.length === 0 && <span className="block fs-11 text-[var(--faint)]">{running} running</span>}
                 </div>
               </div>
             );
@@ -165,13 +182,16 @@ export default function OpportunitiesPage() {
       .filter((p) => status === 'all' || (status === 'tracked' ? tracked.includes(p.id) : p.status === status))
       .filter((p) => !tag || p.tags.includes(tag))
       .filter((p) => !q || `${p.name} ${p.org} ${p.summary} ${p.tags.join(' ')} ${p.eligibility}`.toLowerCase().includes(q))
-      .sort((a, b) => (a.nextDeadline?.date ?? '9999').localeCompare(b.nextDeadline?.date ?? '9999'));
+      // Open first, then upcoming, then closed; within each, nearest deadline first, rolling after dated.
+      .sort((a, b) => (RANK[a.status] ?? 3) - (RANK[b.status] ?? 3)
+        || (a.nextDeadline?.date ?? '9999').localeCompare(b.nextDeadline?.date ?? '9999')
+        || a.name.localeCompare(b.name));
   }, [programs, status, tag, query, tracked]);
   const calendarPrograms = tracked.length ? programs.filter((p) => tracked.includes(p.id)) : programs;
 
   return (
     <Page title="Opportunities"
-      subtitle="Programs that pay or mentor you to work on open source, with real dates and how to apply. Plus issues picked for you."
+      subtitle="Paid programs, mentorships, grants, events and beginner directories for open source, with dates you can add to your calendar."
       refreshing={programsQ.isRefreshing} updatedAt={programsQ.updatedAt}
       toolbar={<Segments value={view} onChange={setView} options={[
         { value: 'programs', label: 'Programs', count: programs.length || undefined },

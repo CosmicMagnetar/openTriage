@@ -31,8 +31,10 @@ function LiveStatus() {
 }
 
 /** Collapsible sidebar section; collapsed ids persist in prefs. */
-function Section({ id, title, children, right }) {
-  const collapsed = usePrefs((s) => s.collapsed.includes(id));
+/** `startCollapsed`: summary panels stay folded until the user opens them (less noise). */
+function Section({ id, title, children, right, startCollapsed = false }) {
+  const inList = usePrefs((s) => s.collapsed.includes(id));
+  const collapsed = startCollapsed ? !inList : inList;
   const toggleIn = usePrefs((s) => s.toggleIn);
   return (
     <div className="side-sec">
@@ -65,7 +67,7 @@ export default function WorkspaceSidebar({ ws, groups, counts = {}, panels = [],
   const navigate = useNavigate();
   const location = useLocation();
   const motionOn = useMotionOn();
-  const { user, logout: storeLogout } = useAuthStore();
+  const { logout: storeLogout } = useAuthStore();
   const prefs = usePrefs();
   const [open, setOpen] = useState(false);
 
@@ -126,17 +128,14 @@ export default function WorkspaceSidebar({ ws, groups, counts = {}, panels = [],
           })}
 
           {panels.map((p) => (p.rows.length > 0 || p.children) && (
-            <Section key={p.id} id={`${ws}:${p.id}`} title={p.title}>
+            <Section key={p.id} id={`${ws}:${p.id}:open`} title={p.title} startCollapsed>
               {p.children}
               {p.rows.map((r) => <PanelRow key={r.label} {...r} />)}
             </Section>
           ))}
 
-          <Section id={`${ws}:pinned`} title="Pinned repos"
+          {pinned.length > 0 && <Section id={`${ws}:pinned`} title="Pinned repos"
             right={<button onClick={() => go('/dashboard/lens')} title="Pin repos from Repo lens" className="mr-2 p-1 text-[var(--faint)] hover:text-[var(--text-2)]"><Pin className="w-3 h-3" /></button>}>
-            {pinned.length === 0 && (
-              <p className="px-2 py-1 fs-12 text-[var(--faint)]">Pin a repo from Repo lens to keep it here.</p>
-            )}
             {pinned.map((full) => {
               const [owner, name] = full.split('/');
               const active = location.pathname === `/dashboard/lens/${full}`;
@@ -149,26 +148,20 @@ export default function WorkspaceSidebar({ ws, groups, counts = {}, panels = [],
                 </button>
               );
             })}
-          </Section>
+          </Section>}
         </nav>
 
-        <div className="p-3 border-t border-[var(--line-soft)] space-y-2.5">
-          <LiveStatus />
-          <div className="flex items-center gap-2">
-            <img src={user?.avatarUrl || 'https://github.com/ghost.png'} alt="" className="w-7 h-7 rounded-full" />
-            <div className="flex-1 min-w-0">
-              <div className="fs-12-5 text-[var(--text)] truncate">{user?.username}</div>
-              <div className="fs-11 text-[var(--faint)] capitalize">{ws}</div>
-            </div>
-            <button onClick={() => go('/dashboard/settings')} aria-label="Settings" title="Settings"
-              className={`w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-[var(--hover)] ${isActive('/dashboard/settings') ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>
-              <Settings className="w-4 h-4" />
-            </button>
-            <button onClick={handleLogout} data-testid="logout-button" aria-label="Log out" title="Log out"
-              className="w-8 h-8 inline-flex items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--red)] hover:bg-[var(--hover)]">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Identity is in the top bar; keep only status and account actions here. */}
+        <div className="px-3 py-2 border-t border-[var(--line-soft)] flex items-center gap-1">
+          <div className="flex-1 min-w-0"><LiveStatus /></div>
+          <button onClick={() => go('/dashboard/settings')} aria-label="Settings" title="Settings"
+            className={`w-8 h-8 inline-flex items-center justify-center rounded-md hover:bg-[var(--hover)] ${isActive('/dashboard/settings') ? 'text-[var(--text)]' : 'text-[var(--muted)]'}`}>
+            <Settings className="w-4 h-4" />
+          </button>
+          <button onClick={handleLogout} data-testid="logout-button" aria-label="Log out" title="Log out"
+            className="w-8 h-8 inline-flex items-center justify-center rounded-md text-[var(--muted)] hover:text-[var(--red)] hover:bg-[var(--hover)]">
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </aside>
     </>
