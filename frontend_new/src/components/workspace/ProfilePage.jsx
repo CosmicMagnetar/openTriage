@@ -468,7 +468,7 @@ export default function ProfilePage() {
   const [open, setOpen] = useState(null);
   const [share, setShare] = useState(false);
   const d = q.data ? { ...q.data, login } : null;
-  const hue = HUES[profile.hue] ?? HUES.magenta;
+  const hue = HUES[profile.hue] ?? HUES.indigo;
   const contributorResults = useMemo(() => evaluateAll(d), [q.data, login]); // eslint-disable-line react-hooks/exhaustive-deps
   const evidence = useMaintainerEvidence(q.data);
   const evKey = JSON.stringify(evidence);

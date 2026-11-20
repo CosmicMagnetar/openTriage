@@ -46,6 +46,6 @@ describe("publicView", () => {
 
     it("passes through only display settings, not the public flag", () => {
         const v = publicView("me", journey, sanitizeSettings({ public: true, featured: ["merger"] }));
-        expect(v.settings).toEqual({ hidden: [], featured: ["merger"], banner: "graph", hue: "magenta", stats: ["merged", "opened", "repos", "reviews"] });
+        expect(v.settings).toEqual({ hidden: [], featured: ["merger"], banner: "graph", hue: "indigo", stats: ["merged", "opened", "repos", "reviews"] });
     });
 });

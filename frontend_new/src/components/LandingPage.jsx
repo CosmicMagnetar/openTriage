@@ -189,7 +189,7 @@ const StepIndicator = ({ icon: Icon, title, color = 'emerald', index, isActive, 
         blue: { bg: 'bg-blue-500', ring: 'ring-blue-500/30', text: 'text-blue-400' },
         purple: { bg: 'bg-purple-500', ring: 'ring-purple-500/30', text: 'text-purple-400' },
         orange: { bg: 'bg-orange-500', ring: 'ring-orange-500/30', text: 'text-orange-400' },
-        pink: { bg: 'bg-pink-500', ring: 'ring-pink-500/30', text: 'text-pink-400' },
+        amber: { bg: 'bg-amber-500', ring: 'ring-amber-500/30', text: 'text-amber-400' },
         cyan: { bg: 'bg-cyan-500', ring: 'ring-cyan-500/30', text: 'text-cyan-400' },
     };
 
@@ -280,7 +280,7 @@ const TypewriterText = ({ text, delay = 0 }) => {
 
 // Confetti celebration component
 const Confetti = ({ show }) => {
-    const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
+    const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#6366f1', '#06b6d4'];
 
     if (!show) return null;
 
@@ -715,7 +715,7 @@ const OnboardingTutorial = () => {
         { icon: Search, title: 'Browse Issues', description: 'Find issues to contribute to', color: 'purple' },
         { icon: Bot, title: 'AI Assistance', description: 'Get smart code suggestions', color: 'orange' },
         { icon: MessageCircle, title: 'Project Chat', description: 'Ask questions about the code', color: 'cyan' },
-        { icon: Trophy, title: 'Earn Badges', description: 'Track your achievements', color: 'pink' },
+        { icon: Trophy, title: 'Earn Badges', description: 'Track your achievements', color: 'amber' },
     ];
 
     const maintainerSteps = [
@@ -724,7 +724,7 @@ const OnboardingTutorial = () => {
         { icon: GitPullRequest, title: 'Analyze PRs', description: 'AI-powered PR analysis', color: 'purple' },
         { icon: FileText, title: 'PR Summaries', description: 'Instant AI summaries', color: 'orange' },
         { icon: Send, title: 'Quick Replies', description: 'Template responses', color: 'cyan' },
-        { icon: Users, title: 'Manage Team', description: 'Organize contributors', color: 'pink' },
+        { icon: Users, title: 'Manage Team', description: 'Organize contributors', color: 'amber' },
     ];
 
     const steps = activeTab === 'contributor' ? contributorSteps : maintainerSteps;

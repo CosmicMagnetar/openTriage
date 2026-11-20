@@ -40,7 +40,7 @@ export default function CommunityPage() {
         {d && (
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] items-start">
             <div className="space-y-5 min-w-0">
-              <Card title="First-time contributors waiting" icon={UserPlus} hue={HUES.pink} bodyClass="">
+              <Card title="First-time contributors waiting" icon={UserPlus} hue={HUES.sky} bodyClass="">
                 {d.newcomersWaiting.length === 0 && <p className="px-5 pb-5 fs-13-5 text-[var(--muted)]">Nobody new is waiting. A friendly first reply is the best way to keep newcomers coming back.</p>}
                 <ul>
                   {d.newcomersWaiting.map((n) => (

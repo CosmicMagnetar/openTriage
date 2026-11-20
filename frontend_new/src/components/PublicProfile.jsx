@@ -42,7 +42,7 @@ export default function PublicProfile() {
   const results = useMemo(() => evaluateAll(d), [d]);
   const visible = results.filter((r) => r.tier >= 0 && !d?.settings.hidden.includes(r.badge.id));
   const shelf = d ? featuredBadges(results, d.settings, 6) : [];
-  const hue = HUES[d?.settings.hue] ?? HUES.magenta;
+  const hue = HUES[d?.settings.hue] ?? HUES.indigo;
 
   useEffect(() => { document.title = `${gh?.name || login} · OpenTriage`; }, [gh, login]);
 

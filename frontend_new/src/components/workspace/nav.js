@@ -10,10 +10,10 @@ export const HUES = {
   green: '#57ab5a',
   blue: '#478be6',
   orange: '#e0823d',
-  magenta: '#d462a6',
+  indigo: '#7c8ce0',
   teal: '#39a7a0',
   amber: '#c69026',
-  pink: '#e5708b',
+  sky: '#3d9fd0',
   slate: '#8b95a3',
 };
 
@@ -29,7 +29,7 @@ export const NAV = {
       { icon: Trophy, label: 'Opportunities', path: '/dashboard/opportunities', countKey: 'deadlines', hue: HUES.orange },
     ] },
     { id: 'grow', title: 'Grow', items: [
-      { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.magenta },
+      { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.indigo },
       { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens', hue: HUES.slate },
     ] },
   ],
@@ -43,11 +43,11 @@ export const NAV = {
       { icon: GitPullRequest, label: 'Pull requests', path: '/dashboard/prs', countKey: 'prs', hue: HUES.green },
     ] },
     { id: 'people', title: 'People and docs', items: [
-      { icon: Users, label: 'Community', path: '/dashboard/community', hue: HUES.pink },
+      { icon: Users, label: 'Community', path: '/dashboard/community', hue: HUES.sky },
       { icon: FileCheck2, label: 'Docs health', path: '/dashboard/docs', hue: HUES.teal },
     ] },
     { id: 'understand', title: 'Understand', items: [
-      { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.magenta },
+      { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.indigo },
       { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens', hue: HUES.slate },
     ] },
   ],

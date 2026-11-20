@@ -15,7 +15,7 @@ export const ACCENTS = {
   blue: { hex: "#478be6", ink: "#0a1526" },
   teal: { hex: "#39a7a0", ink: "#081a19" },
   orange: { hex: "#cc6b2c", ink: "#1f0f05" },
-  pink: { hex: "#c96198", ink: "#1f0a15" },
+  indigo: { hex: "#7c8ce0", ink: "#0d1124" },
 };
 
 /** Default accent per workspace (contributor = growth teal, maintainer = stewardship amber). */
@@ -43,7 +43,7 @@ const DEFAULTS = {
   collapsed: [],
   pinned: [],
   // Profile: what you show and how it looks. seen = highest tier already celebrated per badge.
-  profile: { hidden: [], featured: [], banner: "graph", hue: "magenta", stats: ["merged", "opened", "repos", "reviews"], public: false, weeklyGoal: 3, seen: {} },
+  profile: { hidden: [], featured: [], banner: "graph", hue: "indigo", stats: ["merged", "opened", "repos", "reviews"], public: false, weeklyGoal: 3, seen: {} },
   // Program ids the contributor tracks (deadlines on Home, sidebar, calendar feed).
   trackedPrograms: [],
   // Today widgets per workspace, in order; missing ids are hidden.

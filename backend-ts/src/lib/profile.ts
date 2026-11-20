@@ -10,7 +10,7 @@ import { profileSettings } from "@/db/schema-profile";
 
 export const STAT_KEYS = ["merged", "opened", "issues", "reviews", "repos", "streak", "lines"] as const;
 export const BANNERS = ["graph", "dots", "lines", "plain"] as const;
-export const HUE_KEYS = ["green", "blue", "orange", "magenta", "teal", "amber", "pink"] as const;
+export const HUE_KEYS = ["green", "blue", "orange", "indigo", "teal", "amber", "sky"] as const;
 
 export interface ProfileSettings {
     public: boolean;
@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
     hidden: [],
     featured: [],
     banner: "graph",
-    hue: "magenta",
+    hue: "indigo",
     stats: ["merged", "opened", "repos", "reviews"],
     weeklyGoal: 3,
 };
