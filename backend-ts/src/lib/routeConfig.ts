@@ -14,6 +14,9 @@ export const publicRoutes: string[] = [
     '/api/webhooks/github',
     // Curated program list and its .ics feed: same for everyone, fetched by calendar apps without a token.
     '/api/programs',
+    // README badge (SVG) and the browser extension's issue lookup: public GitHub data only.
+    '/api/badge',
+    '/api/public',
     // Public profile pages: 404 unless the owner turned the link on.
     '/api/u',
 ];

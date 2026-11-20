@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Check, Eye, EyeOff, GripVertical, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { disableNotify, enableNotify, notifyEnabled, notifySupported } from '../../lib/notify';
 import useAuthStore from '../../stores/authStore';
 import { keys, parseGitHubRef, workApi } from '../../services/workApi';
 import { invalidate, useQuery } from '../../lib/query';
@@ -256,6 +257,30 @@ function Suggestions() {
   );
 }
 
+function NotifySettings() {
+  const [on, setOn] = useState(notifyEnabled());
+  const denied = notifySupported() && Notification.permission === 'denied';
+  const toggle = async () => {
+    if (on) { disableNotify(); setOn(false); return; }
+    const ok = await enableNotify();
+    setOn(ok);
+    if (!ok) toast.error('Notifications are blocked for this site in your browser settings.');
+  };
+  return (
+    <Block title="Notifications">
+      <div className="flex items-center gap-3">
+        <p className="flex-1 fs-13 text-[var(--text-2)]">
+          Tell me when something new is waiting on me (changes requested, CI failing, a question for me).
+          <span className="block fs-12 text-[var(--muted)]">Works while OpenTriage is open in a tab, even in the background.</span>
+        </p>
+        <Button size="sm" variant={on ? 'subtle' : 'ghost'} aria-pressed={on} onClick={toggle} disabled={!notifySupported() || denied}>
+          {!notifySupported() ? 'Not supported' : denied ? 'Blocked' : on ? 'On' : 'Turn on'}
+        </Button>
+      </div>
+    </Block>
+  );
+}
+
 export default function SettingsPage() {
   const { user, role } = useAuthStore();
   const ws = role === 'MAINTAINER' ? 'maintainer' : 'contributor';
@@ -271,6 +296,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </Block>
+        <NotifySettings />
         <Appearance ws={ws} />
         <SidebarSettings ws={ws} />
         <TodayWidgets ws={ws} />

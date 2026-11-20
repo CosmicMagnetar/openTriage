@@ -58,6 +58,12 @@ export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>
     return load(key, ttlMs, fn);
 }
 
+/** Read a cached value without fetching (e.g. reuse a responsiveness someone already computed). */
+export function peekCached<T>(key: string): T | undefined {
+    const hit = store.get(key);
+    return hit && Date.now() < hit.staleUntil ? (hit.value as T) : undefined;
+}
+
 function dropPrefix(prefix: string) {
     for (const key of [...store.keys()]) if (key.startsWith(prefix)) store.delete(key);
 }

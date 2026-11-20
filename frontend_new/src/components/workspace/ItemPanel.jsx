@@ -10,13 +10,14 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
 import {
-  BookOpen, CircleDot, FileCode2, GitPullRequest, Maximize2, MessageSquare, Sparkles, Tag as TagIcon, X,
+  BookOpen, Check, CircleDot, FileCode2, GitPullRequest, Maximize2, MessageSquare, Sparkles, Tag as TagIcon, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
 import { fetchQuery, invalidate, useQuery } from '../../lib/query';
 import { isTypingTarget, useItemPanel } from './useWorkspace';
+import { coAuthorTrailer, firstPrSteps, issueDrafts, prDrafts } from './drafts';
 import {
   ACTION, AVAILABILITY, Baton, Block, Button, CHECKS, Dot, ErrorLine, Evidence, ExtLink, Input, RESPONSIVENESS, REVIEW,
   SkeletonRows, Tag, Textarea, VERDICT, celebrate, timeAgo, waitingOnLabel,
@@ -308,6 +309,45 @@ function Conversation({ owner, repo, number }) {
 // Composer (posts to GitHub as the user)
 // ---------------------------------------------------------------------------
 
+/** Your path from claim to merged PR, ticked from GitHub state. */
+function FirstPrPath({ issue, availability, mine, me }) {
+  const { steps, next } = firstPrSteps({ issue, availability, mine, me });
+  const doneCount = steps.filter((x) => x.done).length;
+  return (
+    <Block title={`Your path to a merged PR · ${doneCount}/${steps.length}`}>
+      <ol className="space-y-1.5">
+        {steps.map((st) => (
+          <li key={st.id} className="flex items-center gap-2 fs-13">
+            <span aria-hidden className={`w-4 h-4 inline-flex items-center justify-center rounded-full border ${st.done
+              ? 'bg-[var(--green)] border-[var(--green)] text-[var(--bg)]' : st.id === next ? 'border-[var(--accent)]' : 'border-[var(--line)]'}`}>
+              {st.done && <Check className="w-3 h-3" />}
+            </span>
+            <span className={st.done ? 'text-[var(--muted)] line-through decoration-[var(--line)]' : st.id === next ? 'text-[var(--text)] font-medium' : 'text-[var(--text-2)]'}>
+              {st.url ? <ExtLink href={st.url}>{st.label}</ExtLink> : st.label}
+            </span>
+            {st.id === next && <span className="fs-11 text-[var(--accent)]">next</span>}
+          </li>
+        ))}
+      </ol>
+    </Block>
+  );
+}
+
+/** Small row of ready-made drafts; picking one fills the composer for editing. */
+function DraftPicker({ drafts, value, onPick }) {
+  if (!drafts.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mb-2" role="group" aria-label="Drafts">
+      {drafts.map((d) => (
+        <Button key={d.id} size="sm" variant={value === d.id ? 'subtle' : 'ghost'} aria-pressed={value === d.id}
+          onClick={() => onPick(value === d.id ? null : d)}>
+          {d.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 function Composer({ owner, repo, number, initial = '', placeholder, cta = 'Comment on GitHub', onPosted, showLabels }) {
   const [text, setText] = useState(initial);
   const [label, setLabel] = useState('');
@@ -437,6 +477,8 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
   const verdict = v ? VERDICT[v.pickup.verdict] : null;
   const resp = v?.responsiveness ? RESPONSIVENESS[v.responsiveness.level] : null;
   const canClaim = v && !isMaintainer && !v.mine.claimed && ['available', 'claimed_stale', 'in_progress_stalled'].includes(v.availability.status);
+  const drafts = useMemo(() => (v ? issueDrafts({ availability: v.availability, mine: v.mine, isMaintainer, me: user?.username }) : []), [v, isMaintainer, user?.username]);
+  const [draft, setDraft] = useState(null);
 
   return (
     <>
@@ -484,6 +526,10 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
             <Block title="Who acts next">
               <ActionList actions={v.actions} me={user?.username} />
             </Block>
+
+            {v.mine.claimed && !isMaintainer && (
+              <FirstPrPath issue={{ ...v.issue, number }} availability={v.availability} mine={v.mine} me={user?.username} />
+            )}
 
             <HistoryBlock owner={owner} repo={repo} number={number} />
 
@@ -598,8 +644,9 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
         {v && (canClaim || isMaintainer || v.mine.claimed) && (
           <Block title={canClaim ? 'Claim it on GitHub' : 'Reply'}>
             {canClaim && <p className="fs-12 text-[var(--muted)] mb-2">Posted as you on the issue, so everyone (not just OpenTriage users) sees it's taken.</p>}
+            {!canClaim && <DraftPicker drafts={drafts} value={draft?.id} onPick={setDraft} />}
             <Composer owner={owner} repo={repo} number={number}
-              initial={canClaim ? claimDraft : ''}
+              initial={canClaim ? claimDraft : draft?.text ?? ''}
               cta={canClaim ? 'Post claim' : 'Comment on GitHub'}
               placeholder="Write a reply…"
               showLabels={isMaintainer}
@@ -625,6 +672,9 @@ export function PRDetail({ owner, repo, number, onClose }) {
 
   const checks = pr?.checks ? CHECKS[pr.checks] : null;
   const review = pr?.reviewDecision ? REVIEW[pr.reviewDecision] : null;
+  const stalled = Boolean(d?.actions?.some((a) => a.type === 'stalled'));
+  const prDraftList = useMemo(() => (d ? prDrafts({ pr, mine: d.mine, isMaintainer: role === 'MAINTAINER', stalled }) : []), [d, pr, role, stalled]);
+  const [draft, setDraft] = useState(null);
 
   return (
     <>
@@ -707,8 +757,17 @@ export function PRDetail({ owner, repo, number, onClose }) {
               </ul>
             </Block>
 
+            {stalled && !d.mine && (
+              <Block title="Continue this work">
+                <p className="fs-12-5 text-[var(--text-2)]">Stalled work doesn't have to be lost. Ask first, then continue from the author's branch and keep their credit:</p>
+                <pre className="mono fs-12 mt-2 p-2 rounded-md bg-[var(--inset)] border border-[var(--line-soft)] overflow-x-auto">{`gh pr checkout ${number} --repo ${owner}/${repo}\n# …your commits…\n# in your final commit message:\n${coAuthorTrailer(pr.author?.login ?? 'author')}`}</pre>
+              </Block>
+            )}
+
             <Block title="Reply">
+              <DraftPicker drafts={prDraftList} value={draft?.id} onPick={setDraft} />
               <Composer owner={owner} repo={repo} number={number}
+                initial={draft?.text ?? ''}
                 placeholder={d.mine ? 'Answer reviewers or post an update…' : 'Leave a review comment…'}
                 showLabels={role === 'MAINTAINER'}
                 onPosted={() => { view.refresh(); invalidate('prs:'); invalidate('today:'); }} />

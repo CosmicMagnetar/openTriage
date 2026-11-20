@@ -6,6 +6,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { keys, parseGitHubRef, workApi } from '../../services/workApi';
 import { useQuery } from '../../lib/query';
 import { useSignals } from './opportunities';
+import { toast } from 'sonner';
+import { BACKEND_URL } from '../../lib/config';
 import { Block, Button, Dot, Empty, ErrorLine, ExtLink, Input, Page, RESPONSIVENESS, SkeletonRows, Tag, timeAgo } from './ui';
 
 function RepoPicker({ initial = '' }) {
@@ -17,6 +19,24 @@ function RepoPicker({ initial = '' }) {
       <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="owner/repo or GitHub URL" className="w-60" />
       <Button disabled={!ref}>Open</Button>
     </form>
+  );
+}
+
+/** Maintainers can show newcomers, right in their README, that help is wanted and answered. */
+function ReadmeBadge({ fullName }) {
+  const src = `${BACKEND_URL}/api/badge/${fullName}`;
+  const md = `[![OpenTriage](${src})](${window.location.origin}/dashboard/lens/${fullName})`;
+  const copy = () => navigator.clipboard?.writeText(md).then(() => toast.success('Badge Markdown copied')).catch(() => toast.error('Copy failed'));
+  return (
+    <details className="py-2 border-b border-[var(--line-soft)] fs-12-5">
+      <summary className="cursor-pointer text-[var(--muted)] hover:text-[var(--text-2)]">README badge for this repo</summary>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <img src={src} alt="OpenTriage badge preview" height="20" />
+        <code className="mono fs-11 px-2 py-1 rounded bg-[var(--inset)] border border-[var(--line-soft)] max-w-full truncate">{md}</code>
+        <Button size="sm" onClick={copy}>Copy Markdown</Button>
+      </div>
+      <p className="mt-1.5 fs-12 text-[var(--muted)]">Shows open, unassigned good-first issues and how fast maintainers usually reply. Updates hourly.</p>
+    </details>
   );
 }
 
@@ -92,6 +112,8 @@ export default function RepoLensPage() {
             )}
             <ExtLink href={lens.repo.url} className="ml-auto fs-12 text-[var(--muted)]">GitHub</ExtLink>
           </div>
+
+          <ReadmeBadge fullName={lens.repo.fullName} />
 
           {lens.warnings.map((w) => (
             <p key={w} className="flex items-center gap-2 py-2 fs-12-5 text-[var(--text-2)] border-b border-[var(--line-soft)]">

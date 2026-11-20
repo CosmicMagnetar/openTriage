@@ -3,6 +3,8 @@
  * Pages are lazy so switching workspace never loads code it doesn't need.
  */
 import { Suspense, useEffect } from 'react';
+
+const actionLabel = (a) => ACTION[a.type]?.label ?? a.type;
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PageBoundary, PageFallback, lazyRetry } from './PageShell';
@@ -13,6 +15,7 @@ import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
 import { REFRESH_MS, prefetch, useQuery } from '../../lib/query';
 import { startLive, stopLive, watchRepos } from '../../lib/live';
+import { useYoureUpNotifications } from '../../lib/notify';
 import { useItemPanel } from './useWorkspace';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ContextBar from './ContextBar';
@@ -76,6 +79,11 @@ export default function WorkspaceLayout() {
   const inbox = useQuery(ws === 'maintainer' ? keys.inbox() : null, (o) => workApi.inbox(o), { staleMs: REFRESH_MS });
   const prRows = (ws === 'maintainer' ? prs.data?.rows : prs.data?.mine) ?? [];
   const actions = today.data?.actions ?? [];
+  const openAction = (a) => {
+    const [owner, repo] = a.repo.split('/');
+    panel.open({ kind: a.isPR ? 'pr' : 'issue', owner, repo, number: a.number });
+  };
+  useYoureUpNotifications(today.data?.actions, { label: actionLabel, onOpen: openAction });
   const deadlines = useDeadlines(3);
   const dueSoon = deadlines.list.filter((p) => daysUntil(p.nextDeadline.date) <= 14).length;
 
