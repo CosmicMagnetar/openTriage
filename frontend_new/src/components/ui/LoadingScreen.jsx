@@ -3,9 +3,8 @@ import Logo from '../Logo';
 const LoadingScreen = ({ message = 'Loading...' }) => {
     return (
         <div className="fixed inset-0 bg-[hsl(220,13%,5%)] flex flex-col items-center justify-center z-[100]">
-            {/* Logo with pulse animation */}
-            <div className="mb-6 animate-pulse">
-                <Logo size="lg" />
+            <div className="mb-6 text-[hsl(210,11%,85%)]">
+                <Logo size="lg" animated />
             </div>
 
             {/* Loading bar */}

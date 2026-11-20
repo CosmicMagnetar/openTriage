@@ -21,7 +21,7 @@ const AuthPage = () => {
           {/* Logo & Title */}
           <div className="flex flex-col items-center mb-8">
             <div className="mb-4 p-3 bg-[hsl(142,70%,45%,0.1)] rounded-xl">
-              <Logo size="lg" />
+              <Logo size="lg" animated className="text-[hsl(210,11%,85%)]" />
             </div>
             <h1 className="text-2xl font-bold text-[hsl(210,11%,95%)]">OpenTriage</h1>
             <p className="text-[hsl(210,11%,55%)] text-center text-sm mt-2">
