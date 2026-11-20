@@ -44,7 +44,7 @@ describe('merge', () => {
         const oldHack = p({ id: 'devpost-1', kind: 'hackathon', recurring: false });
         const { keep, expired } = merge([
             { source: 'gsoc', items: [gsoc], replaceAll: false },
-            { source: 'devpost', items: [oldHack], replaceAll: true },
+            { source: 'bounties', items: [oldHack], replaceAll: true },
         ], '2026-11-20');
         const g = keep.filter((k) => k.p.id === 'gsoc');
         expect(g).toHaveLength(1);

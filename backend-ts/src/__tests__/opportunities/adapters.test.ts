@@ -1,9 +1,6 @@
 import { gsocFromApi } from '@/lib/opportunities/adapters/gsoc';
 import { outreachyFromHtml } from '@/lib/opportunities/adapters/outreachy';
-import { devpostToPrograms, parsePeriod } from '@/lib/opportunities/adapters/devpost';
-import { confsToPrograms } from '@/lib/opportunities/adapters/confs';
 import { bountiesToPrograms } from '@/lib/opportunities/adapters/bounties';
-import { parseProgramTable } from '@/lib/opportunities/adapters/discovery';
 import { parseHumanDate, addYears } from '@/lib/opportunities/dates';
 
 const ms = (name: string, d: string) => ({ name, datetime: `${d}T18:00:00Z`, label: name });
@@ -53,36 +50,6 @@ describe('outreachy', () => {
     it('null when the page changed shape', () => expect(outreachyFromHtml('<p>Coming soon</p>')).toBeNull());
 });
 
-describe('devpost', () => {
-    it('parses both period formats', () => {
-        expect(parsePeriod('Nov 11, 2026 - Jan 11, 2027')).toEqual(['2026-11-11', '2027-01-11']);
-        expect(parsePeriod('Nov 11 - 25, 2026')).toEqual(['2026-11-11', '2026-11-25']);
-    });
-    it('maps hackathons, strips prize HTML, skips invite-only', () => {
-        const list = devpostToPrograms([
-            { id: 1, title: 'OSS Jam', url: 'https://x.devpost.com', submission_period_dates: 'Nov 11, 2026 - Jan 11, 2027', open_state: 'open', prize_amount: '$<span data-currency-value>10,000</span>', themes: [{ name: 'Open Source' }], displayed_location: { location: 'Online' } },
-            { id: 3, title: 'NoCash', url: 'https://z', submission_period_dates: 'Nov 11, 2026 - Jan 11, 2027', open_state: 'open', prize_amount: '₹ <span>0</span>' },
-            { id: 2, title: 'Private', url: 'https://y', submission_period_dates: 'Nov 11, 2026 - Jan 11, 2027', open_state: 'open', invite_only: true },
-        ]);
-        expect(list).toHaveLength(2);
-        expect(list[1].reward).toBeNull();
-        expect(list[0]).toMatchObject({ kind: 'hackathon', reward: 'Prizes: $10,000', phases: [{ start: '2026-11-11', end: '2027-01-11' }] });
-        expect(list[0].tags).toContain('remote');
-    });
-});
-
-describe('confs', () => {
-    it('keeps only open calls for talks', () => {
-        const list = confsToPrograms([
-            { name: 'PyCon X', url: 'https://p', startDate: '2027-05-01', cfpUrl: 'https://p/cfp', cfpEndDate: '2026-12-15', online: true },
-            { name: 'Old', url: 'https://o', startDate: '2027-01-01', cfpUrl: 'https://o/cfp', cfpEndDate: '2026-10-01' },
-            { name: 'NoCfp', url: 'https://n', startDate: '2027-01-01' },
-        ], 'python', '2026-11-20');
-        expect(list.map((p) => p.name)).toEqual(['PyCon X: call for talks']);
-        expect(list[0].phases[0]).toMatchObject({ kind: 'application', end: '2026-12-15' });
-    });
-});
-
 describe('bounties', () => {
     const issue = (repo: string, title: string, labels: string[]) => ({ html_url: `https://github.com/${repo}/issues/1`, title, repository_url: `https://api.github.com/repos/${repo}`, labels: labels.map((name) => ({ name })), created_at: '2026-11-01' });
     it('groups per repo, drops low-star repos, reads amounts', () => {
@@ -97,12 +64,3 @@ describe('bounties', () => {
     });
 });
 
-describe('discovery', () => {
-    it('reads program tables', () => {
-        const md = '| Name | Stipend | Timeline |\n|---|---|---|\n| [Season of KDE](https://season.kde.org) | No | [t](x) |\n| [SOCIS](https://socis.esa.int/) | Yes | [t](y) |\n';
-        expect(parseProgramTable(md)).toEqual([
-            { name: 'Season of KDE', url: 'https://season.kde.org', paid: false },
-            { name: 'SOCIS', url: 'https://socis.esa.int/', paid: true },
-        ]);
-    });
-});

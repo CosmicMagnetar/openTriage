@@ -15,7 +15,9 @@ import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
 import { REFRESH_MS, prefetch, useQuery } from '../../lib/query';
 import { startLive, stopLive, watchRepos } from '../../lib/live';
-import { useYoureUpNotifications } from '../../lib/notify';
+import { useDeadlineNotifications, useYoureUpNotifications } from '../../lib/notify';
+import { usePriorityDeadlines } from './MyPrograms';
+import { reminderPoint } from './programs';
 import { useItemPanel } from './useWorkspace';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ContextBar from './ContextBar';
@@ -84,6 +86,8 @@ export default function WorkspaceLayout() {
     panel.open({ kind: a.isPR ? 'pr' : 'issue', owner, repo, number: a.number });
   };
   useYoureUpNotifications(today.data?.actions, { label: actionLabel, onOpen: openAction });
+  const priority = usePriorityDeadlines();
+  useDeadlineNotifications(ws === 'contributor' ? priority : null, reminderPoint);
   const deadlines = useDeadlines(3);
   const dueSoon = deadlines.list.filter((p) => daysUntil(p.nextDeadline.date) <= 14).length;
 

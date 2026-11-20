@@ -13,6 +13,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import useAuthStore from '../../stores/authStore';
 import usePrefs, { widgetsFor } from '../../stores/prefsStore';
 import { keys, parseGitHubRef, workApi } from '../../services/workApi';
+import { PriorityDeadlines } from './MyPrograms';
 import { REFRESH_MS, invalidate, useQuery } from '../../lib/query';
 import { prefetchItem, useListNav } from './useWorkspace';
 import {
@@ -181,6 +182,7 @@ function ContributorHome() {
       refreshing={q.isRefreshing} updatedAt={q.updatedAt} onRefresh={refresh}>
       <div className="px-6 py-5 space-y-5">
         {!prefs.onboarded && <WelcomeFlow ws="contributor" />}
+        <PriorityDeadlines />
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
           <Stat label="Needs you now" value={q.data ? actions.length : null} color={STATE[actions.length ? 'amber' : 'green']} />
           <Stat label="Open pull requests" value={prs.data ? prRows.length : null} onClick={() => navigate('/dashboard/mine')} />

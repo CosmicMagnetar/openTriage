@@ -13,10 +13,10 @@ import { daysUntil, usePrograms, whenText } from './programs';
 import { Button, Card, ErrorLine, Input, Page, Segments, SkeletonRows, Tag } from './ui';
 import { OpportunityRows, useOpportunities } from './opportunities';
 import { useListNav } from './useWorkspace';
-import MyPrograms, { JoinForm, useMyPrograms } from './MyPrograms';
+import MyPrograms, { JoinForm, PriorityDeadlines, useMyPrograms } from './MyPrograms';
 
 const KINDS = [
-  ['program', 'Programs'], ['hackathon', 'Hackathons'], ['cfp', 'Talks & CFPs'], ['bounty', 'Bounties'],
+  ['program', 'Programs'], ['bounty', 'Bounties'],
   ['grant', 'Grants'], ['event', 'Events'], ['directory', 'Directories'],
 ];
 const VERIFY_NOTE = {
@@ -64,6 +64,9 @@ function ProgramCard({ p, joined }) {
         </p>
       )}
       {p.rolling && !p.nextDeadline && <p className="fs-13 text-[var(--muted)]">Open any time</p>}
+      {p.datesChangedAt && daysUntil(p.datesChangedAt) > -30 && (
+        <p className="fs-12-5 text-[var(--amber)]">Dates on the official page changed on {new Date(p.datesChangedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}. Check them before applying.</p>
+      )}
       {p.reward && <p className="fs-13"><span className="text-[var(--muted)]">Reward: </span><span className="font-semibold">{p.reward}</span></p>}
       {(VERIFY_NOTE[p.verification] || (p.estimated && VERIFY_NOTE.estimated)) && (
         <p className="fs-12 text-[var(--muted)]">{VERIFY_NOTE[p.verification] ?? VERIFY_NOTE.estimated}</p>
@@ -211,7 +214,7 @@ export default function OpportunitiesPage() {
 
   return (
     <Page title="Opportunities"
-      subtitle="Paid programs, mentorships, grants, events and beginner directories for open source, with dates you can add to your calendar."
+      subtitle="Open-source programs, mentorships, bounties, grants and events that help you grow as a contributor, with dates you can add to your calendar."
       refreshing={programsQ.isRefreshing} updatedAt={programsQ.updatedAt}
       toolbar={<Segments value={view} onChange={setView} options={[
         { value: 'programs', label: 'Programs', count: programs.length || undefined },
@@ -219,6 +222,7 @@ export default function OpportunitiesPage() {
         { value: 'issues', label: 'Issues for you', count: opp.data?.results?.length },
       ]} />}>
       <div className="px-6 py-5 space-y-5">
+        <PriorityDeadlines />
         <MyPrograms />
         {view === 'programs' && (
           <>

@@ -270,7 +270,7 @@ function NotifySettings() {
     <Block title="Notifications">
       <div className="flex items-center gap-3">
         <p className="flex-1 fs-13 text-[var(--text-2)]">
-          Tell me when something new is waiting on me (changes requested, CI failing, a question for me).
+          Tell me when something new is waiting on me (changes requested, CI failing, a question for me), and 14, 7 and 1 days before deadlines of programs I track or am in.
           <span className="block fs-12 text-[var(--muted)]">Works while OpenTriage is open in a tab, even in the background.</span>
         </p>
         <Button size="sm" variant={on ? 'subtle' : 'ghost'} aria-pressed={on} onClick={toggle} disabled={!notifySupported() || denied}>

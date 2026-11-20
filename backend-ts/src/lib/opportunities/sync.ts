@@ -10,17 +10,16 @@ import { opportunities, opportunitySyncRuns } from "@/db/schema";
 import { programs as seed, type Program } from "@/lib/programs";
 import { gsocFromApi } from "./adapters/gsoc";
 import { outreachyFromHtml } from "./adapters/outreachy";
-import { devpostToPrograms } from "./adapters/devpost";
-import { confsToPrograms, type Conf } from "./adapters/confs";
 import { bountiesToPrograms, type BountyIssue } from "./adapters/bounties";
-import { discoveredProgram, parseProgramTable } from "./adapters/discovery";
 import { isoDay } from "./dates";
-import { endsOn, isExpired, isKnown, kindOf, rollForward, SEED_REPLACED_BY } from "./normalize";
+import { endsOn, isExpired, kindOf, rollForward, SEED_REPLACED_BY } from "./normalize";
 import { clearOpportunityMemo } from "./store";
+import { datesOnPage, nextWatch, watchDue, type WatchState } from "./pageWatch";
 
 const UA = "OpenTriage/1.0 (+https://github.com/CosmicMagnetar/openTriage; daily opportunities sync)";
 const DAY_MS = 24 * 60 * 60 * 1000;
-const CONF_TOPICS = ["general", "javascript", "python", "devops", "security", "data", "rust", "golang", "java", "typescript"];
+/** Only open-source sources. Rows from anything else (e.g. removed sources) are deleted on the next run. */
+const ACTIVE_SOURCES = new Set(["seed", "gsoc", "outreachy", "bounties"]);
 
 async function get(url: string, opts: { json?: boolean; timeoutMs?: number; github?: boolean } = {}) {
     const headers: Record<string, string> = { "User-Agent": UA };
@@ -78,25 +77,6 @@ export async function collect(today = isoDay(new Date())): Promise<SourceResult[
     return Promise.all([
         run("gsoc", false, async () => { const p = gsocFromApi(await get("https://summerofcode.withgoogle.com/api/program/"), today); return p ? [p] : []; }),
         run("outreachy", false, async () => { const p = outreachyFromHtml(await get("https://www.outreachy.org/docs/applicant/", { json: false }) as string); return p ? [p] : []; }),
-        run("devpost", true, async () => {
-            const seen = new Map<number, unknown>();
-            for (const q of ["open source", "open-source", "github"]) {
-                const d = await get(`https://devpost.com/api/hackathons?status[]=open&status[]=upcoming&search=${encodeURIComponent(q)}`);
-                for (const h of d.hackathons ?? []) seen.set(h.id, h);
-            }
-            return devpostToPrograms([...seen.values()] as never);
-        }),
-        run("confs", true, async () => {
-            const year = Number(today.slice(0, 4));
-            const out: Program[] = [];
-            for (const y of [year, year + 1]) for (const t of CONF_TOPICS) {
-                try {
-                    const list = await get(`https://raw.githubusercontent.com/tech-conferences/conference-data/main/conferences/${y}/${t}.json`) as Conf[];
-                    out.push(...confsToPrograms(list, t, today));
-                } catch { /* topic/year file may not exist yet */ }
-            }
-            return [...new Map(out.map((p) => [p.id, p])).values()];
-        }),
         run("bounties", true, async () => {
             const items: BountyIssue[] = [];
             for (const label of ['"💎 Bounty"', "bounty"]) {
@@ -106,15 +86,11 @@ export async function collect(today = isoDay(new Date())): Promise<SourceResult[
             const repos = [...new Set(items.map((i) => i.repository_url.replace("https://api.github.com/repos/", "")))].slice(0, 30);
             const stars = new Map<string, number>();
             await pool(repos, 4, async (r) => {
-                try { const d = await get(`https://api.github.com/repos/${r}`, { github: true }); if (!d.private && !d.archived) stars.set(r, d.stargazers_count); } catch { /* skip */ }
+                try { const d = await get(`https://api.github.com/repos/${r}`, { github: true }); // Open source only: public, active, with a real license.
+                    const lic = d.license?.spdx_id;
+                    if (!d.private && !d.archived && lic && lic !== "NOASSERTION") stars.set(r, d.stargazers_count); } catch { /* skip */ }
             });
             return bountiesToPrograms(items, stars);
-        }),
-        run("discovery", false, async () => {
-            const md = await get("https://raw.githubusercontent.com/tapaswenipathak/Open-Source-Programs/master/README.md", { json: false }) as string;
-            const candidates = parseProgramTable(md).filter((c) => !isKnown(c.name, c.url, seed)).slice(0, 60);
-            const alive = await pool(candidates, 6, (c) => linkAlive(c.url));
-            return candidates.filter((_, i) => alive[i]).map((c) => discoveredProgram(c.name, c.url, c.paid));
         }),
     ]);
 }
@@ -131,7 +107,6 @@ export function merge(results: SourceResult[], today: string) {
     for (const { p, source } of all) {
         const rolled = rollForward(p, today);
         if (isExpired(rolled, today)) { expired.push(p.id); continue; }
-        if (source === "discovery" && keep.has(p.id)) continue;
         keep.set(p.id, { p: rolled, source });
     }
     return { keep: [...keep.values()], expired };
@@ -178,9 +153,27 @@ async function syncBody(now: Date, runId: string) {
 
     // Link check the long-lived entries (feeds are fresh by definition).
     const existing = new Map((await syncDb().select().from(opportunities)).map((r) => [r.id, r]));
-    const toCheck = keep.filter(({ source }) => source === "seed" || source === "discovery" || source === "gsoc" || source === "outreachy");
+    const toCheck = keep.filter(({ source }) => source === "seed" || source === "gsoc" || source === "outreachy");
     const alive = await pool(toCheck, 8, ({ p }) => linkAlive(p.url));
     const failures = new Map(toCheck.map(({ p }, i) => [p.id, alive[i] ? 0 : (existing.get(p.id)?.linkFailures ?? 0) + 1]));
+
+    // Weekly: read the dates printed on each hand-checked program's official page.
+    const prevData = (id: string): WatchState => {
+        try { return JSON.parse(existing.get(id)?.data ?? "{}"); } catch { return {}; }
+    };
+    const watched = keep.filter(({ source }) => source === "seed");
+    await pool(watched, 6, async (k) => {
+        const prev = prevData(k.p.id);
+        const carry: WatchState = { pageDates: prev.pageDates, pageCheckedAt: prev.pageCheckedAt, datesChangedAt: prev.datesChangedAt };
+        let state = carry;
+        if (watchDue(carry, today)) {
+            try {
+                const html = await get(k.p.source || k.p.url, { json: false, timeoutMs: 15_000 }) as string;
+                state = nextWatch(carry, datesOnPage(html), now);
+            } catch { /* page unreachable this week: keep previous state */ }
+        }
+        k.p = { ...k.p, ...state } as Program;
+    });
 
     const stamp = now.toISOString();
     let writeErrors = 0;
@@ -206,7 +199,7 @@ async function syncBody(now: Date, runId: string) {
     const toDelete: string[] = [];
     for (const [id, r] of existing) {
         if (keepIds.has(id)) continue;
-        if (expired.includes(id) || replaced.has(r.source) || (r.source === "seed" && !seed.some((x) => x.id === id))
+        if (expired.includes(id) || replaced.has(r.source) || !ACTIVE_SOURCES.has(r.source) || (r.source === "seed" && !seed.some((x) => x.id === id))
             || (!r.recurring && r.endsOn && r.endsOn < today)) toDelete.push(id);
     }
     if (toDelete.length) {
@@ -216,7 +209,9 @@ async function syncBody(now: Date, runId: string) {
 
     const summary = {
         sources: Object.fromEntries(results.map((r) => [r.source, r.error ? { error: r.error } : { count: r.items.length }])),
-        kept: keep.length, removed, writeErrors, deadLinks: [...failures.values()].filter((n) => n >= 2).length,
+        kept: keep.length, removed, writeErrors,
+        pagesChanged: watched.filter(({ p }) => (p as Program & WatchState).datesChangedAt === today).map(({ p }) => p.id),
+        deadLinks: [...failures.values()].filter((n) => n >= 2).length,
     };
     const ok = results.every((r) => !r.error) && writeErrors === 0;
     await retry(() => syncDb().update(opportunitySyncRuns).set({ finishedAt: new Date().toISOString(), ok, summary: JSON.stringify(summary) })

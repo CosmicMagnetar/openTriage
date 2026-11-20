@@ -10,6 +10,9 @@ import { toast } from 'sonner';
 import { keys, workApi } from '../../services/workApi';
 import { fetchQuery, useQuery } from '../../lib/query';
 import { Button, Card, Input, Tag } from './ui';
+import { priorityDeadlines, usePrograms } from './programs';
+import usePrefs from '../../stores/prefsStore';
+import { AlarmClock } from 'lucide-react';
 
 export const STATUS_LABEL = {
   interested: 'Interested', applied: 'Applied', accepted: 'Accepted', in_progress: 'In progress',
@@ -169,5 +172,38 @@ export function ProgramAchievements() {
       </ul>
       <p className="mt-2 fs-11 text-[var(--faint)]">Added by you after each program ended.</p>
     </Card>
+  );
+}
+
+const ACTIVE = (p) => !['completed', 'not_selected'].includes(p.status);
+
+/** Your deadlines in the next 14 days (tracked programs + programs you're in). */
+export function usePriorityDeadlines() {
+  const programs = usePrograms();
+  const mine = useMyPrograms();
+  const tracked = usePrefs((s) => s.trackedPrograms);
+  const ids = [...tracked, ...(mine.data?.programs ?? []).filter(ACTIVE).map((x) => x.programId)];
+  return priorityDeadlines(programs.data?.programs ?? [], ids);
+}
+
+/** Banner on Home and Opportunities: the deadlines that need you soon. */
+export function PriorityDeadlines() {
+  const list = usePriorityDeadlines();
+  if (!list.length) return null;
+  return (
+    <div role="status" className="rounded-lg border border-[var(--amber)] bg-[color-mix(in_srgb,var(--amber)_10%,transparent)] px-4 py-3">
+      <p className="fs-13 font-semibold flex items-center gap-2 text-[var(--text)]"><AlarmClock className="w-4 h-4 text-[var(--amber)]" /> Deadlines coming up</p>
+      <ul className="mt-1.5 space-y-1">
+        {list.slice(0, 4).map(({ p, days }) => (
+          <li key={p.id} className="fs-13 flex flex-wrap items-baseline gap-x-2">
+            <a href={p.url} target="_blank" rel="noopener noreferrer" className="font-medium hover:underline">{p.name}</a>
+            <span className="text-[var(--text-2)]">{p.nextDeadline.name}</span>
+            <span className="font-semibold" style={{ color: days <= 1 ? 'var(--red)' : 'var(--amber)' }}>
+              {days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -41,6 +41,10 @@ export interface Program {
     checkedAt: string;
     /** Dates follow the program's usual yearly timing; next round not announced yet. */
     estimated?: boolean;
+    /** Weekly official-page watch (see lib/opportunities/pageWatch.ts). */
+    pageDates?: string[];
+    pageCheckedAt?: string;
+    datesChangedAt?: string | null;
 }
 
 export type ProgramStatus = "open" | "upcoming" | "closed";

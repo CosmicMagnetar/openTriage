@@ -56,3 +56,28 @@ export function useYoureUpNotifications(actions, { label = (a) => a.type, onOpen
     try { localStorage.setItem(SEEN, JSON.stringify(ids.slice(0, 500))); } catch { /* ignore */ }
   }, [actions]);
 }
+
+const DL_KEY = 'ot:notify:deadlines';
+
+/**
+ * Program deadline reminders at 14, 7, 1 days and on the day, once each,
+ * for the deadlines passed in (already filtered to yours).
+ */
+export function useDeadlineNotifications(items, pointOf) {
+  useEffect(() => {
+    if (!items?.length || !notifyEnabled()) return;
+    let sent;
+    try { sent = new Set(JSON.parse(localStorage.getItem(DL_KEY) || '[]')); } catch { sent = new Set(); }
+    for (const { p, days } of items) {
+      const point = pointOf(days);
+      if (point === null) continue;
+      const key = `${p.id}:${p.nextDeadline.date}:${point}`;
+      if (sent.has(key)) continue;
+      sent.add(key);
+      const when = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
+      const n = new Notification(`${p.name}: ${p.nextDeadline.name} ${when}`, { body: 'Open OpenTriage for the details and how to apply.', tag: key });
+      n.onclick = () => { window.focus(); window.open(p.url, '_blank', 'noopener'); n.close(); };
+    }
+    try { localStorage.setItem(DL_KEY, JSON.stringify([...sent].slice(-300))); } catch { /* ignore */ }
+  }, [items, pointOf]);
+}
