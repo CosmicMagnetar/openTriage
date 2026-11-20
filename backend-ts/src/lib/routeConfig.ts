@@ -17,6 +17,8 @@ export const publicRoutes: string[] = [
     // README badge (SVG) and the browser extension's issue lookup: public GitHub data only.
     '/api/badge',
     '/api/public',
+    // Daily opportunities sync, called by server.js with an internal key (checked in the route).
+    '/api/internal',
     // Public profile pages: 404 unless the owner turned the link on.
     '/api/u',
 ];

@@ -13,6 +13,16 @@ import { daysUntil, usePrograms, whenText } from './programs';
 import { Button, Card, ErrorLine, Input, Page, Segments, SkeletonRows, Tag } from './ui';
 import { OpportunityRows, useOpportunities } from './opportunities';
 import { useListNav } from './useWorkspace';
+import MyPrograms, { JoinForm, useMyPrograms } from './MyPrograms';
+
+const KINDS = [
+  ['program', 'Programs'], ['hackathon', 'Hackathons'], ['cfp', 'Talks & CFPs'], ['bounty', 'Bounties'],
+  ['grant', 'Grants'], ['event', 'Events'], ['directory', 'Directories'],
+];
+const VERIFY_NOTE = {
+  estimated: 'Usual timing · next round not announced yet',
+  discovered: 'Found in a community list · check the page for dates',
+};
 
 const RANK = { open: 0, upcoming: 1, closed: 2 };
 
@@ -32,7 +42,8 @@ function TrackButton({ id }) {
   );
 }
 
-function ProgramCard({ p }) {
+function ProgramCard({ p, joined }) {
+  const [joining, setJoining] = useState(false);
   const st = STATUS[p.status] ?? STATUS.closed;
   const urgent = p.nextDeadline && daysUntil(p.nextDeadline.date) <= 14 && daysUntil(p.nextDeadline.date) >= 0;
   return (
@@ -53,10 +64,9 @@ function ProgramCard({ p }) {
         </p>
       )}
       {p.rolling && !p.nextDeadline && <p className="fs-13 text-[var(--muted)]">Open any time</p>}
-      {p.estimated && (
-        <p className="fs-12 text-[var(--muted)]" title="The next round has not been announced. Dates follow the usual yearly timing.">
-          Usual timing · next round not announced yet
-        </p>
+      {p.reward && <p className="fs-13"><span className="text-[var(--muted)]">Reward: </span><span className="font-semibold">{p.reward}</span></p>}
+      {(VERIFY_NOTE[p.verification] || (p.estimated && VERIFY_NOTE.estimated)) && (
+        <p className="fs-12 text-[var(--muted)]">{VERIFY_NOTE[p.verification] ?? VERIFY_NOTE.estimated}</p>
       )}
       <details className="prog-details fs-12-5">
         <summary className="cursor-pointer text-[var(--muted)] hover:text-[var(--text-2)]">Who can apply{p.stipend ? ' · stipend' : ''}</summary>
@@ -71,8 +81,12 @@ function ProgramCard({ p }) {
           How to apply <ExternalLink className="w-3 h-3" />
         </a>
         <TrackButton id={p.id} />
+        {joined
+          ? <span className="fs-12 text-[var(--accent)]">In your programs</span>
+          : <Button size="sm" variant="ghost" onClick={() => setJoining((v) => !v)} aria-expanded={joining}>I'm in this</Button>}
         <a href={p.source} target="_blank" rel="noopener noreferrer" className="ml-auto fs-12 text-[var(--muted)] hover:underline" title={`Checked ${p.checkedAt}`}>Source</a>
       </div>
+      {joining && <JoinForm program={p} onDone={() => setJoining(false)} />}
     </article>
   );
 }
@@ -172,6 +186,9 @@ export default function OpportunitiesPage() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
   const [tag, setTag] = useState('');
+  const [kind, setKind] = useState('all');
+  const mine = useMyPrograms();
+  const joinedIds = useMemo(() => new Set((mine.data?.programs ?? []).map((x) => x.programId)), [mine.data]);
   const { index, setIndex, open } = useListNav([], {});
 
   const programs = useMemo(() => programsQ.data?.programs ?? [], [programsQ.data]);
@@ -180,13 +197,16 @@ export default function OpportunitiesPage() {
     const q = query.trim().toLowerCase();
     return programs
       .filter((p) => status === 'all' || (status === 'tracked' ? tracked.includes(p.id) : p.status === status))
+      .filter((p) => kind === 'all' || (p.kind ?? 'program') === kind)
       .filter((p) => !tag || p.tags.includes(tag))
       .filter((p) => !q || `${p.name} ${p.org} ${p.summary} ${p.tags.join(' ')} ${p.eligibility}`.toLowerCase().includes(q))
       // Open first, then upcoming, then closed; within each, nearest deadline first, rolling after dated.
       .sort((a, b) => (RANK[a.status] ?? 3) - (RANK[b.status] ?? 3)
         || (a.nextDeadline?.date ?? '9999').localeCompare(b.nextDeadline?.date ?? '9999')
         || a.name.localeCompare(b.name));
-  }, [programs, status, tag, query, tracked]);
+  }, [programs, status, tag, query, tracked, kind]);
+  const kindCounts = useMemo(() => programs.reduce((m, p) => ({ ...m, [p.kind ?? 'program']: (m[p.kind ?? 'program'] ?? 0) + 1 }), {}), [programs]);
+  const lastChecked = programsQ.data?.sync?.lastCheckedAt;
   const calendarPrograms = tracked.length ? programs.filter((p) => tracked.includes(p.id)) : programs;
 
   return (
@@ -199,8 +219,13 @@ export default function OpportunitiesPage() {
         { value: 'issues', label: 'Issues for you', count: opp.data?.results?.length },
       ]} />}>
       <div className="px-6 py-5 space-y-5">
+        <MyPrograms />
         {view === 'programs' && (
           <>
+            <Segments value={kind} onChange={setKind} options={[
+              { value: 'all', label: 'Everything', count: programs.length || undefined },
+              ...KINDS.filter(([k]) => kindCounts[k]).map(([k, l]) => ({ value: k, label: l, count: kindCounts[k] })),
+            ]} />
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
@@ -222,9 +247,12 @@ export default function OpportunitiesPage() {
             {!programsQ.data && !programsQ.error && <SkeletonRows />}
             {programsQ.data && shown.length === 0 && <p className="fs-13 text-[var(--muted)]">No programs match. Try another word or clear the filters.</p>}
             <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-              {shown.map((p) => <ProgramCard key={p.id} p={p} />)}
+              {shown.map((p) => <ProgramCard key={p.id} p={p} joined={joinedIds.has(p.id)} />)}
             </div>
-            <p className="fs-12 text-[var(--muted)]">Dates come from each program's official site (see Source). Always confirm on the program page before applying.</p>
+            <p className="fs-12 text-[var(--muted)]">
+              {lastChecked ? `Checked automatically every day; last check ${new Date(lastChecked).toLocaleString()}. ` : 'Checked automatically every day. '}
+              Past deadlines drop off on their own. Always confirm on the program page before applying.
+            </p>
           </>
         )}
 

@@ -13,8 +13,20 @@ export interface Phase {
     end: string; // YYYY-MM-DD, inclusive
 }
 
+export type OpportunityKind = "program" | "hackathon" | "cfp" | "bounty" | "grant" | "event" | "directory";
+
+/** official: from the program's own feed/page this run. curated: hand-checked seed. estimated: usual timing. discovered: found in a list, link alive, details unverified. */
+export type Verification = "official" | "curated" | "estimated" | "discovered";
+
 export interface Program {
     id: string;
+    /** Defaults to "program" for older data. */
+    kind?: OpportunityKind;
+    verification?: Verification;
+    /** Comes back every year/term (rolls forward instead of being deleted). */
+    recurring?: boolean;
+    /** Prize or reward text, e.g. hackathon prizes or bounty amount. */
+    reward?: string | null;
     name: string;
     org: string;
     url: string;

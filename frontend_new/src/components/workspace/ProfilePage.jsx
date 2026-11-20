@@ -21,6 +21,7 @@ import { HUES } from './nav';
 import BadgeArt from './badges/BadgeArt';
 import { FAMILIES, MAINTAINER_FAMILIES, TIERS, evaluateAll, evaluateMaintainer, featuredBadges, levelTitle } from './badges/registry';
 import { REFRESH_MS } from '../../lib/query';
+import MyPrograms, { ProgramAchievements } from './MyPrograms';
 import { badgeImage, loadImage } from './badges/badgeImage';
 
 // ---------------------------------------------------------------------------
@@ -249,6 +250,8 @@ function Activity({ d }) {
   const list = (d.timeline ?? []).filter((e) => kind === 'all' || e.kind === kind);
   return (
     <div className="space-y-5">
+      <ProgramAchievements />
+      <MyPrograms />
       <Card title="Contributions" right={d.graph && <span className="fs-12-5 text-[var(--muted)]">{d.graph.totalContributions.toLocaleString()} in the last year</span>}>
         {d.graph ? <ContributionGraph weeks={d.graph.weeks} /> : <p className="fs-13 text-[var(--muted)]">GitHub didn't return a contribution graph.</p>}
         <p className="fs-13 mt-3">

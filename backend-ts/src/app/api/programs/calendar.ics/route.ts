@@ -5,11 +5,13 @@
  */
 import { NextRequest } from "next/server";
 import { listPrograms, programsToIcs } from "@/lib/programs";
+import { loadOpportunities } from "@/lib/opportunities/store";
 
 export async function GET(request: NextRequest) {
     const ids = (new URL(request.url).searchParams.get("ids") ?? "")
         .split(",").map((s) => s.trim()).filter(Boolean).slice(0, 50);
-    const body = programsToIcs(listPrograms({ ids }));
+    const { list } = await loadOpportunities();
+    const body = programsToIcs(listPrograms({ ids }, new Date(), list));
     return new Response(body, {
         headers: {
             "Content-Type": "text/calendar; charset=utf-8",

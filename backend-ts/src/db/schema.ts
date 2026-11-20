@@ -543,3 +543,41 @@ export const signalEvents = sqliteTable("signal_events", {
 }, (t) => ({
     itemIdx: uniqueIndex("signal_events_item_signal_start").on(t.repo, t.number, t.signal, t.actor, t.startedAt),
 }));
+
+// ---- Opportunities (synced daily from public sources; additive) ----
+// `data` is the full normalised Program JSON (see lib/programs.ts).
+export const opportunities = sqliteTable("opportunities", {
+    id: text("id").primaryKey(),
+    kind: text("kind").notNull(),            // program | hackathon | cfp | bounty | grant | event | directory
+    source: text("source").notNull(),        // adapter name: gsoc, outreachy, confs, devpost, bounties, seed, discovery
+    data: text("data").notNull(),
+    endsOn: text("ends_on"),                 // last date anything is open (YYYY-MM-DD); null = rolling
+    recurring: integer("recurring", { mode: "boolean" }).notNull().default(false),
+    linkFailures: integer("link_failures").notNull().default(0),
+    lastSeenAt: text("last_seen_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+});
+
+export const opportunitySyncRuns = sqliteTable("opportunity_sync_runs", {
+    id: text("id").primaryKey(),
+    startedAt: text("started_at").notNull(),
+    finishedAt: text("finished_at"),
+    ok: integer("ok", { mode: "boolean" }),
+    summary: text("summary"),                // JSON: per-source counts and errors
+});
+
+// ---- "I'm in this program" (per user; additive) ----
+export const programParticipation = sqliteTable("program_participation", {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull(),
+    programId: text("program_id").notNull(),
+    programName: text("program_name").notNull(),
+    round: text("round"),                    // e.g. "2026 Term 3"
+    repo: text("repo"),                      // owner/repo
+    role: text("role").notNull().default("contributor"),
+    status: text("status").notNull(),        // interested | applied | accepted | in_progress | completed | not_selected
+    endsOn: text("ends_on"),                 // YYYY-MM-DD; after this we ask how it went
+    notes: text("notes"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+});

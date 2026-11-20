@@ -11,6 +11,7 @@ const { parse } = require("url");
 const next = require("next");
 const { Server: SocketIO } = require("socket.io");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const REPO_RE = /^[\w.-]+\/[\w.-]+$/;
 const MAX_WATCHED = 100;
@@ -124,6 +125,17 @@ app.prepare().then(() => {
       console.log(`[Socket.io] Client disconnected: ${socket.id} (${reason})`);
     });
   });
+
+  // Opportunities: ask the app to sync once a day. The route itself skips if
+  // it already ran in the last 24h, so checking hourly is cheap and survives sleep.
+  const syncOpportunities = () => {
+    if (!process.env.JWT_SECRET) return;
+    const key = crypto.createHash("sha256").update(`opportunities-sync:${process.env.JWT_SECRET}`).digest("hex");
+    fetch(`http://127.0.0.1:${port}/api/internal/opportunities/sync`, { method: "POST", headers: { "x-internal-key": key } })
+      .catch((e) => console.warn("[opportunities] could not trigger sync:", e.message));
+  };
+  setTimeout(syncOpportunities, 30_000);
+  setInterval(syncOpportunities, 60 * 60 * 1000).unref();
 
   httpServer.listen(port, hostname, () => {
     console.log(`> Server ready on http://${hostname}:${port}`);
