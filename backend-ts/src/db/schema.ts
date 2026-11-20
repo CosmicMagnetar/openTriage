@@ -525,3 +525,21 @@ export const resourcesRelations = relations(resources, ({ one, many }) => ({
     tags: many(resourceTags),
     savedBy: many(userSavedResources),
 }));
+
+// ---- Signal history (coordination signals over time; additive, no FKs) ----
+// One row per signal span: started_at .. ended_at (null while still true).
+// Point events from webhooks have started_at = ended_at.
+export const signalEvents = sqliteTable("signal_events", {
+    id: text("id").primaryKey(),
+    repo: text("repo").notNull(),            // owner/repo, lower-case
+    number: integer("number").notNull(),
+    kind: text("kind").notNull(),            // issue | pr
+    signal: text("signal").notNull(),        // availability:claimed, claim, claim_stale, issues.closed, ...
+    actor: text("actor"),
+    detail: text("detail"),
+    source: text("source").notNull(),        // observed | webhook
+    startedAt: text("started_at").notNull(),
+    endedAt: text("ended_at"),
+}, (t) => ({
+    itemIdx: uniqueIndex("signal_events_item_signal_start").on(t.repo, t.number, t.signal, t.actor, t.startedAt),
+}));

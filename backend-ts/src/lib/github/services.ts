@@ -5,10 +5,11 @@
 import type { Octokit } from "@octokit/rest";
 import {
     activeAreas, assessPickup, computeAvailability, computeResponsiveness, detectStack, extractCodeRefs,
-    extractSetupCommands, findSimilar, isMaintainer, issueNextActions, isOnMe, keywords, newcomerLabels,
+    extractSetupCommands, findSimilar, isMaintainer, issueNextActions, issueSignals, isOnMe, keywords, newcomerLabels,
     ownersFor, packageScripts, parseCodeowners, prNextActions, rankActions, responseThresholdDays, summarizeTree,
     type IssueItem, type NextAction, type Responsiveness,
 } from "@/lib/coordination";
+import { observe } from "@/lib/history";
 import {
     fetchIssue, fetchRecentMergedFiles, fetchResponsivenessSamples, fetchViewerPermissions, searchIssues, searchPRs,
 } from "./graphql";
@@ -185,6 +186,7 @@ export async function buildIssueView(octokit: Octokit, owner: string, repo: stri
         findRelated(octokit, issue),
     ]);
     const availability = computeAvailability(issue);
+    void observe(`${owner}/${repo}`, number, "issue", issueSignals(availability));
     const pickup = assessPickup(issue, availability, responsiveness, {
         forNewcomer: !issue.comments.some((c) => c.author.login.toLowerCase() === viewer.toLowerCase() && isMaintainer(c.author)),
     });

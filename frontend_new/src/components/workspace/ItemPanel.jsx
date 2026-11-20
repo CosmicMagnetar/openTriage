@@ -93,6 +93,53 @@ function Title({ children, meta }) {
   );
 }
 
+const SIGNAL_LABEL = {
+  claim: ['claimed', 'blue'],
+  claim_stale: ['claim went stale', 'amber'],
+  linked_pr_open: ['opened a linked PR', 'green'],
+  contested: ['more than one person on it', 'red'],
+  'issues.opened': ['opened', 'gray'], 'issues.closed': ['closed', 'gray'], 'issues.reopened': ['reopened', 'gray'],
+  'issues.assigned': ['assigned', 'blue'], 'issues.unassigned': ['unassigned', 'amber'],
+  'pr.opened': ['PR opened', 'green'], 'pr.merged': ['PR merged', 'purple'], 'pr.closed': ['PR closed', 'gray'],
+  'pr.reopened': ['PR reopened', 'green'], 'pr.ready_for_review': ['ready for review', 'blue'],
+  'pr.converted_to_draft': ['back to draft', 'gray'], comment: ['commented', 'gray'], review: ['reviewed', 'blue'],
+};
+
+function signalText(e) {
+  if (e.signal.startsWith('availability:')) {
+    const a = AVAILABILITY[e.signal.slice(13)];
+    return [`status: ${a?.label ?? e.signal.slice(13)}`, a?.color ?? 'gray'];
+  }
+  const [label, color] = SIGNAL_LABEL[e.signal] ?? [e.signal, 'gray'];
+  return [`${e.actor ? `@${e.actor} ` : ''}${label}`, color];
+}
+
+/** What happened to this item over time (claims, stale claims, PRs, status). */
+function HistoryBlock({ owner, repo, number }) {
+  const q = useQuery(keys.history(owner, repo, number), () => workApi.history(owner, repo, number), { staleMs: 5 * 60_000 });
+  const events = q.data?.events ?? [];
+  if (q.error || !q.data?.available || events.length === 0) return null;
+  return (
+    <Block title="History">
+      <ol className="space-y-1">
+        {[...events].reverse().slice(0, 12).map((e) => {
+          const [text, color] = signalText(e);
+          const span = e.endedAt && e.endedAt !== e.startedAt;
+          return (
+            <li key={e.id} className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
+              <Dot color={color} />
+              <span className="text-[var(--text-2)]">{text}</span>
+              <span className="text-[var(--faint)] ml-auto shrink-0">
+                {timeAgo(e.startedAt)} ago{span ? ` → ended ${timeAgo(e.endedAt)} ago` : !e.endedAt && e.source === 'observed' ? ' · still true' : ''}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </Block>
+  );
+}
+
 /** Maintainers only: has this person worked in this repo before? */
 function ContributorBlock({ owner, repo, login }) {
   const q = useQuery(login ? keys.contributor(owner, repo, login) : null,
@@ -437,6 +484,8 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
             <Block title="Who acts next">
               <ActionList actions={v.actions} me={user?.username} />
             </Block>
+
+            <HistoryBlock owner={owner} repo={repo} number={number} />
 
             {isMaintainer && <ContributorBlock owner={owner} repo={repo} login={v.issue.author?.login} />}
 
