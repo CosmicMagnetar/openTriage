@@ -10,7 +10,6 @@ import useAuthStore from "./stores/authStore";
 import SplashScreen from "./components/SplashScreen";
 import LandingPage from "./components/LandingPage";
 import { Toaster } from "./components/ui/sonner";
-import { refreshAblyClient } from "./lib/ably";
 import "./App.css";
 
 // Lazy-load heavy components that are only needed post-login
@@ -29,13 +28,6 @@ function App() {
 
   // Enhanced logout that handles cleanup properly
   const handleLogout = useCallback(() => {
-    // Disconnect real-time services first
-    try {
-      refreshAblyClient();
-    } catch (e) {
-      console.debug("Cleanup during logout:", e);
-    }
-
     // Now trigger the store logout
     storeLogout();
   }, [storeLogout]);

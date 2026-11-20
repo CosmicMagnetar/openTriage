@@ -353,7 +353,8 @@ function Composer({ owner, repo, number, initial = '', placeholder, cta = 'Comme
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
   const postRef = useRef(null);
-  const replies = useQuery(keys.replies(), () => workApi.savedReplies(), { staleMs: 5 * 60_000 });
+  // Saved replies are a maintainer feature (the API is maintainer-only).
+  const replies = useQuery(showLabels ? keys.replies() : null, () => workApi.savedReplies(), { staleMs: 5 * 60_000 });
   useEffect(() => setText(initial), [initial]);
 
   const post = async () => {
@@ -421,7 +422,7 @@ function Composer({ owner, repo, number, initial = '', placeholder, cta = 'Comme
             {list.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
         )}
-        {text.trim().length > 20 && <Button variant="subtle" size="sm" onClick={saveReply}>Save as reply</Button>}
+        {showLabels && text.trim().length > 20 && <Button variant="subtle" size="sm" onClick={saveReply}>Save as reply</Button>}
       </div>
       {showLabels && (
         <form onSubmit={applyLabel} className="flex items-center gap-2 pt-1">

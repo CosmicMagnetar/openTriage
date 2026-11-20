@@ -302,7 +302,7 @@ export default function SettingsPage() {
         <TodayWidgets ws={ws} />
         {ws === 'contributor' && <Suggestions />}
         {role === 'MAINTAINER' && <TrackedRepos />}
-        <SavedReplies />
+        {role === 'MAINTAINER' && <SavedReplies />}
         <Block title="AI (optional)">
           <AISettingsPanel />
         </Block>
