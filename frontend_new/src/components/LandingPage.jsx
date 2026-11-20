@@ -1062,7 +1062,7 @@ const LandingPage = () => {
                     {/* Left Content */}
                     <div className="order-2 lg:order-1">
                         <div className="flex items-center gap-4 mb-8">
-                            <Logo size="lg" />
+                            <Logo size={64} animated className="text-zinc-300" />
                             <span className="text-5xl md:text-6xl font-bold text-white tracking-tight">OpenTriage</span>
                         </div>
                         <h1 className="text-2xl md:text-3xl text-zinc-300 mb-4 font-medium leading-snug">
