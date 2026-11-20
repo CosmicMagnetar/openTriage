@@ -477,7 +477,7 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
   const verdict = v ? VERDICT[v.pickup.verdict] : null;
   const resp = v?.responsiveness ? RESPONSIVENESS[v.responsiveness.level] : null;
   const canClaim = v && !isMaintainer && !v.mine.claimed && ['available', 'claimed_stale', 'in_progress_stalled'].includes(v.availability.status);
-  const drafts = useMemo(() => (v ? issueDrafts({ availability: v.availability, mine: v.mine, isMaintainer, me: user?.username }) : []), [v, isMaintainer, user?.username]);
+  const drafts = useMemo(() => (v ? issueDrafts({ availability: v.availability, mine: v.mine, isMaintainer, me: user?.username, duplicates: v.related?.possibleDuplicates ?? [] }) : []), [v, isMaintainer, user?.username]);
   const [draft, setDraft] = useState(null);
 
   return (

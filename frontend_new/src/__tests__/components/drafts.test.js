@@ -61,3 +61,8 @@ import { newActions } from '../../lib/notify';
 it('newActions returns only unseen actions', () => {
   expect(newActions([{ id: 'a' }, { id: 'b' }], ['a']).map((x) => x.id)).toEqual(['b']);
 });
+
+it('maintainer gets a duplicate pointer draft', () => {
+  const d = issueDrafts({ availability: { claims: [], openPRs: [] }, mine: {}, isMaintainer: true, duplicates: [{ number: 42 }] });
+  expect(d.find((x) => x.id === 'duplicate').text).toContain('#42');
+});

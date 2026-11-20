@@ -7,7 +7,7 @@
 const at = (logins) => logins.map((l) => `@${l}`).join(', ');
 
 /** Drafts for an issue, depending on who is looking and what state it is in. */
-export function issueDrafts({ availability, mine, isMaintainer, me }) {
+export function issueDrafts({ availability, mine, isMaintainer, me, duplicates = [] }) {
   const out = [];
   if (!availability) return out;
   const stale = availability.claims.filter((c) => c.stale && c.login.toLowerCase() !== (me ?? '').toLowerCase()).map((c) => c.login);
@@ -30,6 +30,13 @@ export function issueDrafts({ availability, mine, isMaintainer, me }) {
     out.push({
       id: 'reopen', label: 'Open it up again',
       text: `Since there hasn't been activity from ${at(stale)} for a while, this issue is open for anyone to pick up again. ${at(stale)}, if you're still on it, just say so and it's yours. Thanks!`,
+    });
+  }
+  if (isMaintainer && duplicates.length) {
+    const d = duplicates[0];
+    out.push({
+      id: 'duplicate', label: `Point to #${d.number}`,
+      text: `Thanks for reporting this! It looks like the same thing as #${d.number}, so let's keep the discussion there to avoid splitting effort. If it's different, tell us how and we'll reopen.`,
     });
   }
   return out;

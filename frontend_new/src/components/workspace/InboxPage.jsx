@@ -24,9 +24,17 @@ export default function InboxPage() {
     untriaged: rows.filter((r) => r.untriaged).length,
     waiting: rows.filter((r) => r.actions.length > 0).length,
     all: rows.length,
+    duplicates: rows.filter((r) => r.possibleDuplicate).length,
   }), [rows]);
-  const shown = useMemo(() => rows.filter((r) =>
-    filter === 'untriaged' ? r.untriaged : filter === 'waiting' ? r.actions.length > 0 : true), [rows, filter]);
+  const shown = useMemo(() => {
+    const list = rows.filter((r) => (filter === 'untriaged' ? r.untriaged
+      : filter === 'waiting' ? r.actions.length > 0
+        : filter === 'duplicates' ? r.possibleDuplicate : true));
+    // Duplicate radar: keep each suspected pair next to each other.
+    return filter === 'duplicates'
+      ? [...list].sort((a, b) => `${a.repo}#${Math.min(a.number, a.possibleDuplicate.number)}`.localeCompare(`${b.repo}#${Math.min(b.number, b.possibleDuplicate.number)}`))
+      : list;
+  }, [rows, filter]);
   const items = useMemo(() => shown.map((r) => ({ kind: 'issue', owner: r.owner, repo: r.repo, number: r.number })), [shown]);
   const { index, setIndex, open } = useListNav(items, { onRefresh: q.refresh });
 
@@ -43,6 +51,7 @@ export default function InboxPage() {
           { value: 'untriaged', label: 'Untriaged', count: counts.untriaged },
           { value: 'waiting', label: 'Needs response', count: counts.waiting },
           { value: 'all', label: 'All open', count: counts.all },
+          ...(counts.duplicates ? [{ value: 'duplicates', label: 'Possible duplicates', count: counts.duplicates }] : []),
         ]} />
       )}
     >

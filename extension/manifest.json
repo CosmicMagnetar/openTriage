@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "OpenTriage for GitHub",
+  "version": "0.1.0",
+  "description": "On GitHub issues: is it free, who is on it, and how fast maintainers reply. Opens the issue in OpenTriage.",
+  "permissions": ["storage"],
+  "host_permissions": ["http://localhost:3001/*"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/*/issues/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html"
+}
