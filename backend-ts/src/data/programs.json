@@ -1,0 +1,879 @@
+[
+  {
+    "id": "gsoc",
+    "name": "Google Summer of Code 2026",
+    "org": "Google",
+    "url": "https://summerofcode.withgoogle.com/",
+    "summary": "Paid, mentored open-source coding projects with established organizations over the summer.",
+    "tags": [
+      "paid",
+      "first-timers",
+      "remote",
+      "mentorship"
+    ],
+    "eligibility": "18+ and new or beginner open-source contributors (not limited to students).",
+    "stipend": "Paid; amount depends on project size and contributor's country.",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Organization applications",
+        "kind": "other",
+        "start": "2026-01-19",
+        "end": "2026-02-03"
+      },
+      {
+        "name": "Contributor applications",
+        "kind": "application",
+        "start": "2026-03-16",
+        "end": "2026-03-31"
+      },
+      {
+        "name": "Community bonding",
+        "kind": "work",
+        "start": "2026-05-01",
+        "end": "2026-05-24"
+      },
+      {
+        "name": "Coding period (standard)",
+        "kind": "work",
+        "start": "2026-05-25",
+        "end": "2026-08-24"
+      },
+      {
+        "name": "Extended coding period",
+        "kind": "work",
+        "start": "2026-08-24",
+        "end": "2026-11-02"
+      }
+    ],
+    "source": "https://developers.google.com/open-source/gsoc/timeline",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "outreachy-may",
+    "name": "Outreachy (May–August round, 2026)",
+    "org": "Outreachy / Software Freedom Conservancy",
+    "url": "https://www.outreachy.org/",
+    "summary": "Paid, remote three-month internships in open source for people underrepresented in tech.",
+    "tags": [
+      "paid",
+      "remote",
+      "first-timers",
+      "underrepresented",
+      "mentorship"
+    ],
+    "eligibility": "People who face underrepresentation, systemic bias or discrimination in tech where they live; must be available full-time.",
+    "stipend": "USD 7,000 total",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Initial applications",
+        "kind": "application",
+        "start": "2026-02-06",
+        "end": "2026-02-13"
+      },
+      {
+        "name": "Contribution period",
+        "kind": "application",
+        "start": "2026-03-17",
+        "end": "2026-04-15"
+      },
+      {
+        "name": "Internship",
+        "kind": "work",
+        "start": "2026-05-18",
+        "end": "2026-08-17"
+      }
+    ],
+    "source": "https://www.outreachy.org/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "outreachy-december",
+    "name": "Outreachy (December–March round, 2026–27)",
+    "org": "Outreachy / Software Freedom Conservancy",
+    "url": "https://www.outreachy.org/",
+    "summary": "Paid, remote three-month internships in open source for people underrepresented in tech.",
+    "tags": [
+      "paid",
+      "remote",
+      "first-timers",
+      "underrepresented",
+      "mentorship"
+    ],
+    "eligibility": "People who face underrepresentation, systemic bias or discrimination in tech where they live; must be available full-time.",
+    "stipend": "USD 7,000 total",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Initial applications",
+        "kind": "application",
+        "start": "2026-08-24",
+        "end": "2026-08-31"
+      },
+      {
+        "name": "Contribution period",
+        "kind": "application",
+        "start": "2026-10-12",
+        "end": "2026-11-09"
+      },
+      {
+        "name": "Accepted interns announced",
+        "kind": "other",
+        "start": "2026-11-30",
+        "end": "2026-11-30"
+      },
+      {
+        "name": "Internship",
+        "kind": "work",
+        "start": "2026-12-07",
+        "end": "2027-03-08"
+      }
+    ],
+    "source": "https://www.outreachy.org/apply/project-selection/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "lfx-mentorship",
+    "name": "LFX Mentorship",
+    "org": "Linux Foundation",
+    "url": "https://mentorship.lfx.linuxfoundation.org/",
+    "summary": "Mentored, usually paid projects across Linux Foundation and CNCF open-source projects, run in three terms a year.",
+    "tags": [
+      "paid",
+      "remote",
+      "first-timers",
+      "mentorship",
+      "cloud-native"
+    ],
+    "eligibility": "Open to anyone accepted by a project mentor; check each listing.",
+    "stipend": "Paid per listing; full-time stipends are paid 50% at week 6 and 50% at week 12.",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Spring term",
+        "kind": "work",
+        "start": "2027-03-01",
+        "end": "2027-05-31"
+      },
+      {
+        "name": "Summer term",
+        "kind": "work",
+        "start": "2027-06-01",
+        "end": "2027-08-31"
+      },
+      {
+        "name": "Fall term",
+        "kind": "work",
+        "start": "2027-09-01",
+        "end": "2027-11-30"
+      }
+    ],
+    "source": "https://docs.linuxfoundation.org/lfx/mentorship/mentorship-program-timelines",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "linux-kernel-mentorship",
+    "name": "Linux Kernel Mentorship Program",
+    "org": "Linux Foundation",
+    "url": "https://wiki.linuxfoundation.org/lkmp",
+    "summary": "Learn to find and fix Linux kernel bugs with kernel maintainers as mentors, through LFX terms.",
+    "tags": [
+      "remote",
+      "kernel",
+      "mentorship",
+      "systems"
+    ],
+    "eligibility": "Applicants who complete the kernel prerequisite tasks; selected through LFX Mentorship.",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Spring term",
+        "kind": "work",
+        "start": "2027-03-01",
+        "end": "2027-05-31"
+      },
+      {
+        "name": "Summer term",
+        "kind": "work",
+        "start": "2027-06-01",
+        "end": "2027-08-31"
+      },
+      {
+        "name": "Fall term",
+        "kind": "work",
+        "start": "2027-09-01",
+        "end": "2027-11-30"
+      }
+    ],
+    "source": "https://docs.linuxfoundation.org/lfx/mentorship/mentorship-program-timelines",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "hacktoberfest",
+    "name": "Hacktoberfest 2026",
+    "org": "DigitalOcean",
+    "url": "https://hacktoberfest.com/",
+    "summary": "Month-long October celebration of open source; the 2026 edition focused on building with open-weight models and open-source AI.",
+    "tags": [
+      "first-timers",
+      "remote",
+      "event",
+      "ai"
+    ],
+    "eligibility": "Anyone.",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Hacktoberfest",
+        "kind": "event",
+        "start": "2026-10-01",
+        "end": "2026-10-31"
+      }
+    ],
+    "source": "https://hacktoberfest.com/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "mlh-fellowship",
+    "name": "MLH Fellowship",
+    "org": "Major League Hacking",
+    "url": "https://fellowship.mlh.com/",
+    "summary": "Remote 12-week internship alternative where fellows work on real projects in software, production or Web3 engineering tracks.",
+    "tags": [
+      "paid",
+      "remote",
+      "students",
+      "first-timers"
+    ],
+    "eligibility": "See the MLH Fellowship FAQ; batches start several times a year.",
+    "stipend": "Educational stipend (amount not published)",
+    "rolling": true,
+    "phases": [],
+    "source": "https://fellowship.mlh.com/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "summer-of-bitcoin",
+    "name": "Summer of Bitcoin 2026",
+    "org": "Summer of Bitcoin",
+    "url": "https://www.summerofbitcoin.org/",
+    "summary": "Paid summer internships for university students on open-source Bitcoin projects, for developers and designers.",
+    "tags": [
+      "paid",
+      "remote",
+      "students",
+      "bitcoin",
+      "design"
+    ],
+    "eligibility": "University students worldwide.",
+    "stipend": "Paid in BTC, adjusted by country (USD 3,000–6,000).",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Challenge round (bootcamp)",
+        "kind": "application",
+        "start": "2026-02-16",
+        "end": "2026-03-20"
+      },
+      {
+        "name": "Proposal deadline",
+        "kind": "application",
+        "start": "2026-04-20",
+        "end": "2026-04-20"
+      },
+      {
+        "name": "Project period",
+        "kind": "work",
+        "start": "2026-05-18",
+        "end": "2026-08-16"
+      }
+    ],
+    "source": "http://blog.summerofbitcoin.org/summer-of-bitcoin-2026-announcing-the-next-generation-of-bitcoin-builders/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "season-of-kde",
+    "name": "Season of KDE 2026",
+    "org": "KDE",
+    "url": "https://mentorship.kde.org/sok/",
+    "summary": "Two-month mentored projects in KDE for newcomers, covering code, docs, design and promotion.",
+    "tags": [
+      "remote",
+      "first-timers",
+      "docs",
+      "design",
+      "mentorship"
+    ],
+    "eligibility": "Anyone new to KDE.",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Contributor applications",
+        "kind": "application",
+        "start": "2025-12-15",
+        "end": "2026-01-14"
+      },
+      {
+        "name": "Work period",
+        "kind": "work",
+        "start": "2026-01-23",
+        "end": "2026-03-20"
+      }
+    ],
+    "source": "https://mentorship.kde.org/sok/",
+    "checkedAt": "2026-11-19"
+  },
+  {
+    "id": "gsod",
+    "name": "Google Season of Docs",
+    "org": "Google",
+    "url": "https://developers.google.com/season-of-docs",
+    "summary": "Open-source organizations get grants to hire technical writers to improve their documentation.",
+    "tags": [
+      "paid",
+      "remote",
+      "docs",
+      "writers"
+    ],
+    "eligibility": "Technical writers hired by a participating organization.",
+    "stipend": "Paid by the organization from its grant",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Org applications (usual timing)",
+        "kind": "application",
+        "start": "2027-02-01",
+        "end": "2027-04-02"
+      },
+      {
+        "name": "Documentation work (usual timing)",
+        "kind": "work",
+        "start": "2027-05-01",
+        "end": "2027-11-30"
+      }
+    ],
+    "source": "https://developers.google.com/season-of-docs",
+    "checkedAt": "2026-11-20",
+    "estimated": true
+  },
+  {
+    "id": "gssoc",
+    "name": "GirlScript Summer of Code",
+    "org": "GirlScript Foundation",
+    "url": "https://gssoc.girlscript.tech/",
+    "summary": "Three-month open-source program for beginners with mentors, a leaderboard and certificates.",
+    "tags": [
+      "remote",
+      "first-timers",
+      "students",
+      "community"
+    ],
+    "eligibility": "Anyone; aimed at beginners, especially students in India.",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Contributor registration (usual timing)",
+        "kind": "application",
+        "start": "2027-03-01",
+        "end": "2027-04-30"
+      },
+      {
+        "name": "Coding period (usual timing)",
+        "kind": "work",
+        "start": "2027-05-10",
+        "end": "2027-08-10"
+      }
+    ],
+    "source": "https://gssoc.girlscript.tech/",
+    "checkedAt": "2026-11-20",
+    "estimated": true
+  },
+  {
+    "id": "swoc",
+    "name": "Social Winter of Code",
+    "org": "Social Winter of Code",
+    "url": "https://www.socialwinterofcode.com/",
+    "summary": "Two-month winter program where beginners contribute to open-source projects with mentors.",
+    "tags": [
+      "remote",
+      "first-timers",
+      "students",
+      "community"
+    ],
+    "eligibility": "Anyone; aimed at students and beginners.",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Contributor registration (usual timing)",
+        "kind": "application",
+        "start": "2026-11-15",
+        "end": "2026-12-31"
+      },
+      {
+        "name": "Coding period (usual timing)",
+        "kind": "work",
+        "start": "2027-01-01",
+        "end": "2027-03-01"
+      }
+    ],
+    "source": "https://www.socialwinterofcode.com/",
+    "checkedAt": "2026-11-20",
+    "estimated": true
+  },
+  {
+    "id": "kwoc",
+    "name": "Kharagpur Winter of Code",
+    "org": "KOSS, IIT Kharagpur",
+    "url": "https://kwoc.kossiitkgp.org/",
+    "summary": "Five-week winter program to get students started with open source before GSoC.",
+    "tags": [
+      "remote",
+      "first-timers",
+      "students"
+    ],
+    "eligibility": "Students (open to all universities).",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Student registration (usual timing)",
+        "kind": "application",
+        "start": "2026-11-01",
+        "end": "2026-12-05"
+      },
+      {
+        "name": "Coding period (usual timing)",
+        "kind": "work",
+        "start": "2026-12-06",
+        "end": "2027-01-20"
+      }
+    ],
+    "source": "https://kwoc.kossiitkgp.org/",
+    "checkedAt": "2026-11-20",
+    "estimated": true
+  },
+  {
+    "id": "ospp",
+    "name": "Open Source Promotion Plan (OSPP / Summer 2027)",
+    "org": "ISCAS",
+    "url": "https://summer-ospp.ac.cn/",
+    "summary": "Summer program where students work on community-proposed open-source projects with mentors.",
+    "tags": [
+      "paid",
+      "remote",
+      "students",
+      "mentorship"
+    ],
+    "eligibility": "University students aged 18+ worldwide.",
+    "stipend": "Bonus per project, paid in CNY by difficulty",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Student applications (usual timing)",
+        "kind": "application",
+        "start": "2027-05-01",
+        "end": "2027-06-09"
+      },
+      {
+        "name": "Development (usual timing)",
+        "kind": "work",
+        "start": "2027-07-01",
+        "end": "2027-09-30"
+      }
+    ],
+    "source": "https://summer-ospp.ac.cn/",
+    "checkedAt": "2026-11-20",
+    "estimated": true
+  },
+  {
+    "id": "c4gt",
+    "name": "Code for GovTech (C4GT) Mentoring Program",
+    "org": "Code for GovTech",
+    "url": "https://www.codeforgovtech.in/",
+    "summary": "Summer mentoring on digital public goods projects used by governments.",
+    "tags": [
+      "paid",
+      "remote",
+      "students",
+      "mentorship",
+      "govtech"
+    ],
+    "eligibility": "Students and early-career developers; see each cohort.",
+    "stipend": "Stipend for selected contributors (amount per cohort)",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Applications (usual timing)",
+        "kind": "application",
+        "start": "2027-04-01",
+        "end": "2027-05-15"
+      },
+      {
+        "name": "Coding period (usual timing)",
+        "kind": "work",
+        "start": "2027-06-01",
+        "end": "2027-08-31"
+      }
+    ],
+    "source": "https://www.codeforgovtech.in/",
+    "checkedAt": "2026-11-20",
+    "estimated": true
+  },
+  {
+    "id": "jsoc",
+    "name": "Julia Seasons of Contributions",
+    "org": "The Julia Language",
+    "url": "https://julialang.org/jsoc/",
+    "summary": "Mentored, paid Julia projects, run alongside GSoC with extra funded slots.",
+    "tags": [
+      "paid",
+      "remote",
+      "students",
+      "mentorship",
+      "julia"
+    ],
+    "eligibility": "Mostly students; same timeline as GSoC.",
+    "stipend": "Paid per project",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Applications (usual timing)",
+        "kind": "application",
+        "start": "2027-03-15",
+        "end": "2027-04-08"
+      },
+      {
+        "name": "Coding period (usual timing)",
+        "kind": "work",
+        "start": "2027-06-01",
+        "end": "2027-08-31"
+      }
+    ],
+    "source": "https://julialang.org/jsoc/",
+    "checkedAt": "2026-11-20",
+    "estimated": true
+  },
+  {
+    "id": "summer-of-haskell",
+    "name": "Summer of Haskell",
+    "org": "Haskell.org",
+    "url": "https://summer.haskell.org/",
+    "summary": "Paid summer projects on Haskell open-source tooling, alongside GSoC.",
+    "tags": [
+      "paid",
+      "remote",
+      "students",
+      "mentorship",
+      "haskell"
+    ],
+    "eligibility": "Students and newcomers; same rules as GSoC.",
+    "stipend": "Paid per project",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Applications (usual timing)",
+        "kind": "application",
+        "start": "2027-03-15",
+        "end": "2027-04-08"
+      },
+      {
+        "name": "Coding period (usual timing)",
+        "kind": "work",
+        "start": "2027-06-01",
+        "end": "2027-08-31"
+      }
+    ],
+    "source": "https://summer.haskell.org/",
+    "checkedAt": "2026-11-20",
+    "estimated": true
+  },
+  {
+    "id": "epf",
+    "name": "Ethereum Protocol Fellowship",
+    "org": "Ethereum Foundation",
+    "url": "https://epf.wiki/",
+    "summary": "Five-month cohort working on Ethereum core protocol and client open-source code.",
+    "tags": [
+      "paid",
+      "remote",
+      "mentorship",
+      "web3",
+      "advanced"
+    ],
+    "eligibility": "Developers with some protocol background; anyone can apply.",
+    "stipend": "Stipend for fellows",
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Applications (usual timing)",
+        "kind": "application",
+        "start": "2027-04-01",
+        "end": "2027-05-31"
+      },
+      {
+        "name": "Cohort (usual timing)",
+        "kind": "work",
+        "start": "2027-06-15",
+        "end": "2027-11-15"
+      }
+    ],
+    "source": "https://epf.wiki/",
+    "checkedAt": "2026-11-20",
+    "estimated": true
+  },
+  {
+    "id": "24-pull-requests",
+    "name": "24 Pull Requests",
+    "org": "24 Pull Requests",
+    "url": "https://24pullrequests.com/",
+    "summary": "Send one pull request a day to open source from December 1st to 24th.",
+    "tags": [
+      "remote",
+      "first-timers",
+      "event",
+      "community"
+    ],
+    "eligibility": "Anyone with a GitHub account.",
+    "stipend": null,
+    "rolling": false,
+    "phases": [
+      {
+        "name": "Event",
+        "kind": "event",
+        "start": "2026-12-01",
+        "end": "2026-12-24"
+      }
+    ],
+    "source": "https://24pullrequests.com/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "xorg-evoc",
+    "name": "X.Org Endless Vacation of Code",
+    "org": "X.Org Foundation",
+    "url": "https://www.x.org/wiki/XorgEVoC/",
+    "summary": "Paid, mentored graphics-stack projects for students at any time of year.",
+    "tags": [
+      "paid",
+      "remote",
+      "students",
+      "graphics",
+      "systems"
+    ],
+    "eligibility": "Students; propose a project with an X.Org mentor.",
+    "stipend": "Stipend per project",
+    "rolling": true,
+    "phases": [],
+    "source": "https://www.x.org/wiki/XorgEVoC/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "igalia-ce",
+    "name": "Igalia Coding Experience",
+    "org": "Igalia",
+    "url": "https://www.igalia.com/coding-experience/",
+    "summary": "Paid mentored work on browsers, graphics, compilers and multimedia open-source projects.",
+    "tags": [
+      "paid",
+      "remote",
+      "students",
+      "first-timers",
+      "browsers"
+    ],
+    "eligibility": "Students and early-career developers; check the current call.",
+    "stipend": "Paid stipend",
+    "rolling": true,
+    "phases": [],
+    "source": "https://www.igalia.com/coding-experience/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "nlnet-ngi0",
+    "name": "NLnet / NGI Zero grants",
+    "org": "NLnet Foundation",
+    "url": "https://nlnet.nl/propose/",
+    "summary": "Grants for open-source work on internet tech; calls open every two months.",
+    "tags": [
+      "paid",
+      "grant",
+      "maintainers",
+      "remote"
+    ],
+    "eligibility": "Individuals or teams proposing open-source work (EU-relevant impact).",
+    "stipend": "Grants from EUR 5,000 to 50,000",
+    "rolling": true,
+    "phases": [],
+    "source": "https://nlnet.nl/propose/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "prototype-fund",
+    "name": "Prototype Fund",
+    "org": "Open Knowledge Foundation Germany",
+    "url": "https://prototypefund.de/en/",
+    "summary": "Funds individuals and small teams to build open-source prototypes for the public good.",
+    "tags": [
+      "paid",
+      "grant",
+      "maintainers"
+    ],
+    "eligibility": "Residents of Germany; check the current round.",
+    "stipend": "Up to EUR 95,000 over the funding period",
+    "rolling": true,
+    "phases": [],
+    "source": "https://prototypefund.de/en/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "github-sosf",
+    "name": "GitHub Secure Open Source Fund",
+    "org": "GitHub",
+    "url": "https://resources.github.com/github-secure-open-source-fund/",
+    "summary": "Funding plus security training for maintainers of widely used open-source projects.",
+    "tags": [
+      "paid",
+      "grant",
+      "maintainers",
+      "security"
+    ],
+    "eligibility": "Maintainers of open-source projects; applied for in cohorts.",
+    "stipend": "USD 10,000 per project",
+    "rolling": true,
+    "phases": [],
+    "source": "https://resources.github.com/github-secure-open-source-fund/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "alpha-omega",
+    "name": "Alpha-Omega",
+    "org": "OpenSSF / Linux Foundation",
+    "url": "https://alpha-omega.dev/",
+    "summary": "Funds security work in critical open-source projects and ecosystems.",
+    "tags": [
+      "paid",
+      "grant",
+      "maintainers",
+      "security"
+    ],
+    "eligibility": "Open-source projects and ecosystem organizations.",
+    "stipend": "Grants per engagement",
+    "rolling": true,
+    "phases": [],
+    "source": "https://alpha-omega.dev/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "w3f-grants",
+    "name": "Web3 Foundation Grants",
+    "org": "Web3 Foundation",
+    "url": "https://grants.web3.foundation/",
+    "summary": "Grants for open-source software in the Polkadot ecosystem.",
+    "tags": [
+      "paid",
+      "grant",
+      "web3"
+    ],
+    "eligibility": "Individuals and teams building open-source Polkadot tooling.",
+    "stipend": "Tiered grants (milestone based)",
+    "rolling": true,
+    "phases": [],
+    "source": "https://grants.web3.foundation/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "google-ospb",
+    "name": "Google Open Source Peer Bonus",
+    "org": "Google",
+    "url": "https://opensource.google/documentation/reference/growing/peer-bonus",
+    "summary": "Recognition and a cash bonus for open-source contributors, nominated by Googlers.",
+    "tags": [
+      "paid",
+      "recognition",
+      "maintainers"
+    ],
+    "eligibility": "Nominated by a Google employee; you cannot apply directly.",
+    "stipend": "USD 250 per award",
+    "rolling": true,
+    "phases": [],
+    "source": "https://opensource.google/documentation/reference/growing/peer-bonus",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "up-for-grabs",
+    "name": "Up For Grabs",
+    "org": "Up For Grabs",
+    "url": "https://up-for-grabs.net/",
+    "summary": "Directory of projects with issues tagged for new contributors.",
+    "tags": [
+      "directory",
+      "first-timers",
+      "remote"
+    ],
+    "eligibility": "Anyone.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://up-for-grabs.net/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "goodfirstissue-dev",
+    "name": "Good First Issue",
+    "org": "goodfirstissue.dev",
+    "url": "https://goodfirstissue.dev/",
+    "summary": "Curated beginner-friendly issues from popular repositories, by language.",
+    "tags": [
+      "directory",
+      "first-timers",
+      "remote"
+    ],
+    "eligibility": "Anyone.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://goodfirstissue.dev/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "codetriage",
+    "name": "CodeTriage",
+    "org": "CodeTriage",
+    "url": "https://www.codetriage.com/",
+    "summary": "Get a few open issues from a project you pick in your inbox each day to help triage.",
+    "tags": [
+      "directory",
+      "first-timers",
+      "triage"
+    ],
+    "eligibility": "Anyone.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://www.codetriage.com/",
+    "checkedAt": "2026-11-20"
+  },
+  {
+    "id": "first-contributions",
+    "name": "First Contributions",
+    "org": "first-contributions",
+    "url": "https://github.com/firstcontributions/first-contributions",
+    "summary": "Hands-on tutorial to make your first pull request, plus a list of beginner-friendly projects.",
+    "tags": [
+      "directory",
+      "first-timers",
+      "tutorial"
+    ],
+    "eligibility": "Anyone.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://github.com/firstcontributions/first-contributions",
+    "checkedAt": "2026-11-20"
+  }
+]

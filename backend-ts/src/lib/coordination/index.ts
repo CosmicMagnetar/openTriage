@@ -7,3 +7,5 @@ export * from "./nextActions";
 export * from "./repoLens";
 export * from "./discovery";
 export { isMaintainer, isNewcomer, isBot } from "./util";
+export * from "./contributor";
+export * from "./history";

@@ -78,7 +78,7 @@ export async function buildPRView(octokit: Octokit, owner: string, repo: string,
 // ---------------------------------------------------------------------------
 
 export async function contributorPRs(octokit: Octokit, login: string, fresh = false) {
-    return cached(`prs:c:${login}`.toLowerCase(), 90 * 1000, async () => {
+    return cached(`prs:c:${login}`.toLowerCase(), 5 * MINUTE, async () => {
         const [mine, toReview] = await Promise.all([
             searchPRs(octokit, `is:open author:${login} archived:false sort:updated-desc`, 40),
             searchPRs(octokit, `is:open review-requested:${login} archived:false sort:updated-desc`, 20),
@@ -92,7 +92,7 @@ export async function contributorPRs(octokit: Octokit, login: string, fresh = fa
 
 export async function maintainerPRs(octokit: Octokit, login: string, repos: RepoRef[], fresh = false) {
     const key = `prs:m:${login}:${repos.map(full).sort().join(",")}`.toLowerCase();
-    return cached(key, 90 * 1000, async () => {
+    return cached(key, 5 * MINUTE, async () => {
         const perms = await fetchViewerPermissions(octokit, repos);
         const mine = repos.filter((r) => perms.get(full(r).toLowerCase())).slice(0, 8);
         const lists = await Promise.all(mine.map(async (r) => {
@@ -139,7 +139,7 @@ function inboxRow(issue: IssueItem, batch: IssueItem[], responseDays?: number) {
 
 export async function maintainerInbox(octokit: Octokit, login: string, repos: RepoRef[], fresh = false) {
     const key = `inbox:${login}:${repos.map(full).sort().join(",")}`.toLowerCase();
-    return cached(key, 90 * 1000, async () => {
+    return cached(key, 5 * MINUTE, async () => {
         const perms = await fetchViewerPermissions(octokit, repos);
         const mine = repos.filter((r) => perms.get(full(r).toLowerCase())).slice(0, 8);
         const lists = await Promise.all(mine.map(async (r) => {
@@ -172,4 +172,23 @@ export async function addLabels(octokit: Octokit, owner: string, repo: string, n
     const res = await octokit.issues.addLabels({ owner, repo, issue_number: number, labels });
     invalidateRepo(owner, repo);
     return { labels: res.data.map((l) => l.name) };
+}
+
+/** Remove labels one by one; a label that is already gone (404) is ignored. */
+export async function removeLabels(octokit: Octokit, owner: string, repo: string, number: number, labels: string[]) {
+    let remaining: string[] | null = null;
+    for (const name of labels) {
+        try {
+            const res = await octokit.issues.removeLabel({ owner, repo, issue_number: number, name });
+            remaining = res.data.map((l) => l.name);
+        } catch (err) {
+            if ((err as { status?: number }).status !== 404) throw err;
+        }
+    }
+    invalidateRepo(owner, repo);
+    if (remaining === null) {
+        const res = await octokit.issues.listLabelsOnIssue({ owner, repo, issue_number: number, per_page: 100 });
+        remaining = res.data.map((l) => l.name);
+    }
+    return { labels: remaining };
 }

@@ -3,36 +3,37 @@
  * Routes stay thin; everything here works without AI.
  */
 import type { Octokit } from "@octokit/rest";
-import { TTLCache } from "@/lib/cache";
 import {
     activeAreas, assessPickup, computeAvailability, computeResponsiveness, detectStack, extractCodeRefs,
-    extractSetupCommands, findSimilar, isMaintainer, issueNextActions, isOnMe, keywords, newcomerLabels,
+    extractSetupCommands, findSimilar, isMaintainer, issueNextActions, issueSignals, isOnMe, keywords, newcomerLabels,
     ownersFor, packageScripts, parseCodeowners, prNextActions, rankActions, responseThresholdDays, summarizeTree,
     type IssueItem, type NextAction, type Responsiveness,
 } from "@/lib/coordination";
+import { observe } from "@/lib/history";
 import {
     fetchIssue, fetchRecentMergedFiles, fetchResponsivenessSamples, fetchViewerPermissions, searchIssues, searchPRs,
 } from "./graphql";
 
-const cache = new TTLCache<unknown>(5 * 60 * 1000);
-const inflight = new Map<string, Promise<unknown>>();
 const HOUR = 60 * 60 * 1000;
 export const MINUTE = 60 * 1000;
 
-/**
- * Cache with in-flight dedupe: concurrent requests for the same key share one
- * GitHub round-trip. `fresh` skips the cached value (user pressed refresh).
- */
-export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>, fresh = false): Promise<T> {
-    if (!fresh) {
-        const hit = cache.get(key) as T | undefined;
-        if (hit !== undefined) return hit;
-    }
+/** How long a value may be served stale while a background refresh runs. */
+const STALE_FOR_MS = 24 * HOUR;
+const MAX_ENTRIES = 2000;
+
+type Entry = { value: unknown; freshUntil: number; staleUntil: number };
+const store = new Map<string, Entry>();
+const inflight = new Map<string, Promise<unknown>>();
+
+function load<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
     const pending = inflight.get(key) as Promise<T> | undefined;
     if (pending) return pending;
     const p = fn()
         .then((value) => {
-            cache.set(key, value, ttlMs);
+            const now = Date.now();
+            store.delete(key); // re-insert so Map order tracks recency
+            store.set(key, { value, freshUntil: now + ttlMs, staleUntil: now + ttlMs + STALE_FOR_MS });
+            if (store.size > MAX_ENTRIES) store.delete(store.keys().next().value as string);
             return value;
         })
         .finally(() => inflight.delete(key));
@@ -40,12 +41,39 @@ export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>
     return p;
 }
 
+/**
+ * Stale-while-revalidate cache with in-flight dedupe.
+ * - Fresh hit: returned immediately.
+ * - Stale hit: returned immediately; one background refresh updates it.
+ * - Miss, or `fresh` (user pressed refresh): waits for GitHub.
+ * Concurrent requests for the same key share one GitHub round-trip.
+ */
+export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>, fresh = false): Promise<T> {
+    const now = Date.now();
+    const hit = store.get(key);
+    if (!fresh && hit && now < hit.staleUntil) {
+        if (now >= hit.freshUntil) load(key, ttlMs, fn).catch(() => { /* keep serving the stale value */ });
+        return hit.value as T;
+    }
+    return load(key, ttlMs, fn);
+}
+
+/** Read a cached value without fetching (e.g. reuse a responsiveness someone already computed). */
+export function peekCached<T>(key: string): T | undefined {
+    const hit = store.get(key);
+    return hit && Date.now() < hit.staleUntil ? (hit.value as T) : undefined;
+}
+
+function dropPrefix(prefix: string) {
+    for (const key of [...store.keys()]) if (key.startsWith(prefix)) store.delete(key);
+}
+
 /** Drop cached views of a repo (webhook, or after the user writes to GitHub). */
 export function invalidateRepo(owner: string, repo: string) {
     const r = `${owner}/${repo}`.toLowerCase();
-    for (const prefix of ["lens:", "resp:", "files:", "issue:", "ctx:", "pr:", "inbox:", "thread:"]) cache.invalidatePrefix(`${prefix}${r}`);
-    // Per-user lists can contain this repo; they are short-lived, so drop them all.
-    for (const prefix of ["na:", "prs:", "find:"]) cache.invalidatePrefix(prefix);
+    for (const prefix of ["lens:", "resp:", "files:", "issue:", "ctx:", "pr:", "inbox:", "thread:"]) dropPrefix(`${prefix}${r}`);
+    // Per-user lists can contain this repo; drop them all.
+    for (const prefix of ["na:", "prs:", "find:"]) dropPrefix(prefix);
 }
 
 // ---------------------------------------------------------------------------
@@ -164,6 +192,7 @@ export async function buildIssueView(octokit: Octokit, owner: string, repo: stri
         findRelated(octokit, issue),
     ]);
     const availability = computeAvailability(issue);
+    void observe(`${owner}/${repo}`, number, "issue", issueSignals(availability));
     const pickup = assessPickup(issue, availability, responsiveness, {
         forNewcomer: !issue.comments.some((c) => c.author.login.toLowerCase() === viewer.toLowerCase() && isMaintainer(c.author)),
     });

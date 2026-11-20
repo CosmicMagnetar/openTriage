@@ -25,11 +25,11 @@ export async function GET(request: NextRequest) {
                 });
             }
             const key = `na:m:${login}:${repos.map((r) => `${r.owner}/${r.repo}`).sort().join(",")}`.toLowerCase();
-            const data = await cached(key, 90_000, () => maintainerToday(gh.octokit, login, repos), fresh);
+            const data = await cached(key, 5 * 60_000, () => maintainerToday(gh.octokit, login, repos), fresh);
             return NextResponse.json({ workspace: "maintainer", ...data });
         }
 
-        const data = await cached(`na:c:${login}`.toLowerCase(), 90_000, () => contributorToday(gh.octokit, login), fresh);
+        const data = await cached(`na:c:${login}`.toLowerCase(), 5 * 60_000, () => contributorToday(gh.octokit, login), fresh);
         return NextResponse.json({ workspace: "contributor", ...data });
     } catch (err) {
         return githubError(err, "next actions");

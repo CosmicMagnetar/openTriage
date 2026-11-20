@@ -1,0 +1,11 @@
+.ot-pill { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0; padding: 6px 10px;
+  border: 1px solid var(--borderColor-default, #d0d7de); border-radius: 6px; font-size: 12px;
+  background: var(--bgColor-muted, #f6f8fa); color: var(--fgColor-default, #1f2328); }
+.ot-brand { font-weight: 600; }
+.ot-muted { color: var(--fgColor-muted, #656d76); }
+.ot-state { padding: 0 6px; border-radius: 10px; font-weight: 500; line-height: 18px; }
+.ot-green { background: #dafbe1; color: #116329; }
+.ot-amber { background: #fff8c5; color: #7d4e00; }
+.ot-red { background: #ffebe9; color: #a40e26; }
+.ot-gray { background: #eaeef2; color: #424a53; }
+.ot-link { margin-left: auto; font-weight: 500; }

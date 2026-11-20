@@ -85,10 +85,13 @@ export async function GET(request: NextRequest) {
             // Legacy rows may hold "MENTOR" (old sync bug) or null; workspaces are only these two.
             role = normalizeWorkspace(existing[0].role);
             // Refresh token and profile fields that can change on GitHub (rename, new avatar).
+            // The role is written only to repair a legacy value: rewriting it on every sign-in
+            // (read from a replica that can lag the remote by a sync interval) could put back
+            // a workspace the user had just switched away from.
             await db
                 .update(users)
                 .set({
-                    role,
+                    ...(existing[0].role !== role ? { role } : {}),
                     githubAccessToken: accessToken,
                     username: githubUser.login,
                     avatarUrl: githubUser.avatar_url,

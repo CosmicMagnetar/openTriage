@@ -304,3 +304,25 @@ export async function fetchRecentMergedFiles(octokit: Octokit, owner: string, re
         files: p.files?.nodes.map((f) => f.path) ?? [],
     }));
 }
+
+/** One person's PRs and issue count in one repo (contributor intelligence). */
+export async function fetchContributorActivity(octokit: Octokit, owner: string, repo: string, login: string) {
+    const q = `repo:${owner}/${repo} author:${login}`;
+    const data = await octokit.graphql<{
+        prs: { nodes: Array<{ number: number; title: string; url: string; state: "OPEN" | "CLOSED" | "MERGED"; createdAt: string; mergedAt: string | null; files: { nodes: { path: string }[] } | null }> };
+        issues: { issueCount: number; nodes: Array<{ createdAt: string }> };
+    }>(
+        `query($prq: String!, $iq: String!) {
+           prs: search(query: $prq, type: ISSUE, first: 50) {
+             nodes { ... on PullRequest { number title url state createdAt mergedAt files(first: 40) { nodes { path } } } }
+           }
+           issues: search(query: $iq, type: ISSUE, first: 20) { issueCount nodes { ... on Issue { createdAt } } }
+         }`,
+        { prq: `${q} is:pr sort:created-desc`, iq: `${q} is:issue sort:created-desc` }
+    );
+    return {
+        prs: data.prs.nodes.filter((n) => n && n.number).map((p) => ({ ...p, files: p.files?.nodes.map((f) => f.path) ?? [] })),
+        issuesOpened: data.issues.issueCount,
+        issueDates: data.issues.nodes.filter((n) => n && n.createdAt).map((n) => n.createdAt),
+    };
+}

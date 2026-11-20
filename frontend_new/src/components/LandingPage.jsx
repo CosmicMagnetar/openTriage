@@ -3,6 +3,7 @@ import Logo from './Logo';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuthStore from '../stores/authStore';
+import { GITHUB_LOGIN_URL } from '../lib/config';
 
 // ============================================
 // REUSABLE COMPONENTS
@@ -188,7 +189,7 @@ const StepIndicator = ({ icon: Icon, title, color = 'emerald', index, isActive, 
         blue: { bg: 'bg-blue-500', ring: 'ring-blue-500/30', text: 'text-blue-400' },
         purple: { bg: 'bg-purple-500', ring: 'ring-purple-500/30', text: 'text-purple-400' },
         orange: { bg: 'bg-orange-500', ring: 'ring-orange-500/30', text: 'text-orange-400' },
-        pink: { bg: 'bg-pink-500', ring: 'ring-pink-500/30', text: 'text-pink-400' },
+        amber: { bg: 'bg-amber-500', ring: 'ring-amber-500/30', text: 'text-amber-400' },
         cyan: { bg: 'bg-cyan-500', ring: 'ring-cyan-500/30', text: 'text-cyan-400' },
     };
 
@@ -279,7 +280,7 @@ const TypewriterText = ({ text, delay = 0 }) => {
 
 // Confetti celebration component
 const Confetti = ({ show }) => {
-    const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4'];
+    const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#6366f1', '#06b6d4'];
 
     if (!show) return null;
 
@@ -449,7 +450,7 @@ const InteractiveDemo = ({ role, step }) => {
                         </div>
                     </div>
                     <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
                             <Sparkles className="w-4 h-4 text-white" />
                         </div>
                         <motion.div
@@ -714,7 +715,7 @@ const OnboardingTutorial = () => {
         { icon: Search, title: 'Browse Issues', description: 'Find issues to contribute to', color: 'purple' },
         { icon: Bot, title: 'AI Assistance', description: 'Get smart code suggestions', color: 'orange' },
         { icon: MessageCircle, title: 'Project Chat', description: 'Ask questions about the code', color: 'cyan' },
-        { icon: Trophy, title: 'Earn Badges', description: 'Track your achievements', color: 'pink' },
+        { icon: Trophy, title: 'Earn Badges', description: 'Track your achievements', color: 'amber' },
     ];
 
     const maintainerSteps = [
@@ -723,7 +724,7 @@ const OnboardingTutorial = () => {
         { icon: GitPullRequest, title: 'Analyze PRs', description: 'AI-powered PR analysis', color: 'purple' },
         { icon: FileText, title: 'PR Summaries', description: 'Instant AI summaries', color: 'orange' },
         { icon: Send, title: 'Quick Replies', description: 'Template responses', color: 'cyan' },
-        { icon: Users, title: 'Manage Team', description: 'Organize contributors', color: 'pink' },
+        { icon: Users, title: 'Manage Team', description: 'Organize contributors', color: 'amber' },
     ];
 
     const steps = activeTab === 'contributor' ? contributorSteps : maintainerSteps;
@@ -749,7 +750,7 @@ const OnboardingTutorial = () => {
     }, [activeTab]);
 
     const handleLogin = () => {
-        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/github`;
+        window.location.href = GITHUB_LOGIN_URL;
     };
 
     return (
@@ -931,7 +932,7 @@ const LandingPage = () => {
     }, []);
 
     const handleLogin = () => {
-        window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/github`;
+        window.location.href = GITHUB_LOGIN_URL;
     };
 
     const goToDashboard = () => {
@@ -1064,9 +1065,12 @@ const LandingPage = () => {
                             <Logo size="lg" />
                             <span className="text-5xl md:text-6xl font-bold text-white tracking-tight">OpenTriage</span>
                         </div>
-                        <h1 className="text-2xl md:text-3xl text-zinc-400 mb-10 font-medium leading-relaxed">
-                            Stop Sorting Issues. <span className="text-emerald-400">Start Shipping Code.</span>
+                        <h1 className="text-2xl md:text-3xl text-zinc-300 mb-4 font-medium leading-snug">
+                            Grow in open source, <span className="text-emerald-400">one clear next step a day.</span>
                         </h1>
+                        <p className="text-lg text-zinc-400 mb-10 leading-relaxed max-w-xl">
+                            OpenTriage sorts your pull requests, the people waiting on you and the best issue to pick next into one short list, so contributors grow steadily and maintainers keep their community moving.
+                        </p>
                         <div className="flex flex-col sm:flex-row gap-4 mb-10">
                             <button onClick={handleLogin} className="flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-zinc-100 text-black rounded-xl font-semibold transition-all text-lg">
                                 <Github className="w-5 h-5" />

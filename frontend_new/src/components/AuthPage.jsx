@@ -1,9 +1,10 @@
 import { Github, Shield, Zap, Users, Check } from 'lucide-react';
 import Logo from './Logo';
+import { GITHUB_LOGIN_URL } from '../lib/config';
 
 const AuthPage = () => {
   const handleGitHubLogin = () => {
-    window.location.href = `${import.meta.env.VITE_BACKEND_URL}/api/auth/github`;
+    window.location.href = GITHUB_LOGIN_URL;
   };
 
   const features = [

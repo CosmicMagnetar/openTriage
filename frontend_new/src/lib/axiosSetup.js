@@ -43,7 +43,7 @@ export function setupAxiosInterceptors() {
         const msg =
           error.code === "ECONNABORTED"
             ? "Request timed out. The server may be busy."
-            : "Server is waking up… Please retry in a moment.";
+            : "Couldn't reach the server. Check that the backend is running, then try again.";
         console.error("[Axios] Network error:", error.message);
         // Dynamic import avoids circular dependency with sonner
         import("sonner").then(({ toast }) => toast.error(msg)).catch(() => {});

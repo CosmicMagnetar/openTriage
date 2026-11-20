@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '../../lib/config';
 /**
  * Data Sync Hook
  * 
@@ -13,7 +14,7 @@ import { useAuth } from '../auth/useAuth';
 import useSyncStore from '@/stores/syncStore';
 import axios from 'axios';
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
+const API = `${BACKEND_URL}/api`;
 
 export function useDataSync(options = {}) {
   const { autoSync = false } = options;

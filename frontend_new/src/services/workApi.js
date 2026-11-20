@@ -6,6 +6,8 @@ import axios from "axios";
 
 const API = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}/api`;
 
+export const API_BASE = API;
+
 function errorMessage(err) {
   return err?.response?.data?.error || err?.message || "Request failed";
 }
@@ -48,11 +50,26 @@ export const workApi = {
   comment: (owner, repo, number, body) => send("post", `/work/item/${ref(owner, repo, number)}`, { action: "comment", body }),
   addLabels: (owner, repo, number, labels) => send("post", `/work/item/${ref(owner, repo, number)}`, { action: "label", labels }),
   thread: (owner, repo, number, o) => get(`/work/item/${ref(owner, repo, number)}/thread`, fresh(o)),
+  history: (owner, repo, number) => get(`/work/item/${ref(owner, repo, number)}/history`),
   signals: () => get("/me/signals"),
+  contributor: (owner, repo, login, o) => get(`/work/contributor/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(login)}`, fresh(o)),
   opportunities: (params, o) => get("/work/opportunities", { ...params, ...fresh(o) }),
   savedReplies: () => get("/maintainer/templates"),
   saveReply: (name, body) => send("post", "/maintainer/templates", { name, body }),
   deleteReply: (id) => send("delete", "/maintainer/templates", undefined, { id }),
+  journey: (o) => get("/journey", fresh(o)),
+  programs: (params) => get("/programs", params),
+  myPrograms: () => get("/me/programs"),
+  addMyProgram: (body) => send("post", "/me/programs", body),
+  updateMyProgram: (id, body) => send("patch", `/me/programs/${encodeURIComponent(id)}`, body),
+  removeMyProgram: (id) => send("delete", `/me/programs/${encodeURIComponent(id)}`),
+  profileSettings: () => get("/profile/settings"),
+  saveProfileSettings: (settings) => send("put", "/profile/settings", settings),
+  publicProfile: (login) => get(`/u/${encodeURIComponent(login)}`),
+  removeLabels: (owner, repo, number, labels) => send("post", `/work/item/${ref(owner, repo, number)}`, { action: "unlabel", labels }),
+  community: (o) => get("/maintainer/community", fresh(o)),
+  docsHealth: (repo, o) => get("/maintainer/docs-health", { repo, ...fresh(o) }),
+  createDoc: (repo, item) => send("post", "/maintainer/docs-health/create", { repo, item }),
 };
 
 /** Cache keys: one place so pages, panel and prefetch agree. */
@@ -68,8 +85,15 @@ export const keys = {
   repos: () => "repos",
   replies: () => "replies",
   thread: (o, r, n) => `thread:${o}/${r}#${n}`.toLowerCase(),
+  history: (o, r, n) => `history:${o}/${r}#${n}`.toLowerCase(),
   signals: () => "signals",
+  contributor: (o, r, login) => `contrib:${o}/${r}:${login}`.toLowerCase(),
   opportunities: (params) => `opp:${JSON.stringify(params)}`,
+  journey: () => "journey",
+  programs: () => "programs",
+  myPrograms: () => "me:programs",
+  community: () => "community",
+  docs: (repo) => `docs:${repo}`.toLowerCase(),
 };
 
 /**

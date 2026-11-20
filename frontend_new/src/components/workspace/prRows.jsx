@@ -1,5 +1,5 @@
 /** PR list rows shared by Pull requests and My work. */
-import { ACTION, CHECKS, Dot, REVIEW, Ref, Row, Tag, timeAgo, waitingOnLabel } from './ui';
+import { ACTION, CHECKS, Dot, Pulse, REVIEW, Ref, Row, Tag, timeAgo, waitingOnLabel } from './ui';
 import { prefetchItem } from './useWorkspace';
 
 export const prItem = (r) => ({ kind: 'pr', owner: r.owner, repo: r.repo, number: r.number });
@@ -22,7 +22,7 @@ export function PRRow({ r, i, selected, onOpen, me }) {
   const review = r.reviewDecision ? REVIEW[r.reviewDecision] : null;
   return (
     <Row id={`row-${i}`} selected={selected} onClick={onOpen} onMouseEnter={() => prefetchItem(prItem(r))}
-      lead={<Dot color={meta?.color ?? (r.isDraft ? 'gray' : 'green')} title={meta?.label} />}
+      lead={<Pulse color={meta?.color ?? (r.isDraft ? 'gray' : 'green')} title={meta?.label} />}
       title={r.title}
       meta={<>
         <Ref owner={r.owner} repo={r.repo} number={r.number} />
@@ -32,7 +32,7 @@ export function PRRow({ r, i, selected, onOpen, me }) {
         {review && <Tag color={review.color}>{review.label}</Tag>}
         {a && <span className="text-[var(--text-2)]">{meta?.label} · waiting on {waitingOnLabel(a.waitingOn, me)}</span>}
       </>}
-      right={<span className="text-[12px] text-[var(--faint)]">{timeAgo(r.updatedAt)}</span>}
+      right={<span className="fs-12 text-[var(--faint)]">{timeAgo(r.updatedAt)}</span>}
     />
   );
 }

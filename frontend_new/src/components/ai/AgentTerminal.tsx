@@ -167,7 +167,7 @@ export const AgentTerminal: React.FC<AgentTerminalProps> = ({
       case "reflection":
         return "bg-yellow-50 border-yellow-200";
       case "guidance":
-        return "bg-pink-50 border-pink-200";
+        return "bg-indigo-50 border-indigo-200";
       case "answer":
         return "bg-emerald-50 border-emerald-200";
       case "error":
@@ -313,8 +313,8 @@ export const AgentTerminal: React.FC<AgentTerminalProps> = ({
 
               {/* HITL indicator */}
               {thought.requiresAction && (
-                <div className="mt-2 bg-pink-100 border border-pink-300 rounded p-1.5">
-                  <p className="text-xs font-semibold text-pink-900 flex items-center gap-1">
+                <div className="mt-2 bg-indigo-100 border border-indigo-300 rounded p-1.5">
+                  <p className="text-xs font-semibold text-indigo-900 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     Awaiting human guidance...
                   </p>

@@ -28,6 +28,9 @@ import { repositories } from "@/db/schema";
 import { eq, and, sql, like } from "drizzle-orm";
 import { syncSingleRepository } from "@/lib/sync/github-sync";
 import { invalidateRepo } from "@/lib/github/services";
+import { emitRepoChanged } from "@/lib/socket";
+import { recordEvent } from "@/lib/history";
+import { webhookSignal } from "@/lib/coordination";
 import { users } from "@/db/schema";
 
 /**
@@ -75,11 +78,17 @@ interface WebhookPayload {
         number: number;
         title: string;
         state: string;
+        merged?: boolean;
     };
     issue?: {
         number: number;
         title: string;
         state: string;
+        /** Present when the issue is a PR (issue_comment on a PR). */
+        pull_request?: unknown;
+    };
+    sender?: {
+        login: string;
     };
     pusher?: {
         name: string;
@@ -120,6 +129,15 @@ export async function POST(request: NextRequest) {
 
         // Live updates: drop cached lens / issue / next-action views for this repo.
         invalidateRepo(owner, repoShort);
+        if (eventType !== "ping") {
+            const number = payload.issue?.number ?? payload.pull_request?.number;
+            emitRepoChanged(repoName, eventType, number);
+            const signal = webhookSignal(eventType, payload.action, payload.pull_request?.merged);
+            if (signal && number) {
+                const kind = payload.pull_request || payload.issue?.pull_request ? "pr" : "issue";
+                void recordEvent(repoName, number, kind, signal, payload.sender?.login);
+            }
+        }
 
         // ============================================================================
         // HANDLE DIFFERENT EVENT TYPES

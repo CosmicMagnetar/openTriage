@@ -10,15 +10,16 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useNavigate } from 'react-router-dom';
 import {
-  BookOpen, CircleDot, FileCode2, GitPullRequest, Maximize2, MessageSquare, Sparkles, Tag as TagIcon, X,
+  BookOpen, Check, CircleDot, FileCode2, GitPullRequest, Maximize2, MessageSquare, Sparkles, Tag as TagIcon, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import useAuthStore from '../../stores/authStore';
 import { keys, workApi } from '../../services/workApi';
 import { fetchQuery, invalidate, useQuery } from '../../lib/query';
 import { isTypingTarget, useItemPanel } from './useWorkspace';
+import { coAuthorTrailer, firstPrSteps, issueDrafts, prDrafts } from './drafts';
 import {
-  ACTION, AVAILABILITY, Block, Button, CHECKS, Dot, ErrorLine, Evidence, ExtLink, Input, RESPONSIVENESS, REVIEW,
+  ACTION, AVAILABILITY, Baton, Block, Button, CHECKS, Dot, ErrorLine, Evidence, ExtLink, Input, RESPONSIVENESS, REVIEW,
   SkeletonRows, Tag, Textarea, VERDICT, celebrate, timeAgo, waitingOnLabel,
 } from './ui';
 
@@ -71,7 +72,7 @@ function PanelHeader({ kind, owner, repo, number, url, onClose, extra }) {
         {extra}
         {url && (
           <a href={url} target="_blank" rel="noopener noreferrer"
-            className="h-7 px-2 inline-flex items-center gap-1 rounded-md text-[12px] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]">
+            className="h-7 px-2 inline-flex items-center gap-1 rounded-md fs-12 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]">
             GitHub ↗
           </a>
         )}
@@ -87,14 +88,103 @@ function PanelHeader({ kind, owner, repo, number, url, onClose, extra }) {
 function Title({ children, meta }) {
   return (
     <div className="pt-4 pb-3 border-b border-[var(--line-soft)]">
-      <h2 className="text-[16px] leading-snug font-semibold text-[var(--text)]">{children}</h2>
-      {meta && <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-[var(--muted)]">{meta}</div>}
+      <h2 className="fs-16 leading-snug font-semibold text-[var(--text)]">{children}</h2>
+      {meta && <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 fs-12 text-[var(--muted)]">{meta}</div>}
     </div>
   );
 }
 
+const SIGNAL_LABEL = {
+  claim: ['claimed', 'blue'],
+  claim_stale: ['claim went stale', 'amber'],
+  linked_pr_open: ['opened a linked PR', 'green'],
+  contested: ['more than one person on it', 'red'],
+  'issues.opened': ['opened', 'gray'], 'issues.closed': ['closed', 'gray'], 'issues.reopened': ['reopened', 'gray'],
+  'issues.assigned': ['assigned', 'blue'], 'issues.unassigned': ['unassigned', 'amber'],
+  'pr.opened': ['PR opened', 'green'], 'pr.merged': ['PR merged', 'purple'], 'pr.closed': ['PR closed', 'gray'],
+  'pr.reopened': ['PR reopened', 'green'], 'pr.ready_for_review': ['ready for review', 'blue'],
+  'pr.converted_to_draft': ['back to draft', 'gray'], comment: ['commented', 'gray'], review: ['reviewed', 'blue'],
+};
+
+function signalText(e) {
+  if (e.signal.startsWith('availability:')) {
+    const a = AVAILABILITY[e.signal.slice(13)];
+    return [`status: ${a?.label ?? e.signal.slice(13)}`, a?.color ?? 'gray'];
+  }
+  const [label, color] = SIGNAL_LABEL[e.signal] ?? [e.signal, 'gray'];
+  return [`${e.actor ? `@${e.actor} ` : ''}${label}`, color];
+}
+
+/** What happened to this item over time (claims, stale claims, PRs, status). */
+function HistoryBlock({ owner, repo, number }) {
+  const q = useQuery(keys.history(owner, repo, number), () => workApi.history(owner, repo, number), { staleMs: 5 * 60_000 });
+  const events = q.data?.events ?? [];
+  if (q.error || !q.data?.available || events.length === 0) return null;
+  return (
+    <Block title="History">
+      <ol className="space-y-1">
+        {[...events].reverse().slice(0, 12).map((e) => {
+          const [text, color] = signalText(e);
+          const span = e.endedAt && e.endedAt !== e.startedAt;
+          return (
+            <li key={e.id} className="flex items-center gap-2 text-[12px] text-[var(--muted)]">
+              <Dot color={color} />
+              <span className="text-[var(--text-2)]">{text}</span>
+              <span className="text-[var(--faint)] ml-auto shrink-0">
+                {timeAgo(e.startedAt)} ago{span ? ` → ended ${timeAgo(e.endedAt)} ago` : !e.endedAt && e.source === 'observed' ? ' · still true' : ''}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </Block>
+  );
+}
+
+/** Maintainers only: has this person worked in this repo before? */
+function ContributorBlock({ owner, repo, login }) {
+  const q = useQuery(login ? keys.contributor(owner, repo, login) : null,
+    (o) => workApi.contributor(owner, repo, login, o), { staleMs: 30 * 60_000 });
+  const c = q.data;
+  if (q.error) return null; // 403 for non-maintainers of this repo, or GitHub error: just hide
+  return (
+    <Block title={`About @${login} in this repo`}>
+      {q.isLoading && <SkeletonRows n={2} />}
+      {c && (
+        <>
+          <p className="fs-12-5 text-[var(--text)]">{c.summary}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <Tag color="green">{c.prs.merged} merged</Tag>
+            {c.prs.open > 0 && <Tag color="blue">{c.prs.open} open</Tag>}
+            {c.prs.closedUnmerged > 0 && <Tag color="gray">{c.prs.closedUnmerged} closed unmerged</Tag>}
+            <Tag>{c.issuesOpened} issues opened</Tag>
+            {c.medianDaysToMerge !== null && <Tag>{c.medianDaysToMerge < 1 ? "<1d" : `~${Math.round(c.medianDaysToMerge)}d`} to merge</Tag>}
+            {c.firstSeenAt && <Tag>here since {timeAgo(c.firstSeenAt)} ago</Tag>}
+          </div>
+          {c.areas.length > 0 && (
+            <p className="mt-2 fs-12 text-[var(--muted)]">
+              Knows: {c.areas.map((a) => <span key={a.path} className="mono text-[var(--text-2)] mr-2">{a.path}<span className="text-[var(--faint)]"> ×{a.prs}</span></span>)}
+            </p>
+          )}
+          {c.recent.length > 0 && (
+            <ul className="mt-2 space-y-0.5">
+              {c.recent.map((r) => (
+                <li key={r.number} className="fs-12 text-[var(--muted)] flex items-center gap-1.5 min-w-0">
+                  <Dot color={r.state === 'MERGED' ? 'purple' : r.state === 'OPEN' ? 'green' : 'gray'} />
+                  <ExtLink href={r.url} className="truncate">#{r.number} {r.title}</ExtLink>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 fs-11 text-[var(--faint)]">Visible only to maintainers of this repository. From GitHub history, not a score.</p>
+        </>
+      )}
+    </Block>
+  );
+}
+
 function ActionList({ actions, me }) {
-  if (!actions?.length) return <p className="text-[12.5px] text-[var(--muted)]">Nothing is blocked. No one is waiting on anyone.</p>;
+  if (!actions?.length) return <p className="fs-12-5 text-[var(--muted)]">Nothing is blocked. No one is waiting on anyone.</p>;
   return (
     <ul className="space-y-3">
       {actions.map((a) => {
@@ -103,11 +193,12 @@ function ActionList({ actions, me }) {
           <li key={a.id}>
             <div className="flex flex-wrap items-center gap-2">
               <Tag color={meta.color}>{meta.label}</Tag>
-              <span className="text-[12px] text-[var(--muted)]">waiting on <span className="text-[var(--text-2)]">{waitingOnLabel(a.waitingOn, me)}</span>
+              <span className="fs-12 text-[var(--muted)]">waiting on <span className="text-[var(--text-2)]">{waitingOnLabel(a.waitingOn, me)}</span>
                 {a.waitingDays >= 1 && <> · {Math.floor(a.waitingDays)}d</>}</span>
             </div>
-            <p className="text-[12.5px] text-[var(--text-2)] mt-1">{a.reason}</p>
-            <p className="text-[12.5px] text-[var(--text)] mt-0.5">→ {a.suggestion}</p>
+            <Baton action={a} me={me} />
+            <p className="fs-12-5 text-[var(--text-2)] mt-1">{a.reason}</p>
+            <p className="fs-12-5 text-[var(--text)] mt-0.5">→ {a.suggestion}</p>
             <Evidence items={a.evidence} />
           </li>
         );
@@ -155,7 +246,7 @@ function Post({ e, opening = false }) {
     <li className={`flex gap-2.5 ${e.isBot ? 'opacity-60' : ''}`}>
       <img src={e.avatarUrl || 'https://github.com/ghost.png'} alt="" className="w-6 h-6 rounded-full shrink-0 mt-0.5" loading="lazy" />
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-1.5 text-[12px]">
+        <div className="flex flex-wrap items-center gap-x-1.5 fs-12">
           <span className="text-[var(--text)] font-medium">{e.author}</span>
           {e.isMaintainer && <Tag>maintainer</Tag>}
           {e.isBot && <Tag>bot</Tag>}
@@ -168,10 +259,10 @@ function Post({ e, opening = false }) {
             <Markdown remarkPlugins={[remarkGfm]} components={mdComponents}>{body}</Markdown>
           </div>
         ) : (
-          <p className="text-[12px] text-[var(--faint)] mt-0.5">No description.</p>
+          <p className="fs-12 text-[var(--faint)] mt-0.5">No description.</p>
         )}
         {long && (
-          <button onClick={() => setExpanded((x) => !x)} className="text-[11.5px] text-[var(--muted)] hover:text-[var(--text)] mt-0.5">
+          <button onClick={() => setExpanded((x) => !x)} className="fs-11-5 text-[var(--muted)] hover:text-[var(--text)] mt-0.5">
             {expanded ? 'Show less' : 'Show more'}
           </button>
         )}
@@ -199,7 +290,7 @@ function Conversation({ owner, repo, number }) {
             <Fragment key={e.id}>
               {hidden > 0 && i === 2 && (
                 <li>
-                  <button onClick={() => setShowAll(true)} className="w-full h-7 rounded-md border border-dashed border-[var(--line)] text-[12px] text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]">
+                  <button onClick={() => setShowAll(true)} className="w-full h-7 rounded-md border border-dashed border-[var(--line)] fs-12 text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--hover)]">
                     Show {hidden} more comments
                   </button>
                 </li>
@@ -207,7 +298,7 @@ function Conversation({ owner, repo, number }) {
               <Post e={e} />
             </Fragment>
           ))}
-          {entries.length === 0 && <li className="text-[12px] text-[var(--faint)] pl-8">No comments yet. Be the first to reply.</li>}
+          {entries.length === 0 && <li className="fs-12 text-[var(--faint)] pl-8">No comments yet. Be the first to reply.</li>}
         </ul>
       )}
     </Block>
@@ -218,12 +309,52 @@ function Conversation({ owner, repo, number }) {
 // Composer (posts to GitHub as the user)
 // ---------------------------------------------------------------------------
 
+/** Your path from claim to merged PR, ticked from GitHub state. */
+function FirstPrPath({ issue, availability, mine, me }) {
+  const { steps, next } = firstPrSteps({ issue, availability, mine, me });
+  const doneCount = steps.filter((x) => x.done).length;
+  return (
+    <Block title={`Your path to a merged PR · ${doneCount}/${steps.length}`}>
+      <ol className="space-y-1.5">
+        {steps.map((st) => (
+          <li key={st.id} className="flex items-center gap-2 fs-13">
+            <span aria-hidden className={`w-4 h-4 inline-flex items-center justify-center rounded-full border ${st.done
+              ? 'bg-[var(--green)] border-[var(--green)] text-[var(--bg)]' : st.id === next ? 'border-[var(--accent)]' : 'border-[var(--line)]'}`}>
+              {st.done && <Check className="w-3 h-3" />}
+            </span>
+            <span className={st.done ? 'text-[var(--muted)] line-through decoration-[var(--line)]' : st.id === next ? 'text-[var(--text)] font-medium' : 'text-[var(--text-2)]'}>
+              {st.url ? <ExtLink href={st.url}>{st.label}</ExtLink> : st.label}
+            </span>
+            {st.id === next && <span className="fs-11 text-[var(--accent)]">next</span>}
+          </li>
+        ))}
+      </ol>
+    </Block>
+  );
+}
+
+/** Small row of ready-made drafts; picking one fills the composer for editing. */
+function DraftPicker({ drafts, value, onPick }) {
+  if (!drafts.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mb-2" role="group" aria-label="Drafts">
+      {drafts.map((d) => (
+        <Button key={d.id} size="sm" variant={value === d.id ? 'subtle' : 'ghost'} aria-pressed={value === d.id}
+          onClick={() => onPick(value === d.id ? null : d)}>
+          {d.label}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
 function Composer({ owner, repo, number, initial = '', placeholder, cta = 'Comment on GitHub', onPosted, showLabels }) {
   const [text, setText] = useState(initial);
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
   const postRef = useRef(null);
-  const replies = useQuery(keys.replies(), () => workApi.savedReplies(), { staleMs: 5 * 60_000 });
+  // Saved replies are a maintainer feature (the API is maintainer-only).
+  const replies = useQuery(showLabels ? keys.replies() : null, () => workApi.savedReplies(), { staleMs: 5 * 60_000 });
   useEffect(() => setText(initial), [initial]);
 
   const post = async () => {
@@ -279,19 +410,19 @@ function Composer({ owner, repo, number, initial = '', placeholder, cta = 'Comme
         <Button ref={postRef} variant="primary" disabled={busy || !text.trim()} onClick={post}>
           <MessageSquare className="w-3.5 h-3.5" /> {busy ? 'Posting…' : cta}
         </Button>
-        <span className="text-[11px] text-[var(--faint)]">⌘↵</span>
+        <span className="fs-11 text-[var(--faint)]">⌘↵</span>
         {list.length > 0 && (
           <select
             value=""
             onChange={(e) => { const r = list.find((x) => x.id === e.target.value); if (r) setText((t) => (t ? `${t}\n\n${r.body}` : r.body)); }}
-            className="h-7 px-2 rounded-md text-[12px] bg-[var(--panel)] border border-[var(--line)] text-[var(--text-2)]"
+            className="h-7 px-2 rounded-md fs-12 bg-[var(--panel)] border border-[var(--line)] text-[var(--text-2)]"
             aria-label="Insert saved reply"
           >
             <option value="">Saved replies…</option>
             {list.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
         )}
-        {text.trim().length > 20 && <Button variant="subtle" size="sm" onClick={saveReply}>Save as reply</Button>}
+        {showLabels && text.trim().length > 20 && <Button variant="subtle" size="sm" onClick={saveReply}>Save as reply</Button>}
       </div>
       {showLabels && (
         <form onSubmit={applyLabel} className="flex items-center gap-2 pt-1">
@@ -347,6 +478,8 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
   const verdict = v ? VERDICT[v.pickup.verdict] : null;
   const resp = v?.responsiveness ? RESPONSIVENESS[v.responsiveness.level] : null;
   const canClaim = v && !isMaintainer && !v.mine.claimed && ['available', 'claimed_stale', 'in_progress_stalled'].includes(v.availability.status);
+  const drafts = useMemo(() => (v ? issueDrafts({ availability: v.availability, mine: v.mine, isMaintainer, me: user?.username, duplicates: v.related?.possibleDuplicates ?? [] }) : []), [v, isMaintainer, user?.username]);
+  const [draft, setDraft] = useState(null);
 
   return (
     <>
@@ -376,16 +509,16 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
                 {v.availability.contested && <Tag color="red">Contested</Tag>}
                 {resp && <Tag color={resp.color} title={v.responsiveness.summary}>{resp.label}</Tag>}
               </div>
-              <p className="text-[12.5px] text-[var(--text-2)] mt-2">{v.availability.summary}</p>
+              <p className="fs-12-5 text-[var(--text-2)] mt-2">{v.availability.summary}</p>
               {(v.pickup.reasons.length > 0 || v.pickup.warnings.length > 0) && (
-                <ul className="mt-1.5 space-y-0.5 text-[12px]">
+                <ul className="mt-1.5 space-y-0.5 fs-12">
                   {v.pickup.reasons.map((r) => <li key={r} className="text-[var(--muted)]"><span className="text-[var(--green)]">+</span> {r}</li>)}
                   {v.pickup.warnings.map((w) => <li key={w} className="text-[var(--muted)]"><span className="text-[var(--amber)]">!</span> {w}</li>)}
                 </ul>
               )}
               <Evidence items={v.availability.evidence} />
               {v.mine.overlap.length > 0 && (
-                <p className="mt-2 text-[12.5px] text-[var(--red)]">
+                <p className="mt-2 fs-12-5 text-[var(--red)]">
                   You claimed this, but {v.mine.overlap.map((o) => `@${o.author} (#${o.number})`).join(', ')} opened a PR. Coordinate before continuing.
                 </p>
               )}
@@ -395,13 +528,21 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
               <ActionList actions={v.actions} me={user?.username} />
             </Block>
 
+            {v.mine.claimed && !isMaintainer && (
+              <FirstPrPath issue={{ ...v.issue, number }} availability={v.availability} mine={v.mine} me={user?.username} />
+            )}
+
+            <HistoryBlock owner={owner} repo={repo} number={number} />
+
+            {isMaintainer && <ContributorBlock owner={owner} repo={repo} login={v.issue.author?.login} />}
+
             <Conversation owner={owner} repo={repo} number={number} />
 
             {(v.related.possibleDuplicates.length > 0 || v.related.related.length > 0) && (
               <Block title={v.related.possibleDuplicates.length ? 'Possible duplicates' : 'Related'}>
                 <ul className="space-y-1">
                   {[...v.related.possibleDuplicates, ...v.related.related].map((r) => (
-                    <li key={r.number} className="flex items-center gap-2 text-[12.5px]">
+                    <li key={r.number} className="flex items-center gap-2 fs-12-5">
                       <Dot color={r.state === 'OPEN' ? 'green' : 'gray'} />
                       <ExtLink href={r.url} className="text-[var(--text-2)] truncate">#{r.number} {r.title}</ExtLink>
                     </li>
@@ -417,17 +558,17 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
           <>
             <Block title="Where to start" right={p.ai?.available && (
               <button onClick={askGuide} disabled={guide.loading}
-                className="inline-flex items-center gap-1 text-[11.5px] text-[var(--purple)] hover:underline disabled:opacity-50">
+                className="inline-flex items-center gap-1 fs-11-5 text-[var(--purple)] hover:underline disabled:opacity-50">
                 <Sparkles className="w-3 h-3" /> {guide.loading ? 'Thinking…' : 'AI plan'}
               </button>
             )}>
-              <ol className="list-decimal pl-4 space-y-0.5 text-[12.5px] text-[var(--text-2)]">
+              <ol className="list-decimal pl-4 space-y-0.5 fs-12-5 text-[var(--text-2)]">
                 {p.checklist.map((c) => <li key={c}>{c}</li>)}
               </ol>
               {guide.text && (
                 <div className="mt-2.5 pl-3 border-l-2 border-[var(--purple)]">
-                  <p className="text-[11px] text-[var(--faint)] mb-1">AI suggestion from the facts on this page. Verify before relying on it.</p>
-                  <p className="text-[12.5px] text-[var(--text-2)] whitespace-pre-wrap">{guide.text}</p>
+                  <p className="fs-11 text-[var(--faint)] mb-1">AI suggestion from the facts on this page. Verify before relying on it.</p>
+                  <p className="fs-12-5 text-[var(--text-2)] whitespace-pre-wrap">{guide.text}</p>
                 </div>
               )}
             </Block>
@@ -440,7 +581,7 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
                       <FileCode2 className="w-3.5 h-3.5 text-[var(--faint)]" />
                       <ExtLink href={f.url} className="mono text-[var(--text-2)]">{f.path}</ExtLink>
                       {f.owners.map((o) => <Tag key={o}>{o}</Tag>)}
-                      {f.recentPRs.map((r) => <span key={r.number} className="text-[11.5px] text-[var(--faint)]">#{r.number} @{r.author}</span>)}
+                      {f.recentPRs.map((r) => <span key={r.number} className="fs-11-5 text-[var(--faint)]">#{r.number} @{r.author}</span>)}
                     </li>
                   ))}
                 </ul>
@@ -451,10 +592,10 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
               <Block title="Previous attempts">
                 <ul className="space-y-1">
                   {p.previousAttempts.map((a) => (
-                    <li key={a.url} className="flex items-center gap-2 text-[12.5px]">
+                    <li key={a.url} className="flex items-center gap-2 fs-12-5">
                       <Dot color={a.state === 'MERGED' ? 'purple' : a.state === 'OPEN' ? 'green' : 'gray'} title={a.state} />
                       <ExtLink href={a.url} className="text-[var(--text-2)] truncate">#{a.number} {a.title}</ExtLink>
-                      <span className="text-[11.5px] text-[var(--faint)] shrink-0">@{a.author} · {timeAgo(a.updatedAt)}</span>
+                      <span className="fs-11-5 text-[var(--faint)] shrink-0">@{a.author} · {timeAgo(a.updatedAt)}</span>
                     </li>
                   ))}
                 </ul>
@@ -466,8 +607,8 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
                 <ul className="space-y-2.5">
                   {p.maintainerNotes.map((m) => (
                     <li key={m.url}>
-                      <div className="text-[11.5px] text-[var(--faint)]">@{m.author} · <ExtLink href={m.url}>{timeAgo(m.at)}</ExtLink></div>
-                      <p className="text-[12.5px] text-[var(--text-2)] whitespace-pre-wrap line-clamp-5">{m.excerpt}</p>
+                      <div className="fs-11-5 text-[var(--faint)]">@{m.author} · <ExtLink href={m.url}>{timeAgo(m.at)}</ExtLink></div>
+                      <p className="fs-12-5 text-[var(--text-2)] whitespace-pre-wrap line-clamp-5">{m.excerpt}</p>
                     </li>
                   ))}
                 </ul>
@@ -476,12 +617,12 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
 
             {p.setup && (p.setup.setup.length > 0 || Object.keys(p.setup.scripts).length > 0) && (
               <Block title="Run it locally" right={
-                <button onClick={() => navigate(`/dashboard/lens/${owner}/${repo}`)} className="inline-flex items-center gap-1 text-[11.5px] text-[var(--muted)] hover:text-[var(--text)]">
+                <button onClick={() => navigate(`/dashboard/lens/${owner}/${repo}`)} className="inline-flex items-center gap-1 fs-11-5 text-[var(--muted)] hover:text-[var(--text)]">
                   <BookOpen className="w-3 h-3" /> Repo lens
                 </button>
               }>
                 {p.setup.setup.slice(0, 1).map((b) => (
-                  <pre key={b.section} className="mono text-[11.5px] bg-[var(--bg)] border border-[var(--line-soft)] rounded-md p-2.5 overflow-x-auto text-[var(--text-2)]">{b.commands.join('\n')}</pre>
+                  <pre key={b.section} className="mono fs-11-5 bg-[var(--bg)] border border-[var(--line-soft)] rounded-md p-2.5 overflow-x-auto text-[var(--text-2)]">{b.commands.join('\n')}</pre>
                 ))}
                 {Object.keys(p.setup.scripts).length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">{Object.keys(p.setup.scripts).map((k) => <Tag key={k} mono>{k}</Tag>)}</div>
@@ -503,9 +644,10 @@ export function IssueDetail({ owner, repo, number, onClose, standalone = false }
 
         {v && (canClaim || isMaintainer || v.mine.claimed) && (
           <Block title={canClaim ? 'Claim it on GitHub' : 'Reply'}>
-            {canClaim && <p className="text-[12px] text-[var(--muted)] mb-2">Posted as you on the issue, so everyone (not just OpenTriage users) sees it's taken.</p>}
+            {canClaim && <p className="fs-12 text-[var(--muted)] mb-2">Posted as you on the issue, so everyone (not just OpenTriage users) sees it's taken.</p>}
+            {!canClaim && <DraftPicker drafts={drafts} value={draft?.id} onPick={setDraft} />}
             <Composer owner={owner} repo={repo} number={number}
-              initial={canClaim ? claimDraft : ''}
+              initial={canClaim ? claimDraft : draft?.text ?? ''}
               cta={canClaim ? 'Post claim' : 'Comment on GitHub'}
               placeholder="Write a reply…"
               showLabels={isMaintainer}
@@ -531,6 +673,9 @@ export function PRDetail({ owner, repo, number, onClose }) {
 
   const checks = pr?.checks ? CHECKS[pr.checks] : null;
   const review = pr?.reviewDecision ? REVIEW[pr.reviewDecision] : null;
+  const stalled = Boolean(d?.actions?.some((a) => a.type === 'stalled'));
+  const prDraftList = useMemo(() => (d ? prDrafts({ pr, mine: d.mine, isMaintainer: role === 'MAINTAINER', stalled }) : []), [d, pr, role, stalled]);
+  const [draft, setDraft] = useState(null);
 
   return (
     <>
@@ -557,7 +702,7 @@ export function PRDetail({ owner, repo, number, onClose }) {
                 {pr.mergeable === 'MERGEABLE' && <Tag color="green">Mergeable</Tag>}
               </div>
               {d.closes.length > 0 && (
-                <p className="mt-2 text-[12.5px] text-[var(--muted)]">
+                <p className="mt-2 fs-12-5 text-[var(--muted)]">
                   Closes {d.closes.map((c, i) => (
                     <button key={c.number} onClick={() => open({ kind: 'issue', owner, repo, number: c.number })}
                       className="text-[var(--text-2)] hover:underline mono">{i ? ', ' : ''}#{c.number}</button>
@@ -570,11 +715,13 @@ export function PRDetail({ owner, repo, number, onClose }) {
               <ActionList actions={d.actions} me={user?.username} />
             </Block>
 
+            {role === 'MAINTAINER' && <ContributorBlock owner={owner} repo={repo} login={pr.author?.login} />}
+
             <Conversation owner={owner} repo={repo} number={number} />
 
             {(d.reviews.length > 0 || pr.requestedReviewers.length > 0 || d.suggestedReviewers.length > 0) && (
               <Block title="Reviewers">
-                <ul className="space-y-1 text-[12.5px]">
+                <ul className="space-y-1 fs-12-5">
                   {d.reviews.map((r) => (
                     <li key={r.login} className="flex items-center gap-2">
                       <Dot color={r.state === 'APPROVED' ? 'green' : r.state === 'CHANGES_REQUESTED' ? 'amber' : 'gray'} />
@@ -590,19 +737,19 @@ export function PRDetail({ owner, repo, number, onClose }) {
                   ))}
                 </ul>
                 {d.suggestedReviewers.length > 0 && (
-                  <p className="mt-2 text-[12px] text-[var(--muted)]">Code owners for these files: {d.suggestedReviewers.join(' ')}</p>
+                  <p className="mt-2 fs-12 text-[var(--muted)]">Code owners for these files: {d.suggestedReviewers.join(' ')}</p>
                 )}
               </Block>
             )}
 
             <Block title={`Files · ${d.files.count}`} right={d.files.count > 8 && (
-              <button onClick={() => setShowFiles((s) => !s)} className="text-[11.5px] text-[var(--muted)] hover:text-[var(--text)]">
+              <button onClick={() => setShowFiles((s) => !s)} className="fs-11-5 text-[var(--muted)] hover:text-[var(--text)]">
                 {showFiles ? 'Show less' : 'Show all'}
               </button>
             )}>
               <ul className="space-y-0.5">
                 {(showFiles ? d.files.list : d.files.list.slice(0, 8)).map((f) => (
-                  <li key={f.path} className="flex items-center gap-2 text-[12px]">
+                  <li key={f.path} className="flex items-center gap-2 fs-12">
                     <span className="mono text-[var(--text-2)] truncate flex-1">{f.path}</span>
                     <span className="mono text-[var(--green)]">+{f.additions}</span>
                     <span className="mono text-[var(--red)]">−{f.deletions}</span>
@@ -611,8 +758,17 @@ export function PRDetail({ owner, repo, number, onClose }) {
               </ul>
             </Block>
 
+            {stalled && !d.mine && (
+              <Block title="Continue this work">
+                <p className="fs-12-5 text-[var(--text-2)]">Stalled work doesn't have to be lost. Ask first, then continue from the author's branch and keep their credit:</p>
+                <pre className="mono fs-12 mt-2 p-2 rounded-md bg-[var(--inset)] border border-[var(--line-soft)] overflow-x-auto">{`gh pr checkout ${number} --repo ${owner}/${repo}\n# …your commits…\n# in your final commit message:\n${coAuthorTrailer(pr.author?.login ?? 'author')}`}</pre>
+              </Block>
+            )}
+
             <Block title="Reply">
+              <DraftPicker drafts={prDraftList} value={draft?.id} onPick={setDraft} />
               <Composer owner={owner} repo={repo} number={number}
+                initial={draft?.text ?? ''}
                 placeholder={d.mine ? 'Answer reviewers or post an update…' : 'Leave a review comment…'}
                 showLabels={role === 'MAINTAINER'}
                 onPosted={() => { view.refresh(); invalidate('prs:'); invalidate('today:'); }} />

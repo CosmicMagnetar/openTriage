@@ -9,7 +9,7 @@ import { keys, parseGitHubRef, workApi } from '../../services/workApi';
 import { useQuery } from '../../lib/query';
 import { prefetchItem, useItemPanel, useListNav } from './useWorkspace';
 import {
-  AVAILABILITY, Button, Dot, Empty, ErrorLine, Input, Page, RESPONSIVENESS, Ref, Row, Segments, SkeletonRows, Stagger,
+  AVAILABILITY, Button, Dot, Pulse, Empty, ErrorLine, Input, Page, RESPONSIVENESS, Ref, Row, Segments, SkeletonRows, Stagger,
   StaggerItem, Tag, VERDICT, timeAgo,
 } from './ui';
 import { InterestsEditor, OpportunityRows, useOpportunities } from './opportunities';
@@ -97,7 +97,7 @@ export default function FindWorkPage() {
       {q.error && <ErrorLine message={q.error.message} onRetry={q.refresh} />}
       {q.isLoading && <SkeletonRows n={8} />}
       {q.data && results.length === 0 && (
-        <Empty title="No unclaimed issues match"
+        <Empty art="search" title="No unclaimed issues match"
           action={mode === 'for' ? <Button onClick={() => setTuning(true)}>Add languages or repos</Button> : null}>
           {mode === 'for' ? 'Add a language or a repo you like and we will look there.' : 'Try a broader label or language, or switch to “Any label”.'}
         </Empty>
@@ -117,7 +117,7 @@ export default function FindWorkPage() {
                 <Row id={`row-${i}`} selected={i === index}
                   onClick={() => { setIndex(i); open(items[i]); }}
                   onMouseEnter={() => prefetchItem(items[i])}
-                  lead={<Dot color={verdict.color} title={verdict.label} />}
+                  lead={<Pulse color={verdict.color} title={verdict.label} />}
                   title={r.title}
                   meta={<>
                     <Ref owner={r.owner} repo={r.repo} number={r.number} />

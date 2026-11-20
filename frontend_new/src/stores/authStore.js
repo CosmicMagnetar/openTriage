@@ -1,8 +1,9 @@
+import { BACKEND_URL } from '../lib/config';
 import { create } from "zustand";
 import axios from "axios";
 import { clearQueryCache, setQueryScope } from "../lib/query";
 
-const API = `${import.meta.env.VITE_BACKEND_URL}/api`;
+const API = `${BACKEND_URL}/api`;
 const USER_KEY = "ot_user";
 
 function readCachedUser() {
@@ -18,6 +19,26 @@ function writeCachedUser(user) {
   try {
     if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
     else localStorage.removeItem(USER_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+// The workspace (CONTRIBUTOR / MAINTAINER) last chosen on this device, per account.
+const WS_KEY = "ot:workspace";
+
+export function readChosenWorkspace(userId) {
+  try {
+    const v = JSON.parse(localStorage.getItem(WS_KEY) || "null");
+    return v && v.userId === userId && (v.role === "MAINTAINER" || v.role === "CONTRIBUTOR") ? v.role : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeChosenWorkspace(userId, role) {
+  try {
+    if (userId) localStorage.setItem(WS_KEY, JSON.stringify({ userId, role }));
   } catch {
     /* ignore */
   }
@@ -81,11 +102,26 @@ const useAuthStore = create((set, get) => ({
     try {
       const response = await axios.get(`${API}/auth/me`);
       setQueryScope(response.data.id);
-      writeCachedUser(response.data);
+      let me = response.data;
+      // The workspace you picked on this device wins. If something else changed the
+      // shared account row (another browser, another deployment), switch it back once.
+      const chosen = readChosenWorkspace(me.id);
+      if (chosen && chosen !== me.role) {
+        try {
+          const r = await axios.post(`${API}/auth/select-role`, { role: chosen });
+          localStorage.setItem("token", r.data.token);
+          axios.defaults.headers.common["Authorization"] = `Bearer ${r.data.token}`;
+          me = { ...me, role: r.data.role };
+          set({ token: r.data.token });
+        } catch {
+          /* keep the server's value if re-applying fails */
+        }
+      }
+      writeCachedUser(me);
       set({
-        token,
-        user: response.data,
-        role: response.data.role,
+        token: get().token ?? token,
+        user: me,
+        role: me.role,
         isLoading: false,
       });
     } catch (error) {
@@ -171,6 +207,7 @@ const useAuthStore = create((set, get) => ({
       set((state) => {
         const user = { ...state.user, role };
         writeCachedUser(user);
+        writeChosenWorkspace(user.id, role);
         return { token, role, user };
       });
       return true;

@@ -10,12 +10,12 @@ import useAuthStore from "./stores/authStore";
 import SplashScreen from "./components/SplashScreen";
 import LandingPage from "./components/LandingPage";
 import { Toaster } from "./components/ui/sonner";
-import { refreshAblyClient } from "./lib/ably";
 import "./App.css";
 
 // Lazy-load heavy components that are only needed post-login
 const AuthPage = lazy(() => import("./components/AuthPage"));
 const WorkspaceLayout = lazy(() => import("./components/workspace/WorkspaceLayout"));
+const PublicProfile = lazy(() => import('./components/PublicProfile'));
 
 function App() {
   const {
@@ -28,13 +28,6 @@ function App() {
 
   // Enhanced logout that handles cleanup properly
   const handleLogout = useCallback(() => {
-    // Disconnect real-time services first
-    try {
-      refreshAblyClient();
-    } catch (e) {
-      console.debug("Cleanup during logout:", e);
-    }
-
     // Now trigger the store logout
     storeLogout();
   }, [storeLogout]);
@@ -111,6 +104,7 @@ function App() {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<AuthPage />} />
+              <Route path="/u/:login" element={<PublicProfile />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
@@ -135,6 +129,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             {/* One shell for both workspaces; role picks the nav and data. */}
             <Route path="/dashboard/*" element={<WorkspaceLayout />} />
+            <Route path="/u/:login" element={<PublicProfile />} />
             {/* Catch all unauthorized routes - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
