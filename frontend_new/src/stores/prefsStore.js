@@ -43,7 +43,7 @@ const DEFAULTS = {
   collapsed: [],
   pinned: [],
   // Profile: what you show and how it looks. seen = highest tier already celebrated per badge.
-  profile: { hidden: [], featured: [], banner: "graph", hue: "indigo", stats: ["merged", "opened", "repos", "reviews"], public: false, weeklyGoal: 3, seen: {} },
+  profile: { hidden: [], featured: [], banner: "graph", hue: "indigo", stats: ["merged", "opened", "repos", "reviews"], public: false, weeklyGoal: 3, showOrgs: false, seen: {} },
   // Program ids the contributor tracks (deadlines on Home, sidebar, calendar feed).
   trackedPrograms: [],
   // Today widgets per workspace, in order; missing ids are hidden.

@@ -70,6 +70,9 @@ export const workApi = {
   community: (o) => get("/maintainer/community", fresh(o)),
   docsHealth: (repo, o) => get("/maintainer/docs-health", { repo, ...fresh(o) }),
   createDoc: (repo, item) => send("post", "/maintainer/docs-health/create", { repo, item }),
+  /** Repos you can maintain on GitHub, your orgs, and whether sign-in needs re-connecting. */
+  access: (o) => get("/me/access", { ...fresh(o), ...(o?.autotrack ? { autotrack: 1 } : {}) }),
+  trackRepos: (repos) => send("post", "/me/access", { repos }),
 };
 
 /** Cache keys: one place so pages, panel and prefetch agree. */
@@ -94,6 +97,7 @@ export const keys = {
   myPrograms: () => "me:programs",
   community: () => "community",
   docs: (repo) => `docs:${repo}`.toLowerCase(),
+  access: () => "access",
 };
 
 /**

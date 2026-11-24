@@ -1,73 +1,34 @@
 /**
- * Maintainer GitHub Repos Route
- * 
  * GET /api/maintainer/github/repos
- * Fetch user's owned GitHub repositories for Add Repo dropdown
+ * Repos you can maintain (owned, collaborator, org/team) that you don't track
+ * yet, for the Add Repo picker. Same detection as /api/me/access.
  */
-
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
-import { db } from "@/db";
-import { repositories } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { MINUTE, cached } from "@/lib/github/services";
+import { fetchAccess } from "@/lib/github/access";
+import { githubError, resolveRepos, withGitHub } from "@/lib/github/route-helpers";
 
 export async function GET(request: NextRequest) {
+    const g = await withGitHub(request);
+    if ("error" in g) return g.error;
     try {
-        const user = await getCurrentUser(request);
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        if (!user.githubAccessToken) {
-            return NextResponse.json({ error: "GitHub token not available" }, { status: 400 });
-        }
-
-        // Fetch user's repos from GitHub (owned and where they have push/admin access)
-        const response = await fetch("https://api.github.com/user/repos?affiliation=owner,collaborator&per_page=100&sort=updated", {
-            headers: {
-                "Authorization": `Bearer ${user.githubAccessToken}`,
-                "Accept": "application/vnd.github.v3+json",
-                "User-Agent": "OpenTriage"
-            }
-        });
-
-        if (!response.ok) {
-            console.error("GitHub API error:", response.status, await response.text());
-            return NextResponse.json({ error: "Failed to fetch repos from GitHub" }, { status: 502 });
-        }
-
-        const githubRepos = await response.json();
-
-        // Get already-added repos to filter them out (by name since githubRepoId might be 0)
-        const existingRepos = await db.select({ name: repositories.name })
-            .from(repositories)
-            .where(eq(repositories.userId, user.id));
-
-        const existingNames = new Set(existingRepos.map(r => r.name));
-
-        // Filter and format repos - filter by fullName
-        const availableRepos = githubRepos
-            .filter((repo: any) => !existingNames.has(repo.full_name))
-            // Only include repos where user has admin or push permissions
-            .filter((repo: any) => repo.permissions?.admin || repo.permissions?.push || repo.permissions?.maintain)
-            .map((repo: any) => ({
-                id: repo.id,
-                name: repo.name,
-                fullName: repo.full_name,
-                owner: repo.owner.login,
-                description: repo.description,
-                language: repo.language,
-                stars: repo.stargazers_count,
-                updatedAt: repo.updated_at,
-                isPrivate: repo.private,
+        const access = await cached(`access:${g.user.id}`, 10 * MINUTE, () => fetchAccess(g.user.githubAccessToken!, g.user.username));
+        const tracked = new Set((await resolveRepos(request, g.user.id)).map((r) => `${r.owner}/${r.repo}`.toLowerCase()));
+        const repos = access.repos
+            .filter((r) => !tracked.has(r.fullName.toLowerCase()))
+            .map((r) => ({
+                name: r.name,
+                fullName: r.fullName,
+                owner: r.owner,
+                role: r.role,
+                description: r.description,
+                language: r.language,
+                stars: r.stars,
+                updatedAt: r.pushedAt,
+                isPrivate: r.private,
             }));
-
-        return NextResponse.json({
-            repos: availableRepos,
-            total: availableRepos.length,
-        });
-    } catch (error) {
-        console.error("GET /api/maintainer/github/repos error:", error);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        return NextResponse.json({ repos, total: repos.length });
+    } catch (err) {
+        return githubError(err, "your repositories");
     }
 }

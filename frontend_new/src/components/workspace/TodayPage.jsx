@@ -5,7 +5,7 @@
  *   (reply, review, merge, decide), plus repos, newcomers and stale claims.
  * Side widgets are chosen and ordered in Settings → Home page.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, GitMerge, GitPullRequest, MessageSquare, Plus, Scale } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,6 +24,7 @@ import { useOpportunities } from './opportunities';
 import { prBucket } from './prRows';
 import { TODAY_EXTRA_WIDGETS } from './todayWidgets';
 import WelcomeFlow from './WelcomeFlow';
+import { YourGitHubRepos } from './repoAccess';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -283,6 +284,22 @@ function CommandCenter() {
   const refresh = () => { q.refresh(); prs.refresh(); inbox.refresh(); };
   const { index, setIndex, open } = useListNav(items, { onRefresh: refresh });
   const onTracked = () => { invalidate('today:'); invalidate('inbox'); invalidate('prs:'); q.refresh(); };
+
+  // Nothing tracked yet: start tracking the repos you clearly maintain on GitHub, once.
+  const autoTried = useRef(false);
+  const noRepos = !!q.data && (q.data.repos?.length ?? 0) === 0;
+  useEffect(() => {
+    if (!noRepos || autoTried.current) return;
+    autoTried.current = true;
+    workApi.access({ autotrack: true }).then((r) => {
+      invalidate(keys.access());
+      if (r.autoTracked?.length) {
+        toast.success(`Now managing ${r.autoTracked.length} repo${r.autoTracked.length === 1 ? '' : 's'} you maintain on GitHub`);
+        onTracked();
+      }
+    }).catch(() => { /* the repo picker below still works */ });
+  }, [noRepos]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const oldest = actions.reduce((m, a) => Math.max(m, a.waitingDays ?? 0), 0);
 
   const widgets = {
@@ -384,7 +401,10 @@ function CommandCenter() {
               );
             })}
           </Card>
-          <div className="space-y-4">{side}</div>
+          <div className="space-y-4">
+            <YourGitHubRepos onTracked={onTracked} />
+            {side}
+          </div>
         </div>
       </div>
     </Page>

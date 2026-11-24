@@ -12,6 +12,7 @@ import BadgeArt from './workspace/badges/BadgeArt';
 import { TIERS, evaluateAll, featuredBadges, levelTitle } from './workspace/badges/registry';
 import { ContributionGraph } from './workspace/ContributionGraph';
 import { HUES } from './workspace/nav';
+import { OrgList } from './workspace/repoAccess';
 import './workspace/theme.css';
 
 const STAT_LABELS = {
@@ -80,6 +81,7 @@ export default function PublicProfile() {
                     {gh?.location && <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{gh.location}</span>}
                     {gh && <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" />{gh.followers} followers</span>}
                   </p>
+                  {d.orgs?.length > 0 && <div className="mt-3"><OrgList orgs={d.orgs} /></div>}
                 </div>
                 <a href={`https://github.com/${d.login}`} target="_blank" rel="noopener noreferrer" className="fs-13 text-[var(--link)] hover:underline">View on GitHub</a>
               </div>

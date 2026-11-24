@@ -22,4 +22,6 @@ const data = await cached(`key:${owner}/${repo}`, 5 * MINUTE,
 - **Cache keys:** keys without the user in them (`resp:`, `lens:`) are shared across users. Only put data there that is the same for everyone (public repo facts). Anything personal must include the user id or login.
 - Caches are in-process today, so they are lost on restart and not shared between instances. (Moving them to Turso is planned.)
 - GitHub Search is limited to 30 requests per minute per token. Prefer one search with several qualifiers over many searches.
-- The OAuth scope currently has no `read:org`; org-only data needs that scope (planned).
+- **Scopes:** sign-in asks for `read:org read:project` (`app/api/auth/github/route.ts`). Older sign-ins lack them: `missingScopes()` in `lib/github/access.ts` reads GitHub's `X-OAuth-Scopes` header, and the UI shows a one-time "Re-connect" bar. If you need a new scope, add it to both the auth route and `REQUIRED_SCOPES`.
+- **Which repos a user maintains:** use `fetchAccess()` (cached as `access:<userId>`), never `/user/repos` with the default affiliation. The default skips org/team repos and only the first page comes back. Track with `trackRepos()` in `lib/github/track.ts`.
+- **Orgs that block OAuth apps** return no repos for that org. Show `requestAccessUrl()` so the user can ask the org to approve OpenTriage.

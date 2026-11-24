@@ -23,6 +23,7 @@ import { FAMILIES, MAINTAINER_FAMILIES, TIERS, evaluateAll, evaluateMaintainer, 
 import { REFRESH_MS } from '../../lib/query';
 import MyPrograms, { ProgramAchievements } from './MyPrograms';
 import { badgeImage, loadImage } from './badges/badgeImage';
+import { OrgList, useAccess } from './repoAccess';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -50,7 +51,7 @@ const STAT_DEFS = {
   lines: ['Lines added', (d) => d.stats.additions],
 };
 
-const SYNCED = ['public', 'hidden', 'featured', 'banner', 'hue', 'stats', 'weeklyGoal'];
+const SYNCED = ['public', 'hidden', 'featured', 'banner', 'hue', 'stats', 'weeklyGoal', 'showOrgs'];
 const pick = (p) => Object.fromEntries(SYNCED.map((k) => [k, p[k]]));
 
 /**
@@ -337,6 +338,13 @@ function Customize({ profile, hue, login }) {
             <span className="block fs-12-5 text-[var(--muted)]">Anyone with the link sees your level, pinned and visible badges, and the numbers you chose. Off by default.</span>
           </span>
         </label>
+        <label className="flex items-start gap-3 cursor-pointer mt-3">
+          <input type="checkbox" className="mt-1" checked={!!profile.showOrgs} onChange={(e) => setProfile({ showOrgs: e.target.checked })} style={{ accentColor: hue }} />
+          <span>
+            <span className="block fs-13-5 font-medium">Show my organizations</span>
+            <span className="block fs-12-5 text-[var(--muted)]">Adds your public GitHub orgs to the public link. Roles are never shown there.</span>
+          </span>
+        </label>
         {profile.public && (
           <div className="mt-3 flex gap-2 items-center">
             <a href={link} target="_blank" rel="noopener noreferrer" className="flex-1 truncate fs-13 mono text-[var(--link)] hover:underline">{link}</a>
@@ -463,6 +471,7 @@ export default function ProfilePage() {
   const login = user?.username;
   useProfileSync(profile);
   const gh = useGitHubUser(login);
+  const access = useAccess();
   const q = useQuery(keys.journey(), (o) => workApi.journey(o), { staleMs: 30 * 60_000 });
   const [tab, setTab] = useState('badges');
   const [open, setOpen] = useState(null);
@@ -524,6 +533,7 @@ export default function ProfilePage() {
                 {g && <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" />{g.followers} followers · {g.following} following</span>}
                 {g?.created_at && <span className="inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />On GitHub since {new Date(g.created_at).getFullYear()}</span>}
               </p>
+              {access.data?.orgs?.length > 0 && <div className="mt-3"><OrgList orgs={access.data.orgs} /></div>}
             </div>
             <span className="fs-12-5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[var(--line)] text-[var(--muted)]">
               {profile.public ? <><Link2 className="w-3.5 h-3.5" /> Public link on</> : <><Lock className="w-3.5 h-3.5" /> Private</>}

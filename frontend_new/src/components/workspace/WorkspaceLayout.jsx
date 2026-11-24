@@ -21,6 +21,7 @@ import { reminderPoint } from './programs';
 import { useItemPanel } from './useWorkspace';
 import WorkspaceSidebar from './WorkspaceSidebar';
 import ContextBar from './ContextBar';
+import { ReconnectBanner } from './repoAccess';
 import { useDeadlines } from './todayWidgets';
 import { daysUntil, whenText } from './programs';
 import ItemPanel from './ItemPanel';
@@ -139,6 +140,7 @@ export default function WorkspaceLayout() {
       data-ws={ws} data-density={prefs.density} data-text={prefs.textSize} data-motion={prefs.motion ? 'on' : 'off'}
       style={{ '--accent': accent.hex, '--accent-ink': accent.ink }}>
       <ContextBar ws={ws} repoCount={today.data?.repos?.length ?? 0} />
+      <ReconnectBanner />
       <div className="flex-1 min-h-0 flex">
       <WorkspaceSidebar ws={ws} groups={NAV[ws]} panels={panels}
         onPreload={(path) => { const k = path.split('/')[2] || 'today'; loaders[k]?.().catch(() => {}); }}

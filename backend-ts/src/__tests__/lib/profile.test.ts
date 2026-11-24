@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS, publicView, sanitizeSettings } from "@/lib/profile";
 describe("sanitizeSettings", () => {
     it("keeps known keys and drops everything else", () => {
         const s = sanitizeSettings({ public: true, featured: ["merger", "Bad Id!", "merger"], hidden: ["x"], banner: "dots", hue: "teal", stats: ["merged", "secret"], weeklyGoal: 7, evil: "<script>" });
-        expect(s).toEqual({ public: true, featured: ["merger"], hidden: ["x"], banner: "dots", hue: "teal", stats: ["merged"], weeklyGoal: 7 });
+        expect(s).toEqual({ public: true, featured: ["merger"], hidden: ["x"], banner: "dots", hue: "teal", stats: ["merged"], weeklyGoal: 7, showOrgs: false });
         expect((s as unknown as Record<string, unknown>).evil).toBeUndefined();
     });
 
@@ -47,5 +47,11 @@ describe("publicView", () => {
     it("passes through only display settings, not the public flag", () => {
         const v = publicView("me", journey, sanitizeSettings({ public: true, featured: ["merger"] }));
         expect(v.settings).toEqual({ hidden: [], featured: ["merger"], banner: "graph", hue: "indigo", stats: ["merged", "opened", "repos", "reviews"] });
+    });
+
+    it("shows orgs only when the owner turned it on", () => {
+        const orgs = [{ login: "cncf", avatarUrl: "https://a" }];
+        expect(publicView("me", journey, sanitizeSettings({ public: true }), orgs).orgs).toEqual([]);
+        expect(publicView("me", journey, sanitizeSettings({ public: true, showOrgs: true }), orgs).orgs).toEqual(orgs);
     });
 });

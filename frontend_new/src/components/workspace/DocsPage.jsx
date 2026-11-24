@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { keys, workApi } from '../../services/workApi';
 import { REFRESH_MS, invalidate, useQuery } from '../../lib/query';
 import { Button, Card, Confirm, ErrorLine, Page, SkeletonRows, timeAgo } from './ui';
+import { YourGitHubRepos } from './repoAccess';
 
 /** Show `backticked` words as inline code instead of raw backticks. */
 function Inline({ text }) {
@@ -98,7 +99,9 @@ export default function DocsPage() {
       <div className="px-8 py-6 space-y-5">
         {today.error && <ErrorLine message={today.error.message} onRetry={today.refresh} />}
         {!today.data && !today.error && <SkeletonRows />}
-        {today.data && repos.length === 0 && <p className="fs-14 text-[var(--muted)]">Track a repository from the Command center to check its docs.</p>}
+        <YourGitHubRepos title={repos.length ? 'More repos you maintain' : 'Pick the repos to check'}
+          onTracked={() => { invalidate('today:'); today.refresh(); }} />
+        {today.data && repos.length === 0 && <p className="fs-13 text-[var(--muted)]">Repos you manage show up here with what to fix.</p>}
         {repos.map((r) => <RepoDocs key={r} repo={r} onAsk={(repo, item) => setPending({ repo, item })} />)}
       </div>
       <Confirm open={!!pending} busy={busy} onCancel={() => setPending(null)} onConfirm={create}
