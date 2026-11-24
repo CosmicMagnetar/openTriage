@@ -1,0 +1,276 @@
+{
+ "total": 1304,
+ "data": [
+  {
+   "id": "0d6fd362-04a1-4086-a6e7-ec753ed4a60b",
+   "slug": "meshery-1",
+   "name": "Meshery",
+   "description": "As a self-service engineering platform, Meshery enables collaborative design and operation of cloud native infrastructure.\n\nAs a mentee, you will learn cloud native infrastructure management techniques, and will increase your understanding of distributed systems challenges and how to properly implem",
+   "logoUrl": "https://mentorship-logos-public.downloads.lfx.community/ff7860bc-f890-4f92-b721-1fc5bb1bd140-.png",
+   "skills": [
+    "API",
+    "AWS",
+    "Azure",
+    "Bash",
+    "DevOps",
+    "docker",
+    "GCP",
+    "github actions",
+    "GitHub API",
+    "go",
+    "GraphQL",
+    "helm",
+    "infrastructure as code",
+    "javascript",
+    "Jekyll",
+    "Kanvas",
+    "kubernetes",
+    "Linux",
+    "meshery",
+    "react",
+    "Redux",
+    "rust",
+    "Solutions Architecture",
+    "SQL",
+    "Terraform",
+    "ux"
+   ],
+   "status": "acceptance",
+   "foundation": {
+    "id": "657cd37a-33cb-442e-87b5-6718f47d4950",
+    "slug": "meshery",
+    "name": "Meshery"
+   },
+   "terms": [
+    {
+     "id": "20a3e811-e5a1-4b6d-9649-a213433ac919",
+     "name": "2026 Term 3",
+     "status": "open",
+     "startsAt": "2026-09-15",
+     "endsAt": "2026-12-16",
+     "applicationsStartAt": "2026-08-10T00:00:00Z",
+     "applicationsCloseAt": "2026-12-31T23:59:59Z"
+    },
+    {
+     "id": "92078a95-cc02-4c65-9a2c-05ae58fff99c",
+     "name": "2026 Term 1",
+     "status": "open",
+     "startsAt": "2026-01-16",
+     "endsAt": "2026-03-16",
+     "applicationsStartAt": "2026-01-15T00:00:00Z",
+     "applicationsCloseAt": "2026-03-16T23:59:59Z"
+    },
+    {
+     "id": "67ccab7d-a11f-4635-b78e-25f32d0ad4f3",
+     "name": "2025 Term 4",
+     "status": "closed",
+     "startsAt": "2025-10-16",
+     "endsAt": "2025-12-16",
+     "applicationsStartAt": "2025-09-06T00:00:00Z",
+     "applicationsCloseAt": "2025-12-16T23:59:59Z"
+    },
+    {
+     "id": "4d4c6849-02fe-4196-8d24-bcd0085a8020",
+     "name": "2025 Term 3",
+     "status": "closed",
+     "startsAt": "2025-06-15",
+     "endsAt": "2025-08-16",
+     "applicationsStartAt": "2025-03-22T00:00:00Z",
+     "applicationsCloseAt": "2025-08-16T23:59:59Z"
+    },
+    {
+     "id": "dc5590ba-7043-45b2-8680-09f38e07eeaa",
+     "name": "2025 Term 2",
+     "status": "closed",
+     "startsAt": "2025-03-16",
+     "endsAt": "2025-06-15",
+     "applicationsStartAt": "2025-02-12T00:00:00Z",
+     "applicationsCloseAt": "2025-03-16T23:59:59Z"
+    },
+    {
+     "id": "f08b97c5-1d52-49f2-a9f6-38b96b744444",
+     "name": "2025 Term 1",
+     "status": "closed",
+     "startsAt": "2025-02-13",
+     "endsAt": "2025-03-16",
+     "applicationsStartAt": "2025-02-12T00:00:00Z",
+     "applicationsCloseAt": "2025-02-13T23:59:59Z"
+    },
+    {
+     "id": "ea506894-595c-48d7-8b4d-2fc59b3285f7",
+     "name": "Term: Q1",
+     "status": "closed",
+     "startsAt": "2024-01-16",
+     "endsAt": "2024-03-16",
+     "applicationsStartAt": "2023-12-23T00:00:00Z",
+     "applicationsCloseAt": "2024-01-16T23:59:59Z"
+    },
+    {
+     "id": "f9007c23-0031-4855-967f-a662b0e46bec",
+     "name": "Fall",
+     "status": "closed",
+     "startsAt": "2023-09-15",
+     "endsAt": "2023-12-16",
+     "applicationsStartAt": "2023-09-01T00:00:00Z",
+     "applicationsCloseAt": "2023-09-15T23:59:59Z"
+    },
+    {
+     "id": "b960505a-c185-4b71-9cf5-3a3a8399f869",
+     "name": "Summer 2023",
+     "status": "closed",
+     "startsAt": "2023-05-16",
+     "endsAt": "2023-08-16",
+     "applicationsStartAt": "2023-05-05T00:00:00Z",
+     "applicationsCloseAt": "2023-05-16T23:59:59Z"
+    },
+    {
+     "id": "4e9556a5-2231-4251-9067-1c540e30830a",
+     "name": "Spring 2023",
+     "status": "closed",
+     "startsAt": "2023-03-16",
+     "endsAt": "2023-05-16",
+     "applicationsStartAt": "2023-02-11T00:00:00Z",
+     "applicationsCloseAt": "2023-03-16T23:59:59Z"
+    },
+    {
+     "id": "a22ac98e-bb81-4080-90f4-c7f6a645069b",
+     "name": "Term 3: Sep-Nov",
+     "status": "closed",
+     "startsAt": "2022-09-15",
+     "endsAt": "2022-11-15",
+     "applicationsStartAt": "2022-08-30T00:00:00Z",
+     "applicationsCloseAt": "2022-09-15T23:59:59Z"
+    },
+    {
+     "id": "70722647-b1d0-477c-bc0c-4206112379c1",
+     "name": "Spring 2022",
+     "status": "closed",
+     "startsAt": "2022-04-15",
+     "endsAt": "2022-06-15",
+     "applicationsStartAt": "2021-12-04T00:00:00Z",
+     "applicationsCloseAt": "2022-04-14T23:59:59Z"
+    },
+    {
+     "id": "572233c9-a6f8-4689-bf8e-e4af81e06f86",
+     "name": "Winter 2022",
+     "status": "closed",
+     "startsAt": "2022-01-16",
+     "endsAt": "2022-03-16",
+     "applicationsStartAt": "2021-12-04T00:00:00Z",
+     "applicationsCloseAt": "2022-01-16T23:59:59Z"
+    },
+    {
+     "id": "1849178c-745c-4ac2-b1ba-47b3aa358479",
+     "name": "Summer 2021",
+     "status": "closed",
+     "startsAt": "2021-06-15",
+     "endsAt": "2021-08-16",
+     "applicationsStartAt": "2021-05-03T00:00:00Z",
+     "applicationsCloseAt": "2021-06-15T23:59:59Z"
+    },
+    {
+     "id": "79b2a6e6-b3b5-4aa3-a228-b1d190e8ad99",
+     "name": "Spring 2021",
+     "status": "closed",
+     "startsAt": "2021-01-16",
+     "endsAt": "2021-05-16",
+     "applicationsStartAt": "2020-09-09T00:00:00Z",
+     "applicationsCloseAt": "2021-01-16T23:59:59Z"
+    },
+    {
+     "id": "ca5c4500-affd-45de-896e-7c21a70cbb4f",
+     "name": "2020 Q3-Q4",
+     "status": "closed",
+     "startsAt": "2020-09-15",
+     "endsAt": "2020-12-16",
+     "applicationsStartAt": "2020-08-22T00:00:00Z",
+     "applicationsCloseAt": "2020-09-01T23:59:59Z"
+    }
+   ],
+   "updatedAt": "2026-10-01T11:12:52Z",
+   "repositoryUrl": "https://github.com/meshery/meshery",
+   "ciiProjectId": "3564",
+   "codeOfConduct": "https://github.com/meshery/meshery/blob/master/CODE_OF_CONDUCT.md",
+   "mentees": [],
+   "mentors": [
+    {
+     "id": "bfafc1f4-910f-47fc-992d-016ffa258709",
+     "name": "Kate Suttons"
+    }
+   ],
+   "sponsors": [],
+   "isPaid": false,
+   "activeTerms": [
+    {
+     "id": "20a3e811-e5a1-4b6d-9649-a213433ac919",
+     "name": "2026 Term 3",
+     "status": "open",
+     "startsAt": "2026-09-15",
+     "endsAt": "2026-12-16",
+     "applicationsStartAt": "2026-08-10T00:00:00Z",
+     "applicationsCloseAt": "2026-12-31T23:59:59Z"
+    }
+   ]
+  },
+  {
+   "id": "fd4fd9ab-7cb1-4763-9bd5-9c9362c6dbfc",
+   "slug": "aether-mentorship-program",
+   "name": "Aether Mentorship Program",
+   "description": "The purpose of the Aether mentorship program is to engage students to incorporate the results of their research in 5G/NextG networks into the Aether open source software base, making it available for others to experiment with and build on. This includes work on scalable Mobile Cores and Software-Def",
+   "logoUrl": "https://mentorship-logos-public.downloads.lfx.community/826403b3-c878-4a03-8933-4e4ad5770f6e-.svg",
+   "skills": [
+    "Familiarity with cluster technology (Kubernetes, Helm) and DevOps tooling (Ansible, Jenkins).",
+    "In-depth expertise with some facet of 5G/NextG technology (including innovative applications) potentially leading to publishable research results."
+   ],
+   "status": "in-progress",
+   "foundation": {
+    "id": "07dcfb3a-a3a3-4ac3-9778-1b05641502a5",
+    "slug": "aether-project",
+    "name": "Aether Project"
+   },
+   "terms": [
+    {
+     "id": "5f61ec7a-7da7-49a4-b469-00f6cd542db6",
+     "name": "Fall Semester",
+     "status": "closed",
+     "startsAt": "2025-09-15",
+     "endsAt": "2025-12-16",
+     "applicationsStartAt": "2024-12-20T19:35:38Z",
+     "applicationsCloseAt": "2026-06-28T15:08:08Z"
+    },
+    {
+     "id": "e72c4c86-c7bf-4a94-b6f1-0676d5c26dde",
+     "name": "Summer Term",
+     "status": "closed",
+     "startsAt": "2025-06-15",
+     "endsAt": "2025-09-15",
+     "applicationsStartAt": "2024-12-20T19:35:38Z",
+     "applicationsCloseAt": "2026-06-28T15:08:08Z"
+    },
+    {
+     "id": "e4cc8264-ef52-47d4-ac92-71c5deab1b38",
+     "name": "Spring Semester",
+     "status": "open",
+     "startsAt": "2025-01-16",
+     "endsAt": "2025-05-16",
+     "applicationsStartAt": "2024-12-20T19:35:38Z",
+     "applicationsCloseAt": "2026-06-28T15:08:08Z"
+    }
+   ],
+   "updatedAt": "2026-08-19T11:12:41Z",
+   "repositoryUrl": "https://github.com/opennetworkinglab",
+   "ciiProjectId": "9846",
+   "codeOfConduct": "https://lfprojects.org/policies/code-of-conduct/",
+   "mentees": [],
+   "mentors": [
+    {
+     "id": "0a280715-9779-44ff-b23b-72b10953b7cb",
+     "name": "Larry Peterson"
+    }
+   ],
+   "sponsors": [],
+   "isPaid": false,
+   "activeTerms": []
+  }
+ ]
+}

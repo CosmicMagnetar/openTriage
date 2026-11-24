@@ -68,6 +68,19 @@ function ProgramCard({ p, joined }) {
         <p className="fs-12-5 text-[var(--amber)]">Dates on the official page changed on {new Date(p.datesChangedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}. Check them before applying.</p>
       )}
       {p.reward && <p className="fs-13"><span className="text-[var(--muted)]">Reward: </span><span className="font-semibold">{p.reward}</span></p>}
+      {p.items?.length > 0 && (
+        <ul className="-mx-1">
+          {p.items.slice(0, 3).map((it) => (
+            <li key={it.url}>
+              <a href={it.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-1 py-1 rounded hover:bg-[var(--hover)] fs-13">
+                <span className="flex-1 min-w-0 truncate">{it.title}</span>
+                {it.amount && <span className="shrink-0 font-semibold tnum text-[var(--green)]">{it.amount}</span>}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
       {(VERIFY_NOTE[p.verification] || (p.estimated && VERIFY_NOTE.estimated)) && (
         <p className="fs-12 text-[var(--muted)]">{VERIFY_NOTE[p.verification] ?? VERIFY_NOTE.estimated}</p>
       )}
@@ -81,7 +94,7 @@ function ProgramCard({ p, joined }) {
       <div className="mt-auto pt-2 flex items-center gap-2">
         <a href={p.url} target="_blank" rel="noopener noreferrer"
           className="ctl-sm btn-pop inline-flex items-center gap-1.5 px-2.5 rounded-md fs-12">
-          How to apply <ExternalLink className="w-3 h-3" />
+          {p.kind === 'bounty' ? 'All bounties here' : 'How to apply'} <ExternalLink className="w-3 h-3" />
         </a>
         <TrackButton id={p.id} />
         {joined

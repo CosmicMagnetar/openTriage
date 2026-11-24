@@ -53,6 +53,15 @@ export async function releaseLease(name: string, ok: boolean, error: string | nu
         WHERE name = ${name} AND owner = ${owner}`);
 }
 
+/** When `name` last finished, and whether it went well; null if it never ran. */
+export async function jobLastFinished(name: string, d: Runner = defaultDb()): Promise<{ at: number; ok: boolean } | null> {
+    await ensureTable(d);
+    const res = await (d as unknown as { all: (q: SQL) => Promise<Array<{ last_finished_at: number | null; last_ok: number | null }>> })
+        .all(sql`SELECT last_finished_at, last_ok FROM job_leases WHERE name = ${name} LIMIT 1`);
+    const r = res[0];
+    return r?.last_finished_at ? { at: Number(r.last_finished_at), ok: r.last_ok === 1 } : null;
+}
+
 export type Exclusive<T> = { ran: true; value: T } | { ran: false; reason: string };
 
 /**

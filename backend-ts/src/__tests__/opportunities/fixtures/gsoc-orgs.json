@@ -1,0 +1,172 @@
+[
+ {
+  "name": "The Mifos Initiative",
+  "slug": "the-mifos-initiative",
+  "logo_url": "https://summerofcode.withgoogle.com/media/org/the-mifos-initiative/etmiqn0lkvfxvm5p-360.png",
+  "website_url": "https://mifos.org",
+  "tagline": "End Poverty One Line of Code at a Time",
+  "license": "MPL-2.0",
+  "categories": [
+   "End user applications",
+   "Artificial Intelligence"
+  ],
+  "contributor_guidance_url": "https://mifosforge.jira.com/wiki/spaces/RES/pages/4456638/Application+Template",
+  "ai_policy_url": null,
+  "description": "We are a global 501(c)3 fintech non-profit leveraging the cloud, mobile & open source community to democratize financial services worldwide and digitally transform the world’s 3 billion poor and under",
+  "tech_tags": [
+   "android",
+   "java",
+   "kotlin",
+   "spring",
+   "angular"
+  ],
+  "topic_tags": [
+   "artificial intelligence",
+   "cloud",
+   "fintech",
+   "financial inclusion",
+   "mobile banking"
+  ],
+  "contact_links": [
+   {
+    "name": "chat",
+    "value": "https://mifos.short.gy/slack"
+   },
+   {
+    "name": "mailingList",
+    "value": "https://mifos.org/resources/community/communications/"
+   },
+   {
+    "name": "email",
+    "value": "info@mifos.org"
+   },
+   {
+    "name": "twitter",
+    "value": "https://twitter.com/mifos"
+   },
+   {
+    "name": "blog",
+    "value": "https://mifos.org/blog"
+   },
+   {
+    "name": "facebook",
+    "value": "https://facebook.com/mifos"
+   },
+   {
+    "name": "blog",
+    "value": "https://linkedin.com/company/mifos"
+   }
+  ],
+  "source_code": "https://github.com/openmf",
+  "ideas_link": "https://mifosforge.jira.com/wiki/spaces/RES/pages/5021990914/2026+Google+Summer+of+Code+Ideas+List",
+  "direct_comm_methods": [
+   {
+    "name": "chat",
+    "value": "https://mifos.short.gy/slack"
+   },
+   {
+    "name": "mailingList",
+    "value": "https://mifos.org/resources/community/communications/"
+   },
+   {
+    "name": "email",
+    "value": "info@mifos.org"
+   }
+  ],
+  "social_comm_methods": [
+   {
+    "name": "twitter",
+    "value": "https://twitter.com/mifos"
+   },
+   {
+    "name": "blog",
+    "value": "https://mifos.org/blog"
+   },
+   {
+    "name": "facebook",
+    "value": "https://facebook.com/mifos"
+   },
+   {
+    "name": "blog",
+    "value": "https://linkedin.com/company/mifos"
+   }
+  ]
+ },
+ {
+  "name": "Open Food Facts",
+  "slug": "open-food-facts",
+  "logo_url": "https://summerofcode.withgoogle.com/media/org/open-food-facts/ypo4wfmbo5ueujuf-360.png",
+  "website_url": "https://world.openfoodfacts.org/discover",
+  "tagline": "Better food choices for your health & the planet",
+  "license": "AGPL-3.0",
+  "categories": [
+   "Science and medicine",
+   "End user applications"
+  ],
+  "contributor_guidance_url": "https://world.openfoodfacts.org/google-summer-of-code",
+  "ai_policy_url": null,
+  "description": "Open Food Facts is the \"Wikipedia of food\". Our community collects information about all the food products in the world, using mobile phones to help people make better choices for themselves and the p",
+  "tech_tags": [
+   "python",
+   "javascript",
+   "machine learning",
+   "perl",
+   "flutter"
+  ],
+  "topic_tags": [
+   "open data",
+   "health",
+   "environment",
+   "mobile",
+   "food"
+  ],
+  "contact_links": [
+   {
+    "name": "chat",
+    "value": "https://slack.openfoodfacts.org"
+   },
+   {
+    "name": "email",
+    "value": "contact@openfoodfacts.org"
+   },
+   {
+    "name": "twitter",
+    "value": "https://twitter.com/OpenFoodFacts"
+   },
+   {
+    "name": "blog",
+    "value": "https://blog.openfoodfacts.org/en/news/tis-the-season"
+   },
+   {
+    "name": "facebook",
+    "value": "https://facebook.com/OpenFoodFacts"
+   }
+  ],
+  "source_code": "https://github.com/openfoodfacts",
+  "ideas_link": "https://wiki.openfoodfacts.org/GSOC/2026_ideas_list",
+  "direct_comm_methods": [
+   {
+    "name": "chat",
+    "value": "https://slack.openfoodfacts.org"
+   },
+   {
+    "name": "email",
+    "value": "contact@openfoodfacts.org"
+   }
+  ],
+  "social_comm_methods": [
+   {
+    "name": "twitter",
+    "value": "https://twitter.com/OpenFoodFacts"
+   },
+   {
+    "name": "blog",
+    "value": "https://blog.openfoodfacts.org/en/news/tis-the-season"
+   },
+   {
+    "name": "facebook",
+    "value": "https://facebook.com/OpenFoodFacts"
+   }
+  ]
+ }
+]

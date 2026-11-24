@@ -10,7 +10,8 @@ import { opportunities, opportunitySyncRuns } from "@/db/schema";
 import { programs as seed, type Program } from "@/lib/programs";
 import { gsocFromApi } from "./adapters/gsoc";
 import { outreachyFromHtml } from "./adapters/outreachy";
-import { bountiesToPrograms, type BountyIssue } from "./adapters/bounties";
+import { BOUNTY_LABELS, bountiesToPrograms, type BountyIssue } from "./adapters/bounties";
+import { LFX_API, lfxFromApi, type LfxProgram } from "./adapters/lfx";
 import { isoDay } from "./dates";
 import { endsOn, isExpired, kindOf, rollForward, SEED_REPLACED_BY } from "./normalize";
 import { clearOpportunityMemo } from "./store";
@@ -21,7 +22,7 @@ import { runExclusive } from "@/lib/jobs";
 const UA = "OpenTriage/1.0 (+https://github.com/CosmicMagnetar/openTriage; daily opportunities sync)";
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Only open-source sources. Rows from anything else (e.g. removed sources) are deleted on the next run. */
-const ACTIVE_SOURCES = new Set(["seed", "gsoc", "outreachy", "bounties"]);
+const ACTIVE_SOURCES = new Set(["seed", "gsoc", "outreachy", "bounties", "lfx"]);
 
 async function get(url: string, opts: { json?: boolean; timeoutMs?: number; github?: boolean } = {}) {
     const headers: Record<string, string> = { "User-Agent": UA };
@@ -82,13 +83,24 @@ export async function collect(today = isoDay(new Date())): Promise<SourceResult[
     return Promise.all([
         run("gsoc", false, async () => { const p = gsocFromApi(await get("https://summerofcode.withgoogle.com/api/program/"), today); return p ? [p] : []; }),
         run("outreachy", false, async () => { const p = outreachyFromHtml(await get("https://www.outreachy.org/docs/applicant/", { json: false }) as string); return p ? [p] : []; }),
+        run("lfx", true, async () => {
+            // Sorted accepting-first: stop at the first page with no accepting project.
+            const all: LfxProgram[] = [];
+            for (let offset = 0; offset < 500; offset += 50) {
+                const page = await get(`${LFX_API}?status=all&skill=all&sortBy=accepting_first&limit=50&offset=${offset}`) as { data?: LfxProgram[] };
+                const data = page.data ?? [];
+                all.push(...data);
+                if (data.length < 50 || !data.some((p) => p.status === "acceptance")) break;
+            }
+            return lfxFromApi(all, today);
+        }),
         run("bounties", true, async () => {
             const items: BountyIssue[] = [];
-            for (const label of ['"💎 Bounty"', "bounty"]) {
+            for (const label of BOUNTY_LABELS) {
                 const d = await get(`https://api.github.com/search/issues?q=${encodeURIComponent(`label:${label} state:open is:issue`)}&per_page=100&sort=updated`, { github: true });
                 items.push(...(d.items ?? []));
             }
-            const repos = [...new Set(items.map((i) => i.repository_url.replace("https://api.github.com/repos/", "")))].slice(0, 30);
+            const repos = [...new Set(items.map((i) => i.repository_url.replace("https://api.github.com/repos/", "")))].slice(0, 60);
             const stars = new Map<string, number>();
             await pool(repos, 4, async (r) => {
                 try { const d = await get(`https://api.github.com/repos/${r}`, { github: true }); // Open source only: public, active, with a real license.
