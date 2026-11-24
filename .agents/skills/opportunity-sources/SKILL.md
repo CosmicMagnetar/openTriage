@@ -21,7 +21,8 @@ description: Add, fix or remove a source for the Opportunities page (programs, b
 7. Add edge cases to `evals/evals.json` if you changed a rule in `normalize.ts`.
 
 ## Traps
-- **GitHub search uses the shared `GITHUB_TOKEN`.** Without it, search is heavily rate-limited and bounties come back empty. Check this first when bounties look missing.
+- **GitHub search uses a server token** (`serverToken()`, least-used of `GITHUB_TOKENS` + `GITHUB_TOKEN`). With none configured, search is heavily rate-limited and bounties come back empty. Check this first when bounties look missing.
+- **One run across all instances.** `syncIfDue` runs `syncNow` inside `runExclusive("opportunities-sync", 30 min)`. A second instance gets `{ skipped: "running on another instance" }`. If a run crashes, the lease frees itself after 30 minutes.
 - **Bounty filter:** bounty repos are kept only if public, not archived, with a real licence, and with at least `minStars` (100) stars (`bountiesToPrograms`). Only the first 30 repos are checked for stars. This can make the list look empty.
 - `linkAlive` treats 403 and 429 as alive (sites that block bots).
 - The local replica can be briefly busy; writes go through `retry()` for `SQLITE_BUSY`.

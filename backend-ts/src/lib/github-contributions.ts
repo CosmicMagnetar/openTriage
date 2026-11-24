@@ -5,6 +5,8 @@
  * for displaying the contribution graph like GitHub does.
  */
 
+import { serverToken } from '@/lib/github/octokit';
+
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 
 // Cache for contribution data (5 minute TTL for fresher data)
@@ -77,7 +79,7 @@ export async function fetchGitHubContributions(
   `;
 
     // Use provided token or fall back to app token for public data
-    const token = githubToken || process.env.GITHUB_TOKEN;
+    const token = githubToken || serverToken();
     const tokenSource = githubToken ? 'user token (includes private contributions)' : 'app token (public only)';
 
     if (!token) {

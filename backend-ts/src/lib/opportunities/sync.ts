@@ -15,6 +15,8 @@ import { isoDay } from "./dates";
 import { endsOn, isExpired, kindOf, rollForward, SEED_REPLACED_BY } from "./normalize";
 import { clearOpportunityMemo } from "./store";
 import { datesOnPage, nextWatch, watchDue, type WatchState } from "./pageWatch";
+import { recordBudget, serverToken } from "@/lib/github/octokit";
+import { runExclusive } from "@/lib/jobs";
 
 const UA = "OpenTriage/1.0 (+https://github.com/CosmicMagnetar/openTriage; daily opportunities sync)";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -23,11 +25,14 @@ const ACTIVE_SOURCES = new Set(["seed", "gsoc", "outreachy", "bounties"]);
 
 async function get(url: string, opts: { json?: boolean; timeoutMs?: number; github?: boolean } = {}) {
     const headers: Record<string, string> = { "User-Agent": UA };
+    // Least-used server token from the GITHUB_TOKENS pool, so one token never carries every job.
+    const token = opts.github ? serverToken() : null;
     if (opts.github) {
         headers.Accept = "application/vnd.github+json";
-        if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+        if (token) headers.Authorization = `Bearer ${token}`;
     }
     const res = await fetch(url, { headers, signal: AbortSignal.timeout(opts.timeoutMs ?? 20_000), redirect: "follow" });
+    if (token) recordBudget(token, res.headers);
     if (!res.ok) throw new Error(`${res.status} ${url}`);
     return opts.json === false ? res.text() : res.json();
 }
@@ -119,14 +124,19 @@ export async function lastRun() {
 
 let running: Promise<unknown> | null = null;
 
-/** Run at most once per day (and never twice at the same time). */
+/**
+ * Run at most once per day, and never twice at the same time: not in this
+ * process (`running`) and not on another instance (job lease in Turso).
+ */
 export async function syncIfDue(force = false) {
     if (running) return { skipped: "already running" };
     const last = await lastRun().catch(() => null);
     if (!force && last?.finishedAt && last.ok !== false && Date.now() - Date.parse(last.finishedAt) < DAY_MS - 60_000) {
         return { skipped: "ran in the last 24h", last: last.finishedAt };
     }
-    running = syncNow().finally(() => { running = null; });
+    running = runExclusive("opportunities-sync", 30 * 60 * 1000, () => syncNow())
+        .then((r) => (r.ran ? r.value : { skipped: r.reason }))
+        .finally(() => { running = null; });
     return running;
 }
 

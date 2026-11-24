@@ -49,7 +49,9 @@ DB schema change: edit `backend-ts/src/db/schema.ts`, then `npm run db:generate`
 
 ## Rules that are easy to get wrong
 
-- **Per-user tokens.** User-specific GitHub calls go through `withGitHub(request)` in `lib/github/route-helpers.ts`. The shared `GITHUB_TOKEN` is only for public, non-personal jobs (opportunities sync, public issue, badge).
+- **Per-user tokens.** User-specific GitHub calls go through `withGitHub(request)` in `lib/github/route-helpers.ts`. Server-side work on public data (opportunities sync, public issue, badge) uses `serverOctokit()` / `serverToken()` from `lib/github/octokit.ts`, which picks the least-used token from `GITHUB_TOKENS` (comma-separated) plus `GITHUB_TOKEN`. Never read `process.env.GITHUB_TOKEN` directly.
+- **Build GitHub clients with `createGitHubClient()`**, never `new Octokit()`: it adds ETag conditional requests (304s are free) and records each token's rate budget.
+- **Many instances are normal.** `cached()` checks memory, then the shared `cache_entries` table in Turso, then GitHub. Only plain JSON values are shared. Background jobs run through `runExclusive(name, ttlMs, fn)` in `lib/jobs.ts` so only one instance runs them. Turn the shared tier off with `SHARED_CACHE=off`.
 - **Never show a spinner for data we already have.** Frontend reads use `useQuery(key, fetcher, { staleMs })`, which returns cached data first and refreshes in the background.
 - **A failing source never wipes data.** The opportunities sync keeps a source's previous rows when it errors.
 - **Pure rules stay pure.** Anything in `lib/coordination/` and `lib/opportunities/normalize.ts` takes plain data and returns plain data, so it can be tested and run as evals.

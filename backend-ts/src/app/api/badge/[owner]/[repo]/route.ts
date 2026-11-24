@@ -9,11 +9,12 @@ import type { Responsiveness } from "@/lib/coordination";
 import { cached, getResponsiveness, MINUTE, peekCached } from "@/lib/github/services";
 import { validRepo } from "@/lib/github/route-helpers";
 import { badgeSvg, type BadgeData } from "@/lib/badge";
-
-const token = process.env.GITHUB_TOKEN;
-const octokit = new Octokit(token ? { auth: token } : {});
+import { serverOctokit } from "@/lib/github/octokit";
 
 async function load(ownerIn: string, repoIn: string): Promise<BadgeData> {
+    // Least-used server token (GITHUB_TOKENS pool); unauthenticated if none.
+    const authed = serverOctokit();
+    const octokit = authed ?? new Octokit({ userAgent: "OpenTriage" });
     // Follow renames/transfers (e.g. facebook/react → react/react); search does not.
     const full = await octokit.repos.get({ owner: ownerIn, repo: repoIn }).then((r) => r.data.full_name).catch(() => `${ownerIn}/${repoIn}`);
     const [owner, repo] = full.split("/");
@@ -21,7 +22,7 @@ async function load(ownerIn: string, repoIn: string): Promise<BadgeData> {
         q: `repo:${owner}/${repo} is:issue is:open no:assignee label:"good first issue"`, per_page: 1,
     }).then((r) => r.data.total_count).catch(() => null);
     let resp = peekCached<Responsiveness>(`resp:${owner}/${repo}`.toLowerCase()) ?? null;
-    if (!resp && token) resp = await getResponsiveness(octokit, owner, repo).catch(() => null);
+    if (!resp && authed) resp = await getResponsiveness(octokit, owner, repo).catch(() => null);
     return { starterIssues: starter, medianResponseDays: resp?.medianFirstResponseHours != null ? resp.medianFirstResponseHours / 24 : null };
 }
 
