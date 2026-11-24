@@ -4,6 +4,7 @@
  * their sign-in has the scopes we need. Pure rules are exported for tests;
  * fetchAccess() does the network work with the user's own token.
  */
+import { createHash } from "crypto";
 
 /** Scopes added after launch. Older sign-ins lack them and must re-connect once. */
 export const REQUIRED_SCOPES = ["read:org", "read:project"] as const;
@@ -112,6 +113,14 @@ export function pickAutoTrack(repos: AccessRepo[], now = Date.now(), max = 12): 
 /** GitHub page where a user asks an org to approve this OAuth app. */
 export function requestAccessUrl(clientId: string | undefined): string {
     return clientId ? `https://github.com/settings/connections/applications/${clientId}` : "https://github.com/settings/applications";
+}
+
+/**
+ * Cache key for a user's access. Includes a fingerprint of the token, so a
+ * fresh sign-in (new token, new scopes) is never answered from the old entry.
+ */
+export function accessCacheKey(userId: string, token: string): string {
+    return `access:${userId}:${createHash("sha256").update(token).digest("hex").slice(0, 12)}`;
 }
 
 const UA = "OpenTriage";

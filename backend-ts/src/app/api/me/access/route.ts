@@ -8,17 +8,15 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { MINUTE, cached } from "@/lib/github/services";
-import { fetchAccess, pickAutoTrack, requestAccessUrl } from "@/lib/github/access";
+import { accessCacheKey, fetchAccess, pickAutoTrack, requestAccessUrl } from "@/lib/github/access";
 import { githubError, resolveRepos, wantsFresh, withGitHub } from "@/lib/github/route-helpers";
 import { trackRepos } from "@/lib/github/track";
-
-const key = (userId: string) => `access:${userId}`;
 
 export async function GET(request: NextRequest) {
     const g = await withGitHub(request);
     if ("error" in g) return g.error;
     try {
-        const access = await cached(key(g.user.id), 10 * MINUTE, () => fetchAccess(g.user.githubAccessToken!, g.user.username), wantsFresh(request));
+        const access = await cached(accessCacheKey(g.user.id, g.user.githubAccessToken!), 10 * MINUTE, () => fetchAccess(g.user.githubAccessToken!, g.user.username), wantsFresh(request));
         let tracked = (await resolveRepos(request, g.user.id)).map((r) => `${r.owner}/${r.repo}`);
         let autoTracked: string[] = [];
         if (new URL(request.url).searchParams.get("autotrack") === "1" && tracked.length === 0) {

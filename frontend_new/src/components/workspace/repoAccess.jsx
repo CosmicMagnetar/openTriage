@@ -4,7 +4,7 @@
  * prompt when the sign-in predates the org scope. No typing owner/repo.
  */
 import { useState } from 'react';
-import { ExternalLink, KeyRound, X } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { keys, workApi } from '../../services/workApi';
 import { invalidate, useQuery } from '../../lib/query';
@@ -13,34 +13,10 @@ import { Button, Card, Tag } from './ui';
 
 export const ROLE_LABEL = { owner: 'Owner', admin: 'Admin', maintain: 'Maintain', push: 'Write' };
 const ROLE_COLOR = { owner: 'green', admin: 'blue', maintain: 'purple', push: 'gray' };
+const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 export function useAccess() {
   return useQuery(keys.access(), (o) => workApi.access(o), { staleMs: 10 * 60_000 });
-}
-
-/** Thin bar shown once per session when the sign-in lacks read:org / read:project. */
-export function ReconnectBanner() {
-  const access = useAccess();
-  const [hidden, setHidden] = useState(() => {
-    try { return sessionStorage.getItem('ot:reconnect-hidden') === '1'; } catch { return false; }
-  });
-  if (hidden || !access.data?.needsReconnect) return null;
-  const hide = () => {
-    setHidden(true);
-    try { sessionStorage.setItem('ot:reconnect-hidden', '1'); } catch { /* private mode */ }
-  };
-  return (
-    <div role="status" className="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[var(--line)] bg-[var(--raised)] fs-13">
-      <KeyRound className="w-4 h-4 text-[var(--amber)] shrink-0" />
-      <span className="flex-1 min-w-0 text-[var(--text-2)]">
-        Re-connect GitHub once so OpenTriage can find your organization repos and read project boards.
-      </span>
-      <Button size="sm" variant="primary" onClick={() => { window.location.href = GITHUB_LOGIN_URL; }}>Re-connect</Button>
-      <button onClick={hide} aria-label="Hide for now" className="w-7 h-7 inline-flex items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--hover)]">
-        <X className="w-3.5 h-3.5" />
-      </button>
-    </div>
-  );
 }
 
 function RepoRow({ r, busy, onManage }) {
@@ -48,10 +24,11 @@ function RepoRow({ r, busy, onManage }) {
     <li className="flex items-center gap-2.5 px-1 py-1.5 rounded hover:bg-[var(--hover)]">
       <img src={`https://github.com/${r.owner}.png?size=40`} alt="" className="w-5 h-5 rounded" loading="lazy" />
       <span className="flex-1 min-w-0">
-        <span className="block truncate fs-13">{r.fullName}</span>
+        {/* Your own repos: the short name is enough. Others: show whose it is. */}
+        <span className="block truncate fs-13" title={r.fullName}>{r.role === 'owner' ? r.name : r.fullName}</span>
         {r.description && <span className="block truncate fs-12 text-[var(--muted)]">{r.description}</span>}
       </span>
-      <Tag color={ROLE_COLOR[r.role]}>{ROLE_LABEL[r.role]}</Tag>
+      {r.role !== 'owner' && <Tag color={ROLE_COLOR[r.role]}>{ROLE_LABEL[r.role]}</Tag>}
       <Button size="sm" disabled={busy} onClick={() => onManage(r.fullName)}>Manage</Button>
     </li>
   );
@@ -67,7 +44,9 @@ export function YourGitHubRepos({ onTracked, limit = 5, title = 'Your repos on G
   const [busy, setBusy] = useState(false);
   const d = access.data;
   if (!d) return null;
-  const untracked = d.repos.filter((r) => !r.tracked && !r.archived);
+  // Suggest only repos you'd plausibly manage: not forks, not archived, pushed in the last year.
+  const untracked = d.repos.filter((r) => !r.tracked && !r.archived && !r.fork
+    && r.pushedAt && Date.now() - Date.parse(r.pushedAt) < YEAR_MS);
   const blockedOrgs = d.orgs.filter((o) => o.repoCount === 0);
   if (!untracked.length && !blockedOrgs.length) return null;
 
@@ -108,6 +87,13 @@ export function YourGitHubRepos({ onTracked, limit = 5, title = 'Your repos on G
           <a href={d.requestAccessUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--link)] hover:underline inline-flex items-center gap-1">
             Request access <ExternalLink className="w-3 h-3" />
           </a>
+        </p>
+      )}
+      {/* Only for sign-ins from before org access was part of signing in. Quiet, never a global bar. */}
+      {d.needsReconnect && (
+        <p className="fs-12-5 text-[var(--muted)] mt-3">
+          Signed in before org access was added, so org roles may be missing.{' '}
+          <a href={GITHUB_LOGIN_URL} className="text-[var(--link)] hover:underline">Sign in again</a>
         </p>
       )}
     </Card>

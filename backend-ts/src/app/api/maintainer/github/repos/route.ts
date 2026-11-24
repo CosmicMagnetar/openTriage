@@ -5,14 +5,14 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { MINUTE, cached } from "@/lib/github/services";
-import { fetchAccess } from "@/lib/github/access";
+import { accessCacheKey, fetchAccess } from "@/lib/github/access";
 import { githubError, resolveRepos, withGitHub } from "@/lib/github/route-helpers";
 
 export async function GET(request: NextRequest) {
     const g = await withGitHub(request);
     if ("error" in g) return g.error;
     try {
-        const access = await cached(`access:${g.user.id}`, 10 * MINUTE, () => fetchAccess(g.user.githubAccessToken!, g.user.username));
+        const access = await cached(accessCacheKey(g.user.id, g.user.githubAccessToken!), 10 * MINUTE, () => fetchAccess(g.user.githubAccessToken!, g.user.username));
         const tracked = new Set((await resolveRepos(request, g.user.id)).map((r) => `${r.owner}/${r.repo}`.toLowerCase()));
         const repos = access.repos
             .filter((r) => !tracked.has(r.fullName.toLowerCase()))

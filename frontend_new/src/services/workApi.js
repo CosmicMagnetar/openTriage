@@ -97,7 +97,8 @@ export const keys = {
   myPrograms: () => "me:programs",
   community: () => "community",
   docs: (repo) => `docs:${repo}`.toLowerCase(),
-  access: () => "access",
+  // Tied to the sign-in, so a fresh sign-in never shows the previous answer.
+  access: () => `access:${(localStorage.getItem("token") || "").slice(-16)}`,
 };
 
 /**
