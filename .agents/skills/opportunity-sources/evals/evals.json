@@ -1,0 +1,58 @@
+{
+  "skill_name": "opportunity-sources",
+  "about": "Each case calls the named rule from lib/opportunities/normalize.ts with `args` and checks the result. Programs are built from `program` over a default one-off with one application phase 2026-03-01..2026-04-01.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "one-off-open-on-last-day",
+      "fn": "isExpired",
+      "program": { "recurring": false },
+      "today": "2026-04-01",
+      "expected": false,
+      "assertions": ["The last date itself is still open"]
+    },
+    {
+      "id": 2,
+      "name": "one-off-expires-next-day",
+      "fn": "isExpired",
+      "program": { "recurring": false },
+      "today": "2026-04-02",
+      "expected": true,
+      "assertions": ["One-offs are removed the day after their last date"]
+    },
+    {
+      "id": 3,
+      "name": "recurring-never-expires",
+      "fn": "isExpired",
+      "program": { "recurring": true },
+      "today": "2027-12-31",
+      "expected": false,
+      "assertions": ["Recurring programs roll forward instead of being deleted"]
+    },
+    {
+      "id": 4,
+      "name": "recurring-rolls-to-next-cycle",
+      "fn": "rollForward",
+      "program": { "recurring": true, "name": "Thing 2026" },
+      "today": "2026-11-20",
+      "expected": { "name": "Thing 2027", "estimated": true, "phases": [{ "name": "Apply (usual timing)", "start": "2027-03-01", "end": "2027-04-01" }] },
+      "assertions": ["Year in the name moves with the dates", "Rolled dates are marked as usual timing and estimated"]
+    },
+    {
+      "id": 5,
+      "name": "rolling-program-has-no-end",
+      "fn": "endsOn",
+      "program": { "rolling": true },
+      "expected": null,
+      "assertions": ["Rolling programs never expire"]
+    },
+    {
+      "id": 6,
+      "name": "grant-kind-from-tags",
+      "fn": "kindOf",
+      "program": { "tags": ["grant"] },
+      "expected": "grant",
+      "assertions": ["Old seed rows without kind get it from their tags"]
+    }
+  ]
+}
