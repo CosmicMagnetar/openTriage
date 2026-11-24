@@ -83,16 +83,24 @@ export async function fetchThread(octokit: Octokit, owner: string, repo: string,
 // What the viewer is into
 // ---------------------------------------------------------------------------
 
-interface RepoNode { nameWithOwner: string; stargazerCount: number; isArchived: boolean; primaryLanguage: { name: string } | null }
+interface RepoNode {
+    nameWithOwner: string; stargazerCount: number; isArchived: boolean; primaryLanguage: { name: string } | null;
+    repositoryTopics?: { nodes: Array<{ topic: { name: string } }> };
+}
 
 export interface Signals {
     languages: Array<{ name: string; weight: number }>;
     contributedTo: string[];
     starred: string[];
+    /** Topics of your own and contributed repos, most frequent first. */
+    topics?: string[];
 }
 
+const NODE = "nameWithOwner stargazerCount isArchived primaryLanguage { name } repositoryTopics(first: 6) { nodes { topic { name } } }";
+
 export async function fetchSignals(octokit: Octokit, login: string): Promise<Signals> {
-    return cached(`sig:${login}`.toLowerCase(), 6 * 60 * MINUTE, async () => {
+    // v2 key: the shape gained `topics`; old cached entries are ignored.
+    return cached(`sig2:${login}`.toLowerCase(), 6 * 60 * MINUTE, async () => {
         const data = await octokit.graphql<{
             viewer: {
                 repositoriesContributedTo: { nodes: RepoNode[] };
@@ -102,13 +110,13 @@ export async function fetchSignals(octokit: Octokit, login: string): Promise<Sig
         }>(`query {
             viewer {
               repositoriesContributedTo(first: 40, contributionTypes: [COMMIT, PULL_REQUEST, ISSUE], includeUserRepositories: false, orderBy: { field: PUSHED_AT, direction: DESC }) {
-                nodes { nameWithOwner stargazerCount isArchived primaryLanguage { name } }
+                nodes { ${NODE} }
               }
               starredRepositories(first: 40, orderBy: { field: STARRED_AT, direction: DESC }) {
-                nodes { nameWithOwner stargazerCount isArchived primaryLanguage { name } }
+                nodes { ${NODE} }
               }
               repositories(first: 40, ownerAffiliations: OWNER, orderBy: { field: PUSHED_AT, direction: DESC }) {
-                nodes { nameWithOwner stargazerCount isArchived primaryLanguage { name } }
+                nodes { ${NODE} }
               }
             }
         }`);
@@ -120,7 +128,12 @@ export async function fetchSignals(octokit: Octokit, login: string): Promise<Sig
         add(data.viewer.repositoriesContributedTo.nodes, 2);
         add(data.viewer.starredRepositories.nodes, 1);
         const live = (nodes: RepoNode[]) => nodes.filter((n) => !n.isArchived).map((n) => n.nameWithOwner);
+        const topicCount = new Map<string, number>();
+        for (const n of [...data.viewer.repositories.nodes, ...data.viewer.repositoriesContributedTo.nodes]) {
+            for (const t of n.repositoryTopics?.nodes ?? []) topicCount.set(t.topic.name, (topicCount.get(t.topic.name) ?? 0) + 1);
+        }
         return {
+            topics: [...topicCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 15).map(([t]) => t),
             languages: [...weights.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, weight]) => ({ name, weight })),
             contributedTo: live(data.viewer.repositoriesContributedTo.nodes).slice(0, 20),
             starred: live(data.viewer.starredRepositories.nodes).filter((n) => !n.toLowerCase().startsWith(`${login.toLowerCase()}/`)).slice(0, 20),

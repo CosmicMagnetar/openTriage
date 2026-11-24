@@ -7,7 +7,7 @@ import landscape from './fixtures/cncf-landscape.json';
 import clo from './fixtures/clomonitor.json';
 import gsocOrgs from './fixtures/gsoc-orgs.json';
 import ufg from './fixtures/upforgrabs.json';
-import { githubRepo, lfxFromApi, type LfxProgram } from '@/lib/opportunities/adapters/lfx';
+import { githubRepo, lfxFromApi, plainText, type LfxProgram } from '@/lib/opportunities/adapters/lfx';
 import { bountiesToPrograms, bountyAmount, type BountyIssue } from '@/lib/opportunities/adapters/bounties';
 import {
     cncfProjects, filterProjects, gsocOrgProjects, mergeProjects, upForGrabsProjects, type OssProject,
@@ -29,6 +29,11 @@ describe('LFX mentorship', () => {
     });
     it('drops the term once applications have closed', () => {
         expect(lfxFromApi(list, '2027-02-01')).toHaveLength(0);
+    });
+    it('turns HTML descriptions into plain text', () => {
+        expect(plainText('<p><strong>WIEOS</strong></p><p>Overview&nbsp;is a global&amp;open<br>programme</p>')).toBe('WIEOS Overview is a global&open programme');
+        const [p] = lfxFromApi([{ ...list[0], description: '<p>Learn <em>cloud</em> native.</p>' }], '2026-11-25');
+        expect(p.summary).toBe('Learn cloud native.');
     });
     it('reads owner/repo from GitHub URLs only', () => {
         expect(githubRepo('https://github.com/kubeedge/kubeedge.git')).toBe('kubeedge/kubeedge');

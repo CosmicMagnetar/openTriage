@@ -40,8 +40,20 @@ export function githubRepo(url: string | null | undefined): string | null {
     return m ? `${m[1]}/${m[2]}` : null;
 }
 
+/** LFX descriptions are often HTML: drop tags, decode the common entities. */
+export function plainText(html: string): string {
+    const ENT: Record<string, string> = { "&nbsp;": " ", "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&apos;": "'" };
+    return html
+        .replace(/<(br|\/p|\/div|\/li)\s*\/?>/gi, " ")
+        .replace(/<[^>]*>/g, "")
+        .replace(/&(nbsp|amp|lt|gt|quot|apos|#39);/g, (m) => ENT[m] ?? m)
+        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 function firstSentences(text: string, max = 200): string {
-    const t = text.replace(/\s+/g, " ").trim();
+    const t = plainText(text);
     if (t.length <= max) return t;
     const cut = t.slice(0, max);
     const dot = cut.lastIndexOf(". ");

@@ -73,6 +73,13 @@ export const workApi = {
   /** Repos you can maintain on GitHub, your orgs, and whether sign-in needs re-connecting. */
   access: (o) => get("/me/access", { ...fresh(o), ...(o?.autotrack ? { autotrack: 1 } : {}) }),
   trackRepos: (repos) => send("post", "/me/access", { repos }),
+  /** What you're looking for (goals) and your save / hide / not-for-me feedback. */
+  goals: () => get("/me/goals"),
+  saveGoals: (goals) => send("put", "/me/goals", { goals }),
+  feedback: (id, action, tags) => send("post", "/me/goals", { id, action, tags }),
+  /** Projects directory and opportunities ranked for you, with reasons. */
+  recRepos: (params) => get("/me/recommendations/repos", params),
+  recOpportunities: () => get("/me/recommendations/opportunities"),
 };
 
 /** Cache keys: one place so pages, panel and prefetch agree. */
@@ -99,6 +106,9 @@ export const keys = {
   docs: (repo) => `docs:${repo}`.toLowerCase(),
   // Tied to the sign-in, so a fresh sign-in never shows the previous answer.
   access: () => `access:${(localStorage.getItem("token") || "").slice(-16)}`,
+  goals: () => "goals",
+  recRepos: (params) => `rec:repos:${JSON.stringify(params)}`,
+  recOpportunities: () => "rec:opps",
 };
 
 /**

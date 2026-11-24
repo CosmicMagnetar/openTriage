@@ -5,7 +5,7 @@
  * only when at least one source succeeded; a failed source keeps its rows.
  */
 import { sql } from "drizzle-orm";
-import { db } from "@/db";
+import { db, syncReplica } from "@/db";
 import { syncDb } from "@/lib/opportunities/remoteDb";
 import { jobLastFinished, runExclusive } from "@/lib/jobs";
 import {
@@ -106,6 +106,8 @@ async function storeProjects(list: OssProject[], okSources: string[]): Promise<v
     if (okSources.length) {
         await d.run(sql`DELETE FROM oss_projects WHERE updated_at < ${now} AND source IN (${sql.join(okSources.map((s) => sql`${s}`), sql`, `)})`);
     }
+    // Pull the new rows into the local replica first, or the memo re-caches old ones.
+    await syncReplica().catch(() => { /* catches up on its own interval */ });
     memo = null;
 }
 

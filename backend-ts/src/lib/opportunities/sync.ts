@@ -17,6 +17,7 @@ import { endsOn, isExpired, kindOf, rollForward, SEED_REPLACED_BY } from "./norm
 import { clearOpportunityMemo } from "./store";
 import { datesOnPage, nextWatch, watchDue, type WatchState } from "./pageWatch";
 import { recordBudget, serverToken } from "@/lib/github/octokit";
+import { syncReplica } from "@/db";
 import { runExclusive } from "@/lib/jobs";
 
 const UA = "OpenTriage/1.0 (+https://github.com/CosmicMagnetar/openTriage; daily opportunities sync)";
@@ -238,6 +239,9 @@ async function syncBody(now: Date, runId: string) {
     const ok = results.every((r) => !r.error) && writeErrors === 0;
     await retry(() => syncDb().update(opportunitySyncRuns).set({ finishedAt: new Date().toISOString(), ok, summary: JSON.stringify(summary) })
         .where(eq(opportunitySyncRuns.id, runId)));
+    // Writes went to the primary; pull them into the local replica before
+    // clearing the memo, or the next read re-caches the old rows for a minute.
+    await syncReplica().catch(() => { /* replica catches up on its own interval */ });
     clearOpportunityMemo();
     console.log("[opportunities] sync done", JSON.stringify(summary));
     return summary;
