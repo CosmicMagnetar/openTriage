@@ -1,41 +1,16 @@
-import { useEffect, useState } from 'react';
+import Logo from './Logo';
 
-const SplashScreen = () => {
-  const [sorted, setSorted] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setSorted(true), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div className="w-full h-screen bg-[hsl(220,13%,5%)] flex items-center justify-center overflow-hidden">
-      <div className="flex flex-col items-center gap-8">
-        <div className="flex gap-4 items-end">
-          <div
-            data-testid="bar-red"
-            className={`w-16 rounded-lg transition-all duration-700 ease-out ${sorted ? 'h-12 bg-red-500' : 'h-32 bg-red-400'
-              }`}
-            style={{ transitionDelay: '0ms' }}
-          />
-          <div
-            data-testid="bar-blue"
-            className={`w-16 rounded-lg transition-all duration-700 ease-out ${sorted ? 'h-24 bg-blue-500' : 'h-20 bg-blue-400'
-              }`}
-            style={{ transitionDelay: '100ms' }}
-          />
-          <div
-            data-testid="bar-green"
-            className={`w-16 rounded-lg transition-all duration-700 ease-out ${sorted ? 'h-32 bg-emerald-500' : 'h-16 bg-emerald-400'
-              }`}
-            style={{ transitionDelay: '200ms' }}
-          />
-        </div>
-        <h1 className="text-3xl font-bold text-slate-200">OpenTriage</h1>
-        <p className="text-slate-400">Loading...</p>
+/** Full-screen loader: the animated mark on the app's pitch-dark background. */
+const SplashScreen = () => (
+  <div className="w-full h-screen bg-[#050506] text-[#8c8c95] flex items-center justify-center overflow-hidden" role="status" aria-live="polite">
+    <div className="flex flex-col items-center gap-5">
+      <Logo size={72} animated title="OpenTriage" />
+      <div className="flex flex-col items-center gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#ececef]">OpenTriage</h1>
+        <p className="text-sm text-[#8c8c95]">Loading…</p>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 export default SplashScreen;
