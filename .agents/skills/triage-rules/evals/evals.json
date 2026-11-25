@@ -1,0 +1,63 @@
+{
+  "skill_name": "triage-rules",
+  "about": "Each case runs heuristicTriage(input) and checks that the result contains `expected`. `assertions` say why the case exists.",
+  "fn": "heuristicTriage",
+  "evals": [
+    {
+      "id": 1,
+      "name": "existing-kind-label-wins",
+      "input": { "title": "Something odd", "body": "", "labels": ["kind/bug"] },
+      "expected": { "classification": "BUG", "suggestedLabel": "kind/bug", "confidence": 0.95, "reasons": ["already labelled \"kind/bug\""] },
+      "assertions": ["A matching label beats every keyword rule and is kept as-is"]
+    },
+    {
+      "id": 2,
+      "name": "p0-label-is-critical",
+      "input": { "title": "Login", "body": "", "labels": ["P0"] },
+      "expected": { "classification": "CRITICAL_BUG", "suggestedLabel": "P0" },
+      "assertions": ["Priority labels like P0 mean critical"]
+    },
+    {
+      "id": 3,
+      "name": "empty-body-needs-info",
+      "input": { "title": "App crashes", "body": "" },
+      "expected": { "classification": "NEEDS_INFO", "suggestedLabel": "needs-info", "confidence": 0.6, "reasons": ["description is nearly empty"] },
+      "assertions": ["A nearly empty report is NEEDS_INFO even if the title sounds like a bug"]
+    },
+    {
+      "id": 4,
+      "name": "short-question-is-not-needs-info",
+      "input": { "title": "How do I configure the token?", "body": "" },
+      "expected": { "classification": "QUESTION", "suggestedLabel": "question" },
+      "assertions": ["A title ending in ? skips the empty-body rule", "Questions are judged on the title"]
+    },
+    {
+      "id": 5,
+      "name": "security-is-critical",
+      "input": { "title": "Security hole in auth middleware", "body": "An attacker can bypass the login check by sending an empty token header." },
+      "expected": { "classification": "CRITICAL_BUG", "suggestedLabel": "critical", "confidence": 0.6, "reasons": ["mentions severe impact"] },
+      "assertions": ["The word security makes it critical, checked before plain bugs"]
+    },
+    {
+      "id": 6,
+      "name": "bug-with-repro-gets-confidence-boost",
+      "input": { "title": "Export fails on large files", "body": "Steps to reproduce: 1. open a 2GB file 2. click export. Expected behaviour: the file is saved." },
+      "expected": { "classification": "BUG", "suggestedLabel": "bug", "confidence": 0.7, "reasons": ["describes a failure", "has reproduction steps"] },
+      "assertions": ["Reproduction steps add 0.15 confidence"]
+    },
+    {
+      "id": 7,
+      "name": "feature-request",
+      "input": { "title": "Add an option to export CSV", "body": "It would be great to download the table as CSV for monthly reporting." },
+      "expected": { "classification": "FEATURE_REQUEST", "suggestedLabel": "enhancement", "confidence": 0.55 },
+      "assertions": ["'Add an option' asks for new behaviour"]
+    },
+    {
+      "id": 8,
+      "name": "question-mark-in-body-is-not-a-question",
+      "input": { "title": "Thoughts on the roadmap", "body": "I have been using this project for a while. Is the plugin system still planned? Would love to know." },
+      "expected": { "classification": "NEEDS_INFO", "suggestedLabel": "needs-triage", "confidence": 0.3, "reasons": ["no clear signal"] },
+      "assertions": ["A ? in the body must not make an issue a question", "No signal falls back to needs-triage at low confidence"]
+    }
+  ]
+}

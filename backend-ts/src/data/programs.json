@@ -875,5 +875,131 @@
     "phases": [],
     "source": "https://github.com/firstcontributions/first-contributions",
     "checkedAt": "2026-11-20"
+  },
+  {
+    "org": "Sovereign Tech Agency",
+    "summary": "Invests in maintaining open-source infrastructure that others build on; applications any time.",
+    "tags": [
+      "paid",
+      "grant",
+      "maintainers",
+      "infrastructure"
+    ],
+    "eligibility": "Maintainers anywhere; OSI-licensed foundational software, not end-user apps.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://www.sovereign.tech/programs/fund",
+    "checkedAt": "2026-11-25",
+    "kind": "grant",
+    "recurring": true,
+    "verification": "curated",
+    "id": "sovereign-tech-fund",
+    "name": "Sovereign Tech Fund",
+    "url": "https://www.sovereign.tech/programs/fund"
+  },
+  {
+    "org": "Zerodha",
+    "summary": "Yearly funding for free and open-source projects; you publish a funding.json manifest and apply.",
+    "tags": [
+      "paid",
+      "grant",
+      "maintainers"
+    ],
+    "eligibility": "Open-source projects with a funding.json manifest.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://floss.fund/",
+    "checkedAt": "2026-11-25",
+    "kind": "grant",
+    "recurring": true,
+    "verification": "curated",
+    "id": "floss-fund",
+    "name": "FLOSS/fund",
+    "url": "https://floss.fund/"
+  },
+  {
+    "org": "Cloud Native Computing Foundation",
+    "summary": "Bring a cloud native project into the CNCF as a Sandbox project: neutral home, services and visibility.",
+    "tags": [
+      "maintainers",
+      "foundation",
+      "cncf"
+    ],
+    "eligibility": "Cloud native projects under an OSI licence, open to neutral governance.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://github.com/cncf/sandbox",
+    "checkedAt": "2026-11-25",
+    "kind": "program",
+    "recurring": true,
+    "verification": "curated",
+    "id": "cncf-sandbox",
+    "name": "CNCF Sandbox application",
+    "url": "https://github.com/cncf/sandbox"
+  },
+  {
+    "org": "OpenSSF",
+    "summary": "Self-certify your project against open-source best practices and show the badge.",
+    "tags": [
+      "maintainers",
+      "security",
+      "foundation"
+    ],
+    "eligibility": "Any open-source project.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://www.bestpractices.dev/en",
+    "checkedAt": "2026-11-25",
+    "kind": "program",
+    "recurring": true,
+    "verification": "curated",
+    "id": "openssf-best-practices",
+    "name": "OpenSSF Best Practices badge",
+    "url": "https://www.bestpractices.dev/en"
+  },
+  {
+    "org": "GitHub",
+    "summary": "GitHub gives Copilot Pro free to maintainers of popular open-source projects; eligibility is checked monthly.",
+    "tags": [
+      "maintainers",
+      "perk"
+    ],
+    "eligibility": "Maintainers of popular open-source repositories.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://docs.github.com/en/copilot/how-tos/manage-your-account/get-free-access-to-copilot-pro",
+    "checkedAt": "2026-11-25",
+    "kind": "directory",
+    "recurring": true,
+    "verification": "curated",
+    "id": "github-maintainer-perks",
+    "name": "Free Copilot Pro for maintainers",
+    "url": "https://docs.github.com/en/copilot/how-tos/manage-your-account/get-free-access-to-copilot-pro"
+  },
+  {
+    "org": "GitHub",
+    "summary": "Let users and companies fund you or your project every month.",
+    "tags": [
+      "maintainers",
+      "perk",
+      "paid"
+    ],
+    "eligibility": "People in GitHub Sponsors regions.",
+    "stipend": null,
+    "rolling": true,
+    "phases": [],
+    "source": "https://github.com/sponsors",
+    "checkedAt": "2026-11-25",
+    "kind": "directory",
+    "recurring": true,
+    "verification": "curated",
+    "id": "github-sponsors",
+    "name": "GitHub Sponsors",
+    "url": "https://github.com/sponsors"
   }
 ]

@@ -6,14 +6,8 @@
 
 import { Octokit } from "@octokit/rest";
 
-/**
- * Create an Octokit client with the provided access token
- */
-export function createGitHubClient(accessToken: string) {
-    return new Octokit({
-        auth: accessToken,
-    });
-}
+/** Octokit with ETag caching and rate-budget tracking (see lib/github/octokit.ts). */
+export { createGitHubClient } from "@/lib/github/octokit";
 
 /**
  * Fetch user's issues and PRs across all repositories

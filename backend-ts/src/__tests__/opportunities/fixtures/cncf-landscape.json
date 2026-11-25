@@ -1,0 +1,228 @@
+{
+ "items": [
+  {
+   "category": "Provisioning",
+   "homepage_url": "https://docs.akri.sh",
+   "id": "provisioning--automation-configuration--akri",
+   "logo": "logos/429e9e900a264b7748ccb5c19e52fd46b729e89776c318f7f04c3db07bb470db.svg",
+   "name": "Akri",
+   "subcategory": "Automation & Configuration",
+   "website": "https://docs.akri.sh",
+   "accepted_at": "2021-09-14",
+   "artwork_url": "https://github.com/cncf/artwork/blob/main/examples/sandbox_a-j.md#akri-logos",
+   "blog_url": "https://medium.com/akri",
+   "chat_channel": "#akri",
+   "clomonitor_name": "akri",
+   "clomonitor_report_summary": "images/clomonitor_cncf_akri.svg",
+   "crunchbase_url": "https://www.crunchbase.com/organization/cloud-native-computing-foundation",
+   "description": "A Kubernetes Resource Interface for the Edge",
+   "devstats_url": "https://akri.devstats.cncf.io/",
+   "lfx_slug": "akri",
+   "maturity": "sandbox",
+   "latest_annual_review_at": "2023-06-13",
+   "latest_annual_review_url": "https://github.com/cncf/toc/pull/1080",
+   "oss": true,
+   "repositories": [
+    {
+     "url": "https://github.com/project-akri/akri",
+     "primary": true
+    }
+   ],
+   "slack_url": "https://kubernetes.slack.com/messages/C01D9L7QE8Z",
+   "twitter_url": "https://twitter.com/ProjectAkri"
+  },
+  {
+   "category": "Provisioning",
+   "homepage_url": "https://www.devstream.io/",
+   "id": "provisioning--automation-configuration--devstream",
+   "logo": "logos/a2e9c14bfd2fef2b9e3d2c137197674635d061c7457e154ae73889f56cb1979a.svg",
+   "name": "DevStream",
+   "subcategory": "Automation & Configuration",
+   "website": "https://www.devstream.io/",
+   "accepted_at": "2022-06-17",
+   "archived_at": "2025-05-22",
+   "artwork_url": "https://github.com/cncf/artwork/tree/main/archived/devstream",
+   "blog_url": "https://blog.devstream.io/",
+   "crunchbase_url": "https://www.crunchbase.com/organization/cloud-native-computing-foundation",
+   "lfx_slug": "devstream",
+   "maturity": "archived",
+   "oss": true,
+   "repositories": [
+    {
+     "url": "https://github.com/devstream-io/devstream",
+     "primary": true
+    }
+   ],
+   "slack_url": "https://cloud-native.slack.com/messages/devstream"
+  },
+  {
+   "category": "Provisioning",
+   "homepage_url": "https://kubeedge.io/en/",
+   "id": "provisioning--automation-configuration--kubeedge",
+   "logo": "logos/cfb665dc9a024771b54107c3ebcd0802bfdfc74c65ea00892516bf36a3a4dc8a.svg",
+   "name": "KubeEdge",
+   "subcategory": "Automation & Configuration",
+   "website": "https://kubeedge.io/en/",
+   "accepted_at": "2019-03-18",
+   "artwork_url": "https://github.com/cncf/artwork/blob/main/examples/graduated.md#kubeedge-logos",
+   "audits": [
+    {
+     "date": "2022-07-11",
+     "type": "security",
+     "url": "https://github.com/kubeedge/community/blob/master/sig-security/sig-security-audit/KubeEdge-security-audit-2022.pdf",
+     "vendor": "Ada Logics"
+    }
+   ],
+   "clomonitor_name": "kube-edge",
+   "clomonitor_report_summary": "images/clomonitor_cncf_kube-edge.svg",
+   "crunchbase_url": "https://www.crunchbase.com/organization/cloud-native-computing-foundation",
+   "description": "A Kubernetes Native Edge Computing Framework",
+   "devstats_url": "https://kubeedge.devstats.cncf.io/",
+   "featured": {
+    "label": "CNCF Graduated",
+    "order": 1
+   },
+   "graduated_at": "2024-09-11",
+   "incubating_at": "2020-09-16",
+   "lfx_slug": "kubeedge",
+   "mailing_list_url": "https://groups.google.com/forum/#!forum/kubeedge",
+   "maturity": "graduated",
+   "oss": true,
+   "repositories": [
+    {
+     "url": "https://github.com/kubeedge/kubeedge",
+     "primary": true
+    }
+   ],
+   "slack_url": "https://kubeedge.slack.com/",
+   "summary": {
+    "business_use_case": "KubeEdge has found widespread adoption across multiple industries, including transportation, energy, internet, CDN, manufacturing, and smart campuses. Some of the notable use cases include:\nTiansuan Constellation Program: KubeEdge has been integrated into the cloud-native satellite computing platform initiated by the Shenzhen Institute of Beijing University of Posts and Telecommunications (BUPT) with Spacety Co., Ltd. KubeEdge brings in orbit-earth collaboration for the Tiansuan-1 Satellite in the platform, this integration has enabled new service scenarios such as image inference, incremental deep learning, and federated learning.\nChina's highway electronic toll collection (ETC) system: KubeEdge has been instrumental in managing nearly 100,000 edge nodes and over 500,000 edge applications in 29 of China's 34 provinces, municipalities, and autonomous regions. With these applications, the system processes more than 300 million data records daily and supports continuous updates of ETC services on highways. As a result, the time taken to pass through toll stations has been reduced from 29s to 3s for trucks, and from 15s to 2s for cars.\nHong Kong-Zhuhai-Macao bridge: KubeEdge manages edge nodes deployed on the world's longest sea crossing bridge, which collects up to 14 different types of sensor data, including light intensity, carbon dioxide, atmospheric pressure, noise, temperature, humidity, PM 2.5, PM 10, rain and snow, acceleration, angular velocity, Euler angle, magnetic field, and sound. It also enables business apps and device mapper and AI interference programs to be deployed at the edge.\nSAIC MAXUS MIFA 9: The next-generation car-cloud collaborative architecture, SAIC MAXUS full-size luxury, smart, pure electric MPV MIFA 9, has become the first-ever vehicle with KubeEdge Inside. This platform can manage 100,000+ nodes and millions of edge devices and is based on KubeEdge's capabilities such as lightweight architecture, optimized for unstable cloud-edge networks at scale, simplified heterogeneous IoT device management, and edge autonomy in the case of disconnection.\nCDN platform of China Telecom: KubeEdge is used to manage CDN edge nodes, automatically deploy and upgrade CDN edge services, and implement edge service disaster recovery (DR) when migrating CDN services to the cloud.\nChina Mobile On-line Marketing Service Center: The largest call center in the world, with 44,000 agents, 900 million users, and 53 customer service centers, builds a cloud-edge synergy architecture consisting of two centers and multiple edges based on KubeEdge.\nXinghai IoT: This IoT company provides comprehensive smart building solutions by leveraging a construction IoT platform, intelligent hardware, and AI. Xinghai IoT built a smart campus with cloud-edge-device synergy based on KubeEdge and its own Xinghai IoT cloud platform, greatly improving the efficiency of campus management. With AI assistance, nearly 30% of the repetitive work is automated.\nSF Express: The largest integrated logistics service provider in China and the fourth largest in the world, completely transformed their supply chains by implementing KubeEdge. The smart supply chain system enables edge-cloud synergy, edge data collection, real-time edge data processing, massive IoT device management, and creates a more stable, secure, and reliable edge industrial IoT system.\n",
+    "integrations": "Calico, Flannel, Containerd, CRI-O, OpenFunction, WasmEdge, Harbor, Prometheus, Grafana etc.",
+    "personas": [
+     "Platform Engineers",
+     "Enterprise Operator",
+     "Application Developer"
+    ],
+    "release_rate": "Every 3 months",
+    "tags": [
+     "Edge",
+     "IoT Device"
+    ],
+    "use_case": "KubeEdge is an open source system for extending native containerized application orchestration capabilities to hosts at Edge.It is built upon kubernetes and provides fundamental infrastructure support for network, application deployment and metadata synchronization between cloud and edge.\nOur goal is to make an open platform to enable Edge computing, extending native containerized application orchestration capabilities to hosts at Edge\n"
+   },
+   "twitter_url": "https://twitter.com/KubeEdge"
+  }
+ ],
+ "github_data": {
+  "https://github.com/project-akri/akri": {
+   "contributors": {
+    "count": 50,
+    "url": "https://github.com/project-akri/akri/graphs/contributors"
+   },
+   "description": "A Kubernetes Resource Interface for the Edge",
+   "generated_at": "2026-11-22T08:11:28.024192732Z",
+   "latest_commit": {
+    "ts": "2026-10-27T16:48:09Z",
+    "url": "https://github.com/project-akri/akri/commit/7e515b42041f232ce4c1dde0363e3ed8b4f11279"
+   },
+   "participation_stats": [],
+   "stars": 1265,
+   "url": "https://github.com/project-akri/akri",
+   "first_commit": {
+    "ts": "2020-10-14T00:42:19Z",
+    "url": "https://github.com/project-akri/akri/commit/9414ef0fc705df90e7aab083453856b9f859809d"
+   },
+   "languages": {
+    "Makefile": 4100,
+    "Mermaid": 3297,
+    "Mustache": 1793,
+    "Python": 19234,
+    "Rust": 963324,
+    "Shell": 10121
+   },
+   "latest_release": {
+    "ts": "2026-09-01T10:42:04Z",
+    "url": "https://github.com/project-akri/akri/releases/tag/v0.14.0"
+   },
+   "license": "Apache License 2.0"
+  },
+  "https://github.com/devstream-io/devstream": {
+   "contributors": {
+    "count": 2,
+    "url": "https://github.com/devstream-io/devstream/graphs/contributors"
+   },
+   "description": "DevStream: the open-source DevOps toolchain manager (DTM).",
+   "generated_at": "2026-11-21T08:12:57.585711812Z",
+   "latest_commit": {
+    "ts": "2025-03-12T12:05:23Z",
+    "url": "https://github.com/devstream-io/devstream/commit/24cdd2be1424d8ea7eb3a5e303585676f4363da7"
+   },
+   "participation_stats": [],
+   "stars": 870,
+   "topics": [
+    "cloud-native",
+    "developer-tools",
+    "devops",
+    "devops-tools"
+   ],
+   "url": "https://github.com/devstream-io/devstream",
+   "first_commit": {
+    "ts": "2025-03-01T14:52:18Z",
+    "url": "https://github.com/devstream-io/devstream/commit/f6755e4aa894230a2fb9930ef521fde3971dcada"
+   },
+   "languages": {
+    "Makefile": 308,
+    "Python": 32145
+   },
+   "latest_release": {
+    "ts": "2023-05-09T02:44:47Z",
+    "url": "https://github.com/devstream-io/devstream/releases/tag/v0.13.3"
+   },
+   "license": "Apache License 2.0"
+  },
+  "https://github.com/kubeedge/kubeedge": {
+   "contributors": {
+    "count": 429,
+    "url": "https://github.com/kubeedge/kubeedge/graphs/contributors"
+   },
+   "description": "Kubernetes Native Edge Computing Framework (project under CNCF)",
+   "generated_at": "2026-11-21T08:15:01.079446136Z",
+   "latest_commit": {
+    "ts": "2026-11-20T08:37:19Z",
+    "url": "https://github.com/kubeedge/kubeedge/commit/8429622d5fb1479325a09053dbb0e1d7e4feda3c"
+   },
+   "participation_stats": [],
+   "stars": 7639,
+   "topics": [
+    "cloud-native",
+    "cncf",
+    "container",
+    "device-management",
+    "docker",
+    "edge-computing",
+    "golang",
+    "iot",
+    "kubernetes",
+    "mosquitto",
+    "mqtt"
+   ],
+   "url": "https://github.com/kubeedge/kubeedge",
+   "first_commit": {
+    "ts": "2018-09-28T08:57:50Z",
+    "url": "https://github.com/kubeedge/kubeedge/commit/316bd63786ff57353772847626f5f7df7f1e1f53"
+   },
+   "languages": {
+    "Dockerfile": 10570,
+    "Go": 5214938,
+    "Makefile": 14522,
+    "Mustache": 1288,
+    "Shell": 229642
+   },
+   "latest_release": {
+    "ts": "2026-07-15T14:03:03Z",
+    "url": "https://github.com/kubeedge/kubeedge/releases/tag/v1.23.1"
+   },
+   "license": "Apache License 2.0"
+  }
+ }
+}

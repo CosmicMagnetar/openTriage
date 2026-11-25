@@ -1,0 +1,80 @@
+[
+ {
+  "id": "defdb36a-c09b-472c-baf2-78cf7275fdee",
+  "name": "aeraki-mesh",
+  "display_name": "Aeraki Mesh",
+  "description": "Aeraki Mesh allows you to manage any layer-7 traffic in a service mesh",
+  "category": "orchestration",
+  "logo_url": "https://raw.githubusercontent.com/cncf/artwork/main/projects/aerakimesh/icon/color/aerakimesh-icon-color.svg",
+  "devstats_url": "https://aerakimesh.devstats.cncf.io/",
+  "score": {
+   "legal": 100,
+   "global": 76.86,
+   "license": 100,
+   "security": 54.55,
+   "documentation": 95,
+   "global_weight": 0,
+   "best_practices": 15.79,
+   "agent_readiness": 64.29
+  },
+  "rating": "a",
+  "accepted_at": 1655424000,
+  "updated_at": 1795478473,
+  "maturity": "sandbox",
+  "repositories": [
+   {
+    "name": "website",
+    "url": "https://github.com/aeraki-mesh/website",
+    "check_sets": [
+     "docs"
+    ]
+   },
+   {
+    "name": "aeraki",
+    "url": "https://github.com/aeraki-mesh/aeraki",
+    "check_sets": [
+     "community",
+     "code"
+    ],
+    "website_url": "https://www.aeraki.net"
+   }
+  ],
+  "foundation": "cncf"
+ },
+ {
+  "id": "4dc86ca1-8e15-4ab5-95eb-92be039d913c",
+  "name": "agent-substrate",
+  "display_name": "Agent Substrate",
+  "description": "A secure-by-default agent execution runtime for running millions of sandboxes",
+  "category": "orchestration",
+  "home_url": "https://github.com/agent-substrate/substrate",
+  "logo_url": "https://raw.githubusercontent.com/agent-substrate/substrate/main/logo/ate-logo.svg",
+  "devstats_url": "https://agentsubstrate.devstats.cncf.io/",
+  "score": {
+   "legal": 100,
+   "global": 73.96,
+   "license": 75,
+   "security": 72.73,
+   "documentation": 90,
+   "global_weight": 0,
+   "best_practices": 42.11,
+   "agent_readiness": 85.71
+  },
+  "rating": "b",
+  "accepted_at": 1790553600,
+  "updated_at": 1795550455,
+  "maturity": "sandbox",
+  "repositories": [
+   {
+    "name": "substrate",
+    "url": "https://github.com/agent-substrate/substrate",
+    "check_sets": [
+     "community",
+     "code"
+    ],
+    "website_url": "https://ate.dev/"
+   }
+  ],
+  "foundation": "cncf"
+ }
+]

@@ -6,6 +6,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   Building2, CalendarDays, Check, CircleDot, Download, Eye, EyeOff, Flame, GitMerge, GitPullRequest,
   GitPullRequestClosed, GitPullRequestDraft, Link2, Lock, MapPin, Minus, Pin, PinOff, Plus, Share2, Target, Users, X,
@@ -23,6 +24,7 @@ import { FAMILIES, MAINTAINER_FAMILIES, TIERS, evaluateAll, evaluateMaintainer, 
 import { REFRESH_MS } from '../../lib/query';
 import MyPrograms, { ProgramAchievements } from './MyPrograms';
 import { badgeImage, loadImage } from './badges/badgeImage';
+import { OrgList, useAccess } from './repoAccess';
 
 // ---------------------------------------------------------------------------
 // Data
@@ -50,7 +52,7 @@ const STAT_DEFS = {
   lines: ['Lines added', (d) => d.stats.additions],
 };
 
-const SYNCED = ['public', 'hidden', 'featured', 'banner', 'hue', 'stats', 'weeklyGoal'];
+const SYNCED = ['public', 'hidden', 'featured', 'banner', 'hue', 'stats', 'weeklyGoal', 'showOrgs'];
 const pick = (p) => Object.fromEntries(SYNCED.map((k) => [k, p[k]]));
 
 /**
@@ -162,7 +164,21 @@ function GoalRing({ done, goal }) {
   );
 }
 
-function BadgeTile({ r, onOpen, isNew, hidden, pinned }) {
+/** Every badge result for the signed-in user (contributor + maintainer). Shared by Profile and the Badges page. */
+export function useBadgeResults() {
+  const { user } = useAuthStore();
+  const login = user?.username;
+  const q = useQuery(keys.journey(), (o) => workApi.journey(o), { staleMs: 30 * 60_000 });
+  const d = q.data ? { ...q.data, login } : null;
+  const contributorResults = useMemo(() => evaluateAll(d), [q.data, login]); // eslint-disable-line react-hooks/exhaustive-deps
+  const evidence = useMaintainerEvidence(q.data);
+  const evKey = JSON.stringify(evidence);
+  const maintainerResults = useMemo(() => evaluateMaintainer(evidence), [evKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const results = useMemo(() => [...contributorResults, ...maintainerResults], [contributorResults, maintainerResults]);
+  return { q, d, results, maintainerResults };
+}
+
+export function BadgeTile({ r, onOpen, isNew, hidden, pinned }) {
   const motionOn = useMotionOn();
   const t = r.tier >= 0 ? TIERS[r.tier] : null;
   const Wrap = motionOn && isNew ? motion.button : 'button';
@@ -192,7 +208,7 @@ function BadgeTile({ r, onOpen, isNew, hidden, pinned }) {
   );
 }
 
-function BadgeSheet({ r, onClose, profile }) {
+export function BadgeSheet({ r, onClose, profile }) {
   const pinned = profile.featured.includes(r.badge.id);
   const hidden = profile.hidden.includes(r.badge.id);
   const earned = r.tier >= 0;
@@ -337,6 +353,13 @@ function Customize({ profile, hue, login }) {
             <span className="block fs-12-5 text-[var(--muted)]">Anyone with the link sees your level, pinned and visible badges, and the numbers you chose. Off by default.</span>
           </span>
         </label>
+        <label className="flex items-start gap-3 cursor-pointer mt-3">
+          <input type="checkbox" className="mt-1" checked={!!profile.showOrgs} onChange={(e) => setProfile({ showOrgs: e.target.checked })} style={{ accentColor: hue }} />
+          <span>
+            <span className="block fs-13-5 font-medium">Show my organizations</span>
+            <span className="block fs-12-5 text-[var(--muted)]">Adds your public GitHub orgs to the public link. Roles are never shown there.</span>
+          </span>
+        </label>
         {profile.public && (
           <div className="mt-3 flex gap-2 items-center">
             <a href={link} target="_blank" rel="noopener noreferrer" className="flex-1 truncate fs-13 mono text-[var(--link)] hover:underline">{link}</a>
@@ -463,18 +486,14 @@ export default function ProfilePage() {
   const login = user?.username;
   useProfileSync(profile);
   const gh = useGitHubUser(login);
-  const q = useQuery(keys.journey(), (o) => workApi.journey(o), { staleMs: 30 * 60_000 });
+  const access = useAccess();
+  const navigate = useNavigate();
   const [tab, setTab] = useState('badges');
   const [open, setOpen] = useState(null);
   const [share, setShare] = useState(false);
-  const d = q.data ? { ...q.data, login } : null;
   const hue = HUES[profile.hue] ?? HUES.indigo;
-  const contributorResults = useMemo(() => evaluateAll(d), [q.data, login]); // eslint-disable-line react-hooks/exhaustive-deps
-  const evidence = useMaintainerEvidence(q.data);
-  const evKey = JSON.stringify(evidence);
-  const maintainerResults = useMemo(() => evaluateMaintainer(evidence), [evKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // One collection: pins, hiding, "New" and sharing work across both kinds.
-  const results = useMemo(() => [...contributorResults, ...maintainerResults], [contributorResults, maintainerResults]);
+  const { q, d, results, maintainerResults } = useBadgeResults();
   const earned = results.filter((r) => r.tier >= 0);
   const shelf = featuredBadges(results, profile, 6);
   // What was already seen when the page opened; only badges beyond that are "New".
@@ -524,6 +543,7 @@ export default function ProfilePage() {
                 {g && <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" />{g.followers} followers · {g.following} following</span>}
                 {g?.created_at && <span className="inline-flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" />On GitHub since {new Date(g.created_at).getFullYear()}</span>}
               </p>
+              {access.data?.orgs?.length > 0 && <div className="mt-3"><OrgList orgs={access.data.orgs} /></div>}
             </div>
             <span className="fs-12-5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[var(--line)] text-[var(--muted)]">
               {profile.public ? <><Link2 className="w-3.5 h-3.5" /> Public link on</> : <><Lock className="w-3.5 h-3.5" /> Private</>}
@@ -592,7 +612,7 @@ export default function ProfilePage() {
             </Card>
 
             <Segments value={tab} onChange={setTab} options={[
-              { value: 'badges', label: 'All badges', count: results.length },
+              { value: 'badges', label: 'Your badges', count: earned.length },
               { value: 'activity', label: 'Activity', count: d.timeline.length },
               { value: 'customize', label: 'Customize' },
             ]} />
@@ -601,14 +621,21 @@ export default function ProfilePage() {
               <motion.div key={tab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
                 {tab === 'badges' && (
                   <div className="space-y-6">
-                    {[...FAMILIES, ...(maintainerResults.length ? [{ id: '__m', heading: true }] : []), ...(maintainerResults.length ? MAINTAINER_FAMILIES : [])].map((f) => {
+                    {/* Only what you've earned here; the full catalogue with unlock rules lives on the Badges page. */}
+                    <button onClick={() => navigate('/dashboard/badges')}
+                      className="w-full card px-4 py-3 flex items-center gap-3 text-left hover:bg-[var(--hover)]">
+                      <span className="flex-1 fs-13-5">See all {results.length} badges, how to unlock each, and the ones you're closest to</span>
+                      <span className="fs-12-5 text-[var(--link)]">Badges →</span>
+                    </button>
+                    {earned.length === 0 && <p className="fs-13-5 text-[var(--muted)]">No badges yet. Your first one comes from commenting on an issue you could help with.</p>}
+                    {[...FAMILIES, ...(maintainerResults.some((r) => r.tier >= 0) ? [{ id: '__m', heading: true }] : []), ...MAINTAINER_FAMILIES].map((f) => {
                       if (f.heading) return (
                         <div key={f.id} className="pt-2 border-t border-[var(--line)]">
                           <h3 className="fs-19 font-semibold mt-4">As a maintainer</h3>
                           <p className="fs-13-5 text-[var(--muted)]">Earned from the repositories you track. They count towards your profile like any other badge.</p>
                         </div>
                       );
-                      const list = results.filter((r) => r.badge.family === f.id);
+                      const list = results.filter((r) => r.badge.family === f.id && r.tier >= 0);
                       if (!list.length) return null;
                       return (
                         <section key={f.id}>

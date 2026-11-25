@@ -19,7 +19,8 @@ export function whenText(date) {
 }
 
 export function usePrograms() {
-  return useQuery(keys.programs(), () => workApi.programs(), { staleMs: 6 * 60 * 60_000 });
+  // Served from server memory, so refreshing is cheap; 30 min keeps a fresh sync visible the same morning.
+  return useQuery(keys.programs(), () => workApi.programs(), { staleMs: 30 * 60_000 });
 }
 
 

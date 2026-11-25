@@ -13,6 +13,7 @@ import {
   StaggerItem, Tag, VERDICT, timeAgo,
 } from './ui';
 import { InterestsEditor, OpportunityRows, useOpportunities } from './opportunities';
+import { GoalsStrip, RepoRecommendations } from './forYou';
 
 const FIELDS = ['q', 'language', 'label', 'repo'];
 
@@ -32,6 +33,7 @@ export default function FindWorkPage() {
   const opp = useOpportunities();
   const search = useQuery(mode === 'search' ? keys.find(filters) : null, (o) => workApi.findWork(filters, o), { staleMs: 5 * 60_000 });
   const q = mode === 'search' ? search : opp;
+  const repos = mode === 'repos';
   const results = useMemo(() => q.data?.results ?? [], [q.data]);
   const items = useMemo(() => results.map((r) => ({ kind: 'issue', owner: r.owner, repo: r.repo, number: r.number })), [results]);
   const { index, setIndex, open } = useListNav(items, { onRefresh: q.refresh });
@@ -60,18 +62,20 @@ export default function FindWorkPage() {
   return (
     <Page
       title="Find work"
-      count={q.data ? results.length : undefined}
-      subtitle={mode === 'for'
-        ? 'Unclaimed issues in repos you know and languages you use. Hover a row and press × to hide a repo.'
-        : 'Open issues nobody is on yet, ranked by how safe they are to pick up.'}
-      refreshing={q.isRefreshing}
-      updatedAt={q.updatedAt}
-      onRefresh={q.refresh}
+      count={!repos && q.data ? results.length : undefined}
+      subtitle={repos
+        ? 'Open-source projects ranked for you, from your GitHub activity and what you are looking for. Each one says why.'
+        : mode === 'for'
+          ? 'Unclaimed issues in repos you know and languages you use. Hover a row and press × to hide a repo.'
+          : 'Open issues nobody is on yet, ranked by how safe they are to pick up.'}
+      refreshing={!repos && q.isRefreshing}
+      updatedAt={repos ? undefined : q.updatedAt}
+      onRefresh={repos ? undefined : q.refresh}
       toolbar={
         <div className="flex flex-wrap items-center gap-2 w-full">
           <Segments value={mode} onChange={(m) => apply(m === 'search' ? draft : {}, m)}
-            options={[{ value: 'for', label: 'For you' }, { value: 'search', label: 'Search' }]} />
-          {mode === 'for' ? (
+            options={[{ value: 'for', label: 'For you' }, { value: 'repos', label: 'Repos' }, { value: 'search', label: 'Search' }]} />
+          {repos ? null : mode === 'for' ? (
             <Button variant="subtle" onClick={() => setTuning((t) => !t)}><SlidersHorizontal className="w-3.5 h-3.5" /> {tuning ? 'Done' : 'Tune'}</Button>
           ) : (
             <form onSubmit={submit} className="flex flex-wrap items-center gap-2">
@@ -91,9 +95,19 @@ export default function FindWorkPage() {
         </div>
       }
     >
+      {repos && (
+        <div className="px-6 py-5 space-y-4">
+          <GoalsStrip />
+          <RepoRecommendations />
+        </div>
+      )}
+      {mode === 'for' && (
+        <div className="px-5 pt-3"><GoalsStrip /></div>
+      )}
       {mode === 'for' && tuning && (
         <div className="px-5 py-4 border-b border-[var(--line-soft)] bg-[var(--panel)]"><InterestsEditor /></div>
       )}
+      {!repos && <>
       {q.error && <ErrorLine message={q.error.message} onRetry={q.refresh} />}
       {q.isLoading && <SkeletonRows n={8} />}
       {q.data && results.length === 0 && (
@@ -134,6 +148,7 @@ export default function FindWorkPage() {
           })}
         </Stagger>
       )}
+      </>}
     </Page>
   );
 }

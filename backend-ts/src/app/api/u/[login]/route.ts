@@ -24,7 +24,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         if (!owner?.token) return notFound();
         const journey = await cached(`journey:${owner.username}`.toLowerCase(), 60 * MINUTE,
             () => fetchJourney(createGitHubClient(owner.token!), owner.username, owner.token));
-        return NextResponse.json(publicView(owner.username, journey, s), { headers: { "Cache-Control": "no-store" } });
+        const orgs = s.showOrgs
+            ? await cached(`porgs:${owner.username}`.toLowerCase(), 60 * MINUTE, async () => {
+                const { data } = await createGitHubClient(owner.token!).orgs.listForUser({ username: owner.username, per_page: 100 });
+                return data.map((o) => ({ login: o.login, avatarUrl: o.avatar_url }));
+            }).catch(() => [])
+            : [];
+        return NextResponse.json(publicView(owner.username, journey, s, orgs), { headers: { "Cache-Control": "no-store" } });
     } catch (err) {
         console.error("[u/login]", err);
         return NextResponse.json({ error: "Could not load this profile right now." }, { status: 502 });

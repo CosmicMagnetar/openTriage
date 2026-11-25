@@ -9,6 +9,7 @@ import { REFRESH_MS, useQuery } from '../../lib/query';
 import { useItemPanel, prefetchItem } from './useWorkspace';
 import { Card, ErrorLine, ExtLink, LiveNumber, Page, Progress, SkeletonRows, Stat, timeAgo } from './ui';
 import { HUES } from './nav';
+import { RisingContributors } from './maintainerHub';
 
 const itemOf = (x) => {
   const [owner, repo] = x.repo.split('/');
@@ -80,6 +81,7 @@ export default function CommunityPage() {
             </div>
 
             <div className="space-y-5">
+              <RisingContributors people={d.risingContributors} />
               <Card title="Active contributors" icon={Users} hue={HUES.blue}>
                 {d.activeContributors.length === 0 && <p className="fs-13-5 text-[var(--muted)]">No outside activity in the last 30 days.</p>}
                 <ul className="space-y-3">

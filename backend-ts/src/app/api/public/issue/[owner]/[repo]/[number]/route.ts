@@ -5,12 +5,9 @@
  * the server (GraphQL requires auth). Without it: { configured: false }.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { Octokit } from "@octokit/rest";
 import { buildIssueView, cached, MINUTE } from "@/lib/github/services";
 import { validRepo } from "@/lib/github/route-helpers";
-
-const token = process.env.GITHUB_TOKEN;
-const octokit = token ? new Octokit({ auth: token }) : null;
+import { serverOctokit } from "@/lib/github/octokit";
 
 export async function GET(_req: NextRequest, context: { params: Promise<{ owner: string; repo: string; number: string }> }) {
     const { owner, repo, number } = await context.params;
@@ -18,6 +15,8 @@ export async function GET(_req: NextRequest, context: { params: Promise<{ owner:
     if (!validRepo(owner, repo) || !Number.isInteger(n) || n <= 0) {
         return NextResponse.json({ error: "Invalid reference" }, { status: 400 });
     }
+    // Least-used server token each time (GITHUB_TOKENS pool).
+    const octokit = serverOctokit();
     if (!octokit) return NextResponse.json({ configured: false });
     try {
         const data = await cached(`pub:${owner}/${repo}#${n}`.toLowerCase(), 10 * MINUTE, async () => {

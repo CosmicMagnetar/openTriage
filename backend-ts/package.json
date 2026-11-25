@@ -17,6 +17,7 @@
     "migrate:data": "tsx scripts/migrate-data.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.14.0",
     "@libsql/client": "^0.17.0",
     "@octokit/rest": "^22.0.1",
     "ably": "^2.6.0",

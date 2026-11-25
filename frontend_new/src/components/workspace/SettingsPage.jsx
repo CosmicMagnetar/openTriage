@@ -9,7 +9,7 @@ import { disableNotify, enableNotify, notifyEnabled, notifySupported } from '../
 import useAuthStore from '../../stores/authStore';
 import { keys, parseGitHubRef, workApi } from '../../services/workApi';
 import { invalidate, useQuery } from '../../lib/query';
-import AISettingsPanel from '../settings/AISettingsPanel';
+import { AiKeySettings } from './aiAnalysis';
 import { Reorder } from 'framer-motion';
 import usePrefs, { ACCENTS, DEFAULT_ACCENT, TODAY_WIDGETS, arrangeNav, widgetsFor } from '../../stores/prefsStore';
 import { NAV } from './nav';
@@ -103,10 +103,10 @@ function SavedReplies() {
         {list.map((r) => (
           <li key={r.id} className="flex items-start gap-2 py-2 border-b border-[var(--line-soft)]">
             <div className="flex-1 min-w-0">
-              <p className="fs-12-5 text-[var(--text)]">{r.name}</p>
+              <p className="fs-12-5 text-[var(--text)]">{r.name}{r.builtIn && <span className="ml-2 fs-11 text-[var(--muted)]">built-in · save one with this name to change it</span>}</p>
               <p className="fs-12 text-[var(--muted)] line-clamp-2 whitespace-pre-wrap">{r.body}</p>
             </div>
-            <Button variant="subtle" size="sm" onClick={() => remove(r.id)} aria-label={`Delete ${r.name}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+            {!r.builtIn && <Button variant="subtle" size="sm" onClick={() => remove(r.id)} aria-label={`Delete ${r.name}`}><Trash2 className="w-3.5 h-3.5" /></Button>}
           </li>
         ))}
       </ul>
@@ -303,9 +303,12 @@ export default function SettingsPage() {
         {ws === 'contributor' && <Suggestions />}
         {role === 'MAINTAINER' && <TrackedRepos />}
         {role === 'MAINTAINER' && <SavedReplies />}
-        <Block title="AI (optional)">
-          <AISettingsPanel />
-        </Block>
+        <div id="ai" className="scroll-mt-20">
+          {/* Server-side, encrypted per user (replaces the old panel that kept keys in this browser's storage). */}
+          <Block title="AI with your own key (optional)">
+            <AiKeySettings />
+          </Block>
+        </div>
       </div>
     </Page>
   );

@@ -4,7 +4,7 @@
  * Each page has its own hue: its icon, header tint and key numbers use it,
  * so you can tell where you are at a glance.
  */
-import { BookOpen, Columns3, Compass, FileCheck2, GitPullRequest, Home, Inbox, Layers, LayoutDashboard, Settings, Sparkles, Trophy, Users } from 'lucide-react';
+import { Award, BookOpen, Coins, Columns3, Compass, FileCheck2, GitPullRequest, Home, Inbox, Layers, LayoutDashboard, Settings, Sparkles, Trophy, Users } from 'lucide-react';
 
 export const HUES = {
   green: '#57ab5a',
@@ -30,6 +30,7 @@ export const NAV = {
     ] },
     { id: 'grow', title: 'Grow', items: [
       { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.indigo },
+      { icon: Award, label: 'Badges', path: '/dashboard/badges', hue: HUES.amber },
       { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens', hue: HUES.slate },
     ] },
   ],
@@ -42,12 +43,14 @@ export const NAV = {
     { id: 'review', title: 'Review', items: [
       { icon: GitPullRequest, label: 'Pull requests', path: '/dashboard/prs', countKey: 'prs', hue: HUES.green },
     ] },
-    { id: 'people', title: 'People and docs', items: [
+    { id: 'people', title: 'Repos and people', items: [
+      { icon: FileCheck2, label: 'Repo to-do', path: '/dashboard/docs', hue: HUES.teal },
       { icon: Users, label: 'Community', path: '/dashboard/community', hue: HUES.sky },
-      { icon: FileCheck2, label: 'Docs health', path: '/dashboard/docs', hue: HUES.teal },
+      { icon: Coins, label: 'Funding & programs', path: '/dashboard/funding', hue: HUES.orange },
     ] },
     { id: 'understand', title: 'Understand', items: [
       { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.indigo },
+      { icon: Award, label: 'Badges', path: '/dashboard/badges', hue: HUES.amber },
       { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens', hue: HUES.slate },
     ] },
   ],

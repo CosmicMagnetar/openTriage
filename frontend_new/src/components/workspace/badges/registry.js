@@ -89,6 +89,18 @@ export function evaluateAll(data) {
   return BADGES.map((b) => ({ badge: b, ...evaluate(b, data) }));
 }
 
+/**
+ * Badges you're closest to: locked ones or the next tier of earned ones,
+ * most progress first, then fewest steps left. Maxed badges are skipped.
+ */
+export function closestToUnlock(results, n = 3) {
+  return results
+    .filter((r) => !r.maxed && r.next != null)
+    .map((r) => ({ ...r, remaining: Math.max(0, r.next - r.value) }))
+    .sort((a, b) => b.progress - a.progress || a.remaining - b.remaining || a.badge.name.localeCompare(b.badge.name))
+    .slice(0, n);
+}
+
 /** Level titles by band, shown under the level ring. */
 export function levelTitle(level) {
   if (level >= 15) return 'Steward';

@@ -5,7 +5,7 @@
  *   (reply, review, merge, decide), plus repos, newcomers and stale claims.
  * Side widgets are chosen and ordered in Settings → Home page.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, GitMerge, GitPullRequest, MessageSquare, Plus, Scale } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,6 +24,8 @@ import { useOpportunities } from './opportunities';
 import { prBucket } from './prRows';
 import { TODAY_EXTRA_WIDGETS } from './todayWidgets';
 import WelcomeFlow from './WelcomeFlow';
+import { YourGitHubRepos } from './repoAccess';
+import { AwayBanner, SinceAway, WorkloadCard, useSinceLastVisit } from './maintainerHub';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -109,6 +111,8 @@ const PR_COLOR = { 'Ready to merge': 'green', 'Needs review or reply': 'blue', '
 const PR_ORDER = ['Waiting on author', 'Needs review or reply', 'Ready to merge', 'In progress', 'Stalled or other', 'Drafts'];
 const linkBtn = 'fs-12-5 text-[var(--link)] hover:underline';
 
+const BAND_COLOR = { P0: 'red', P1: 'amber', P2: 'blue', P3: 'gray', P4: 'gray' };
+
 function ActionRow({ a, i, selected, changed, onOpen, me }) {
   const meta = ACTION[a.type] ?? { label: a.type, color: 'gray' };
   const [owner, repo] = a.repo.split('/');
@@ -118,8 +122,11 @@ function ActionRow({ a, i, selected, changed, onOpen, me }) {
       lead={<Pulse color={meta.color} title={meta.label} />}
       title={<>{a.isPR && <GitPullRequest className="inline w-3.5 h-3.5 mr-1.5 -mt-0.5 text-[var(--muted)]" />}{a.title}</>}
       meta={<>
+        {a.band && <Tag color={BAND_COLOR[a.band]} title={a.why?.join(' · ') || 'Priority'}>{a.band}</Tag>}
         <span className="font-medium" style={{ color: STATE[meta.color] }}>{meta.label}</span>
         <Ref owner={owner} repo={repo} number={a.number} />
+        {a.why?.[0] && <span className="text-[var(--muted)]">{a.why[0]}</span>}
+        {a.quality && a.quality.score < 35 && <span className="text-[var(--amber)]" title={a.quality.flags.join(' · ')}>Thin PR</span>}
         {a.suggestion && <span className="basis-full text-[var(--text-2)]">{a.suggestion}</span>}
       </>}
       right={<Tag>{waitingOnLabel(a.waitingOn, me)}{a.waitingDays >= 1 ? ` · ${Math.floor(a.waitingDays)}d` : ''}</Tag>}
@@ -152,6 +159,7 @@ function ContributorHome() {
   const items = useMemo(() => actions.map(toItem), [actions]);
   const refresh = () => { q.refresh(); prs.refresh(); opp.refresh(); };
   const { index, setIndex, open } = useListNav(items, { onRefresh: refresh });
+  const since = useSinceLastVisit(`ot:seen:c:${user?.id ?? 'anon'}`, actions);
 
   const widgets = {
     picks: () => (
@@ -192,6 +200,7 @@ function ContributorHome() {
 
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] items-start">
           <div className="space-y-5 min-w-0">
+            <SinceAway items={since} onOpen={(a) => open(toItem(a))} />
             <Card title="Do next" bodyClass="">
               {q.error && <ErrorLine message={q.error.message} onRetry={q.refresh} />}
               {!q.data && !q.error && <SkeletonRows />}
@@ -283,6 +292,23 @@ function CommandCenter() {
   const refresh = () => { q.refresh(); prs.refresh(); inbox.refresh(); };
   const { index, setIndex, open } = useListNav(items, { onRefresh: refresh });
   const onTracked = () => { invalidate('today:'); invalidate('inbox'); invalidate('prs:'); q.refresh(); };
+  const since = useSinceLastVisit(`ot:seen:m:${user?.id ?? 'anon'}`, actions);
+
+  // Nothing tracked yet: start tracking the repos you clearly maintain on GitHub, once.
+  const autoTried = useRef(false);
+  const noRepos = !!q.data && (q.data.repos?.length ?? 0) === 0;
+  useEffect(() => {
+    if (!noRepos || autoTried.current) return;
+    autoTried.current = true;
+    workApi.access({ autotrack: true }).then((r) => {
+      invalidate(keys.access());
+      if (r.autoTracked?.length) {
+        toast.success(`Now managing ${r.autoTracked.length} repo${r.autoTracked.length === 1 ? '' : 's'} you maintain on GitHub`);
+        onTracked();
+      }
+    }).catch(() => { /* the repo picker below still works */ });
+  }, [noRepos]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const oldest = actions.reduce((m, a) => Math.max(m, a.waitingDays ?? 0), 0);
 
   const widgets = {
@@ -337,6 +363,7 @@ function CommandCenter() {
       actions={<AddRepo onAdded={onTracked} />}>
       <div className="px-6 py-5 space-y-5">
         {!prefs.onboarded && <WelcomeFlow ws="maintainer" setup={<AddRepo onAdded={onTracked} />} />}
+        <AwayBanner />
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
           <Stat label="Waiting on you" value={q.data ? actions.length : null} color={STATE[actions.length ? 'amber' : 'green']} />
           <Stat label="Longest wait (days)" value={q.data ? Math.floor(oldest) : null} hint="How long the oldest item in your queue has waited" />
@@ -344,6 +371,7 @@ function CommandCenter() {
           <Stat label="Open pull requests" value={prs.data ? prRows.length : null} onClick={() => navigate('/dashboard/prs')} />
         </div>
 
+        <SinceAway items={since} onOpen={(a) => open(toItem(a))} total={actions.length} />
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] items-start">
           <Card title="Your queue" bodyClass="">
             {q.error && <ErrorLine message={q.error.message} onRetry={q.refresh} />}
@@ -384,7 +412,11 @@ function CommandCenter() {
               );
             })}
           </Card>
-          <div className="space-y-4">{side}</div>
+          <div className="space-y-4">
+            {q.data && <WorkloadCard actions={actions} />}
+            <YourGitHubRepos onTracked={onTracked} />
+            {side}
+          </div>
         </div>
       </div>
     </Page>

@@ -1,16 +1,23 @@
 /**
- * Docs health (maintainer): for each repo you track, the files and labels
- * that help newcomers contribute (README, CONTRIBUTING, code of conduct,
- * licence, security policy, templates, CODEOWNERS, a good-first-issue label),
- * with a score. Missing ones can be added as a pull request from a template,
- * after you confirm; nothing is pushed to your default branch.
+ * Repo to-do (maintainer; replaces Docs health). For each repo you manage, a
+ * short list of what's worth doing, each with one action: add a missing file
+ * as a PR from a template, turn on vulnerability reporting, fix alerts,
+ * release, clear stale bot PRs, fix a flaky check, add FUNDING.yml.
+ * Repos with nothing to do collapse into one "All good" line. Your repos on
+ * GitHub that you don't manage yet sit on top, one click each.
  */
-import { useState } from 'react';
-import { Check, ExternalLink, FilePlus2, Minus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, ExternalLink, FilePlus2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { keys, workApi } from '../../services/workApi';
 import { REFRESH_MS, invalidate, useQuery } from '../../lib/query';
-import { Button, Card, Confirm, ErrorLine, Page, SkeletonRows, timeAgo } from './ui';
+import { Button, Card, Confirm, Dot, ErrorLine, Page, SkeletonRows } from './ui';
+import { YourGitHubRepos } from './repoAccess';
+import { MaintainerGoalsStrip } from './maintainerHub';
+
+const PRIORITY_COLOR = { high: 'red', medium: 'amber', low: 'gray' };
+const AREA = { docs: 'Docs', security: 'Security', health: 'Health', funding: 'Funding', community: 'Community' };
 
 /** Show `backticked` words as inline code instead of raw backticks. */
 function Inline({ text }) {
@@ -19,53 +26,48 @@ function Inline({ text }) {
     : <span key={i}>{part}</span>));
 }
 
-function ScoreRing({ score }) {
-  const r = 26; const c = 2 * Math.PI * r;
-  const color = score >= 80 ? 'var(--green)' : score >= 50 ? 'var(--amber)' : 'var(--red)';
-  return (
-    <svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label={`Docs score ${score} of 100`}>
-      <circle cx="34" cy="34" r={r} fill="none" stroke="var(--line)" strokeWidth="7" />
-      <circle cx="34" cy="34" r={r} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
-        strokeDasharray={c} strokeDashoffset={c * (1 - score / 100)} transform="rotate(-90 34 34)" style={{ transition: 'stroke-dashoffset .5s' }} />
-      <text x="34" y="39" textAnchor="middle" fill="var(--text)" style={{ font: '600 17px var(--font)' }}>{score}</text>
-    </svg>
-  );
+function useTodo(repo) {
+  return useQuery(keys.todo(repo), (o) => workApi.repoTodo(repo, o), { staleMs: 30 * 60_000 });
 }
 
-function RepoDocs({ repo, onAsk }) {
-  const q = useQuery(keys.docs(repo), (o) => workApi.docsHealth(repo, o), { staleMs: 30 * 60_000 });
+function RepoTodo({ repo, onAsk, onDone }) {
+  const navigate = useNavigate();
+  const q = useTodo(repo);
+  const [all, setAll] = useState(false);
   const d = q.data;
-  const missing = d?.items.filter((i) => !i.present) ?? [];
+  const good = Boolean(d?.allGood);
+  useEffect(() => { if (good) onDone(repo); }, [good, repo]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (good) return null;
+  const items = d?.items ?? [];
+  const shown = all ? items : items.slice(0, 5);
   return (
-    <Card title={repo} right={d && <span className="fs-12-5 text-[var(--muted)]">{missing.length ? `${missing.length} missing` : 'All set'}</span>}>
+    <Card title={repo} right={d && <span className="fs-12-5 text-[var(--muted)]">{items.length} to do</span>}>
       {q.error && <ErrorLine message={q.error.message} onRetry={q.refresh} />}
       {!d && !q.error && <SkeletonRows />}
       {d && (
-        <div className="flex flex-wrap gap-5">
-          <div className="flex flex-col items-center gap-1">
-            <ScoreRing score={d.score} />
-            <span className="fs-12 text-[var(--muted)]">score</span>
-          </div>
-          <ul className="flex-1 min-w-[260px] grid sm:grid-cols-2 gap-x-6 gap-y-2">
-            {d.items.map((i) => (
-              <li key={i.id} className="flex items-center gap-2.5">
-                <span className={`w-5 h-5 rounded-full inline-flex items-center justify-center shrink-0 ${i.present ? 'bg-[color-mix(in_srgb,var(--green)_18%,transparent)] text-[var(--green)]' : 'bg-[var(--raised)] text-[var(--muted)]'}`}>
-                  {i.present ? <Check className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className={`block fs-13-5 ${i.present ? '' : 'text-[var(--text-2)]'}`}><Inline text={i.label} /></span>
-                  {i.present && i.updatedAt && <span className="block fs-11-5 text-[var(--muted)]">updated {timeAgo(i.updatedAt)} ago</span>}
-                </span>
-                {!i.present && i.creatable && (
-                  <Button size="sm" onClick={() => onAsk(repo, i)}><FilePlus2 className="w-3.5 h-3.5" /> Add</Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ul className="-mx-1">
+          {shown.map((i) => (
+            <li key={i.id} className="flex items-start gap-2.5 px-1 py-2 border-b border-[var(--line-soft)] last:border-0">
+              <span className="mt-1.5"><Dot color={PRIORITY_COLOR[i.priority]} title={`${i.priority} priority`} /></span>
+              <span className="flex-1 min-w-0">
+                <span className="block fs-13-5"><Inline text={i.title} /></span>
+                <span className="block fs-12-5 text-[var(--muted)]">{AREA[i.area]} · {i.why}</span>
+              </span>
+              {i.action.kind === 'create-doc'
+                ? <Button size="sm" onClick={() => onAsk(repo, i)}><FilePlus2 className="w-3.5 h-3.5" /> Add</Button>
+                : i.action.url.startsWith('/')
+                  ? <Button size="sm" onClick={() => navigate(i.action.url)}>{i.action.label}</Button>
+                  : <a href={i.action.url} target="_blank" rel="noopener noreferrer"
+                    className="ctl-sm shrink-0 px-2.5 rounded-md fs-12 inline-flex items-center gap-1 border border-[var(--line)] hover:bg-[var(--hover)]">
+                    {i.action.label} <ExternalLink className="w-3 h-3" />
+                  </a>}
+            </li>
+          ))}
+        </ul>
       )}
-      {d && !d.canCreate && missing.length > 0 && <p className="fs-12-5 text-[var(--muted)] mt-3">You need push access to add files from here.</p>}
-      {d?.treeUnavailable && <p className="fs-12-5 text-[var(--amber)] mt-3">Couldn't read this repo's files, so some items may show as missing by mistake.</p>}
+      {items.length > 5 && (
+        <button onClick={() => setAll((v) => !v)} className="mt-2 fs-12-5 text-[var(--link)] hover:underline">{all ? 'Show less' : `Show all ${items.length}`}</button>
+      )}
     </Card>
   );
 }
@@ -73,15 +75,18 @@ function RepoDocs({ repo, onAsk }) {
 export default function DocsPage() {
   const today = useQuery(keys.today('maintainer'), (o) => workApi.nextActions('maintainer', o), { staleMs: REFRESH_MS });
   const repos = (today.data?.repos ?? []).map((r) => r.repo);
+  const [done, setDone] = useState([]);
   const [pending, setPending] = useState(null);
   const [busy, setBusy] = useState(false);
+  const markDone = (repo) => setDone((d) => (d.includes(repo) ? d : [...d, repo]));
 
   const create = async () => {
     setBusy(true);
     try {
-      const res = await workApi.createDoc(pending.repo, pending.item.id);
+      const res = await workApi.createDoc(pending.repo, pending.item.action.item);
       toast.success(res.kind === 'label' ? `Added the "${res.label}" label` : res.existing ? 'A pull request for this already exists' : `Opened pull request #${res.number}`,
         { action: res.url ? { label: 'Open', onClick: () => window.open(res.url, '_blank', 'noopener') } : undefined });
+      invalidate(keys.todo(pending.repo));
       invalidate(keys.docs(pending.repo));
     } catch (err) {
       toast.error(err.message);
@@ -91,22 +96,29 @@ export default function DocsPage() {
     }
   };
 
-  const isLabel = pending?.item.id === 'good-first-issue';
+  const isLabel = pending?.item.action.item === 'good-first-issue';
   return (
-    <Page title="Docs health"
-      subtitle="What a newcomer finds in each of your repos. Add anything missing as a pull request you can edit before merging.">
+    <Page title="Repo to-do"
+      subtitle="What's worth doing in each repo you manage, most important first. One click each; nothing is pushed to your default branch.">
       <div className="px-8 py-6 space-y-5">
+        <MaintainerGoalsStrip />
+        <YourGitHubRepos title={repos.length ? 'More repos you maintain' : 'Pick the repos to manage'}
+          onTracked={() => { invalidate('today:'); today.refresh(); }} />
         {today.error && <ErrorLine message={today.error.message} onRetry={today.refresh} />}
         {!today.data && !today.error && <SkeletonRows />}
-        {today.data && repos.length === 0 && <p className="fs-14 text-[var(--muted)]">Track a repository from the Command center to check its docs.</p>}
-        {repos.map((r) => <RepoDocs key={r} repo={r} onAsk={(repo, item) => setPending({ repo, item })} />)}
+        {repos.filter((r) => !done.includes(r)).map((r) => <RepoTodo key={r} repo={r} onDone={markDone} onAsk={(repo, item) => setPending({ repo, item })} />)}
+        {done.length > 0 && (
+          <p className="fs-13 text-[var(--muted)] inline-flex items-center gap-2 flex-wrap">
+            <CheckCircle2 className="w-4 h-4 text-[var(--green)]" /> All good: {done.join(', ')}
+          </p>
+        )}
       </div>
       <Confirm open={!!pending} busy={busy} onCancel={() => setPending(null)} onConfirm={create}
-        title={isLabel ? `Create the "good first issue" label?` : `Open a pull request adding ${pending?.item.label}?`}
+        title={isLabel ? 'Create the "good first issue" label?' : `Open a pull request: ${pending?.item.title}?`}
         confirmLabel={isLabel ? 'Create label' : 'Open pull request'}>
         {isLabel
           ? <p>Adds the label to <span className="mono">{pending?.repo}</span> so newcomers can find starter issues.</p>
-          : <p>Creates a branch <span className="mono">opentriage/add-{pending?.item.id}</span> in <span className="mono">{pending?.repo}</span> with a starter file and opens a pull request. Your default branch is not changed; edit or close the PR on GitHub. <ExternalLink className="inline w-3 h-3" /></p>}
+          : <p>Creates a branch <span className="mono">opentriage/add-{pending?.item.action.item}</span> in <span className="mono">{pending?.repo}</span> with a starter file and opens a pull request. Your default branch is not changed; edit or close the PR on GitHub.</p>}
       </Confirm>
     </Page>
   );

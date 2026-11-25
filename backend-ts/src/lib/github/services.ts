@@ -7,12 +7,14 @@ import {
     activeAreas, assessPickup, computeAvailability, computeResponsiveness, detectStack, extractCodeRefs,
     extractSetupCommands, findSimilar, isMaintainer, issueNextActions, issueSignals, isOnMe, keywords, newcomerLabels,
     ownersFor, packageScripts, parseCodeowners, prNextActions, rankActions, responseThresholdDays, summarizeTree,
-    type IssueItem, type NextAction, type Responsiveness,
+    itemPriority, prQuality,
+    type IssueItem, type NextAction, type PRItem, type Responsiveness,
 } from "@/lib/coordination";
 import { observe } from "@/lib/history";
 import {
-    fetchIssue, fetchRecentMergedFiles, fetchResponsivenessSamples, fetchViewerPermissions, searchIssues, searchPRs,
+    fetchIssue, fetchItemExtras, fetchRecentMergedFiles, fetchResponsivenessSamples, fetchViewerPermissions, searchIssues, searchPRs,
 } from "./graphql";
+import { sharedDropPrefix, sharedGet, sharedSet } from "@/lib/sharedCache";
 
 const HOUR = 60 * 60 * 1000;
 export const MINUTE = 60 * 1000;
@@ -31,9 +33,11 @@ function load<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
     const p = fn()
         .then((value) => {
             const now = Date.now();
+            const entry = { value, freshUntil: now + ttlMs, staleUntil: now + ttlMs + STALE_FOR_MS };
             store.delete(key); // re-insert so Map order tracks recency
-            store.set(key, { value, freshUntil: now + ttlMs, staleUntil: now + ttlMs + STALE_FOR_MS });
+            store.set(key, entry);
             if (store.size > MAX_ENTRIES) store.delete(store.keys().next().value as string);
+            sharedSet(key, value, entry.freshUntil, entry.staleUntil); // other instances + after restart
             return value;
         })
         .finally(() => inflight.delete(key));
@@ -45,12 +49,20 @@ function load<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
  * Stale-while-revalidate cache with in-flight dedupe.
  * - Fresh hit: returned immediately.
  * - Stale hit: returned immediately; one background refresh updates it.
+ * - Memory miss: the shared Turso tier (other instances, before a restart) is checked next.
  * - Miss, or `fresh` (user pressed refresh): waits for GitHub.
  * Concurrent requests for the same key share one GitHub round-trip.
  */
 export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>, fresh = false): Promise<T> {
     const now = Date.now();
-    const hit = store.get(key);
+    let hit = store.get(key);
+    if (!hit && !fresh && !inflight.has(key)) {
+        const shared = await sharedGet(key);
+        if (shared) {
+            hit = shared;
+            store.set(key, shared);
+        }
+    }
     if (!fresh && hit && now < hit.staleUntil) {
         if (now >= hit.freshUntil) load(key, ttlMs, fn).catch(() => { /* keep serving the stale value */ });
         return hit.value as T;
@@ -66,6 +78,7 @@ export function peekCached<T>(key: string): T | undefined {
 
 function dropPrefix(prefix: string) {
     for (const key of [...store.keys()]) if (key.startsWith(prefix)) store.delete(key);
+    sharedDropPrefix(prefix);
 }
 
 /** Drop cached views of a repo (webhook, or after the user writes to GitHub). */
@@ -453,6 +466,19 @@ export async function maintainerToday(octokit: Octokit, login: string, repos: Ar
                     evidence: [{ label: `#${match.item.id}`, url: match.item.url }], waitingDays: 0,
                 });
             }
+        }
+
+        // Priority: reactions + Projects board fields (one extra query), then a score with reasons.
+        const extras = await fetchItemExtras(octokit, owner, repo, actions.map((a) => a.number)).catch(() => new Map());
+        const byNumber = new Map<number, IssueItem | PRItem>([...issues.map((i) => [i.number, i] as const), ...prs.map((p) => [p.number, p] as const)]);
+        for (const a of actions) {
+            const item = byNumber.get(a.number);
+            if (!item) continue;
+            const p = itemPriority(item, a, extras.get(a.number) ?? {});
+            a.score = p.score;
+            a.band = p.band;
+            a.why = p.reasons;
+            if (a.isPR && "reviewDecision" in item) a.quality = prQuality(item);
         }
 
         return {

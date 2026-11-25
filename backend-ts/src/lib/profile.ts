@@ -20,9 +20,12 @@ export interface ProfileSettings {
     hue: (typeof HUE_KEYS)[number];
     stats: string[];
     weeklyGoal: number;
+    /** Show your public GitHub orgs on the public profile. Off by default. */
+    showOrgs: boolean;
 }
 
 export const DEFAULT_SETTINGS: ProfileSettings = {
+    showOrgs: false,
     public: false,
     hidden: [],
     featured: [],
@@ -49,6 +52,7 @@ export function sanitizeSettings(input: unknown): ProfileSettings {
             ? ids(s.stats, STAT_KEYS.length).filter((k) => (STAT_KEYS as readonly string[]).includes(k))
             : [...DEFAULT_SETTINGS.stats],
         weeklyGoal: Number.isFinite(goal) ? Math.min(50, Math.max(1, Math.round(goal))) : DEFAULT_SETTINGS.weeklyGoal,
+        showOrgs: s.showOrgs === true,
     };
 }
 
@@ -104,10 +108,12 @@ interface JourneyLike {
 }
 
 /** What a stranger may see. Timeline titles are reduced to two counters badges need. */
-export function publicView(login: string, journey: JourneyLike, s: ProfileSettings) {
+export function publicView(login: string, journey: JourneyLike, s: ProfileSettings, orgs: Array<{ login: string; avatarUrl: string }> = []) {
     const tl = journey.timeline ?? [];
     return {
         login,
+        // Public memberships only, and only if the owner turned it on.
+        orgs: s.showOrgs ? orgs.map((o) => ({ login: o.login, avatarUrl: o.avatarUrl })) : [],
         settings: { hidden: s.hidden, featured: s.featured, banner: s.banner, hue: s.hue, stats: s.stats },
         stats: journey.stats,
         level: journey.level,

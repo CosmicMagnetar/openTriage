@@ -21,7 +21,8 @@ export async function GET(_request: NextRequest) {
     const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: `${API_URL}/api/auth/github/callback`,
-        scope: "user:email read:user repo",
+        // read:org finds org repos and your role; read:project reads Projects boards for priorities.
+        scope: "user:email read:user repo read:org read:project",
         state,
     });
 

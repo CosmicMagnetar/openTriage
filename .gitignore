@@ -53,6 +53,11 @@ dump.rdb
 *.md
 !README.md
 !**/README.md
+# Repo context (AGENTS.md map, skills, PR template) is kept on purpose
+!AGENTS.md
+!CLAUDE.md
+!.agents/**/*.md
+!.github/**/*.md
 
 # Temporary plan files and session data
 .opentriage_plan_*.tmp

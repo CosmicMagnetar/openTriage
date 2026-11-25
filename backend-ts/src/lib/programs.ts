@@ -45,6 +45,10 @@ export interface Program {
     pageDates?: string[];
     pageCheckedAt?: string;
     datesChangedAt?: string | null;
+    /** Main GitHub repo ("owner/repo") when known; used for ranking and repo links. */
+    repo?: string;
+    /** A few concrete items (e.g. open bounty issues with their amount). */
+    items?: Array<{ title: string; url: string; amount: string | null }>;
 }
 
 export type ProgramStatus = "open" | "upcoming" | "closed";

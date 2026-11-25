@@ -51,7 +51,8 @@ describe('outreachy', () => {
 });
 
 describe('bounties', () => {
-    const issue = (repo: string, title: string, labels: string[]) => ({ html_url: `https://github.com/${repo}/issues/1`, title, repository_url: `https://api.github.com/repos/${repo}`, labels: labels.map((name) => ({ name })), created_at: '2026-11-01' });
+    // Each issue gets its own URL, as on GitHub (the adapter dedupes by URL).
+    const issue = (repo: string, title: string, labels: string[]) => ({ html_url: `https://github.com/${repo}/issues/${encodeURIComponent(title)}`, title, repository_url: `https://api.github.com/repos/${repo}`, labels: labels.map((name) => ({ name })), created_at: '2026-11-01' });
     it('groups per repo, drops low-star repos, reads amounts', () => {
         const list = bountiesToPrograms([
             issue('good/repo', 'Fix A', ['💎 Bounty', '$250']),

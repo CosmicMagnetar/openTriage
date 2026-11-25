@@ -149,9 +149,20 @@ async function repoState(octokit: Octokit, owner: string, repo: string) {
     return { meta, branch, paths: tree, hasNewcomerLabel: labelOk };
 }
 
+/** Files beyond the docs checklist that other checks need (funding, repo context for agents). Pure. */
+export function repoExtras(paths: string[]) {
+    const has = (re: RegExp) => paths.some((p) => re.test(p));
+    return {
+        funding: has(/^(\.github\/)?FUNDING\.ya?ml$/i) || has(/^funding\.json$/i),
+        agents: has(/^AGENTS\.md$/i),
+        skills: has(/^(\.agents|\.github|docs)\/skills\/.+\/SKILL\.md$/i) || has(/^\.github\/skills\/.+\.md$/i),
+        evals: has(/(^|\/)evals\/evals\.json$/i),
+    };
+}
+
 export async function buildDocsHealth(octokit: Octokit, owner: string, repo: string, viewer: string, fresh = false) {
-    // Per viewer because `canCreate` depends on their permission.
-    return cached(`docshealth:${owner}/${repo}:${viewer}`.toLowerCase(), HOUR_MS, async () => {
+    // Per viewer because `canCreate` depends on their permission. v2: adds `extras`.
+    return cached(`docshealth2:${owner}/${repo}:${viewer}`.toLowerCase(), HOUR_MS, async () => {
         const { meta, branch, paths, hasNewcomerLabel } = await repoState(octokit, owner, repo);
         const found = docsChecklist(paths, { hasNewcomerLabel });
         const dated = await Promise.all(found.map(async (i) =>
@@ -164,6 +175,7 @@ export async function buildDocsHealth(octokit: Octokit, owner: string, repo: str
             score: docsScore(items),
             items: items.map(({ weight, creatable, ...rest }) => ({ ...rest, weight, creatable: creatable && canCreate })),
             canCreate,
+            extras: repoExtras(paths),
             /** true when the file list could not be read (empty repo or API error): items may be wrongly missing. */
             treeUnavailable: paths.length === 0,
         };

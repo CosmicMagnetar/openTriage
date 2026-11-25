@@ -11,6 +11,7 @@ import usePrefs from '../../stores/prefsStore';
 import { API_BASE } from '../../services/workApi';
 import { daysUntil, usePrograms, whenText } from './programs';
 import { Button, Card, ErrorLine, Input, Page, Segments, SkeletonRows, Tag } from './ui';
+import { GoalsStrip, useOpportunityScores } from './forYou';
 import { OpportunityRows, useOpportunities } from './opportunities';
 import { useListNav } from './useWorkspace';
 import MyPrograms, { JoinForm, PriorityDeadlines, useMyPrograms } from './MyPrograms';
@@ -42,7 +43,7 @@ function TrackButton({ id }) {
   );
 }
 
-function ProgramCard({ p, joined }) {
+function ProgramCard({ p, joined, why }) {
   const [joining, setJoining] = useState(false);
   const st = STATUS[p.status] ?? STATUS.closed;
   const urgent = p.nextDeadline && daysUntil(p.nextDeadline.date) <= 14 && daysUntil(p.nextDeadline.date) >= 0;
@@ -55,6 +56,9 @@ function ProgramCard({ p, joined }) {
         </div>
         <Tag color={st.color}>{st.label}</Tag>
       </div>
+      {why?.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">{why.slice(0, 2).map((w) => <Tag key={w} color="green">{w}</Tag>)}</div>
+      )}
       <p className="fs-13-5 text-[var(--text-2)]">{p.summary}</p>
       {p.nextDeadline && (
         <p className="fs-13">
@@ -68,6 +72,19 @@ function ProgramCard({ p, joined }) {
         <p className="fs-12-5 text-[var(--amber)]">Dates on the official page changed on {new Date(p.datesChangedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}. Check them before applying.</p>
       )}
       {p.reward && <p className="fs-13"><span className="text-[var(--muted)]">Reward: </span><span className="font-semibold">{p.reward}</span></p>}
+      {p.items?.length > 0 && (
+        <ul className="-mx-1">
+          {p.items.slice(0, 3).map((it) => (
+            <li key={it.url}>
+              <a href={it.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-2 px-1 py-1 rounded hover:bg-[var(--hover)] fs-13">
+                <span className="flex-1 min-w-0 truncate">{it.title}</span>
+                {it.amount && <span className="shrink-0 font-semibold tnum text-[var(--green)]">{it.amount}</span>}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
       {(VERIFY_NOTE[p.verification] || (p.estimated && VERIFY_NOTE.estimated)) && (
         <p className="fs-12 text-[var(--muted)]">{VERIFY_NOTE[p.verification] ?? VERIFY_NOTE.estimated}</p>
       )}
@@ -81,7 +98,7 @@ function ProgramCard({ p, joined }) {
       <div className="mt-auto pt-2 flex items-center gap-2">
         <a href={p.url} target="_blank" rel="noopener noreferrer"
           className="ctl-sm btn-pop inline-flex items-center gap-1.5 px-2.5 rounded-md fs-12">
-          How to apply <ExternalLink className="w-3 h-3" />
+          {p.kind === 'bounty' ? 'All bounties here' : 'How to apply'} <ExternalLink className="w-3 h-3" />
         </a>
         <TrackButton id={p.id} />
         {joined
@@ -194,20 +211,28 @@ export default function OpportunitiesPage() {
   const joinedIds = useMemo(() => new Set((mine.data?.programs ?? []).map((x) => x.programId)), [mine.data]);
   const { index, setIndex, open } = useListNav([], {});
 
+  const ranking = useOpportunityScores();
+  const [order, setOrder] = useState('for');
+  const scores = ranking.data?.scores;
+  const hiddenIds = useMemo(() => new Set(ranking.data?.hidden ?? []), [ranking.data]);
   const programs = useMemo(() => programsQ.data?.programs ?? [], [programsQ.data]);
   const tags = useMemo(() => [...new Set(programs.flatMap((p) => p.tags))].sort(), [programs]);
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const byDeadline = (a, b) => (RANK[a.status] ?? 3) - (RANK[b.status] ?? 3)
+      || (a.nextDeadline?.date ?? '9999').localeCompare(b.nextDeadline?.date ?? '9999')
+      || a.name.localeCompare(b.name);
     return programs
+      .filter((p) => !hiddenIds.has(p.id))
       .filter((p) => status === 'all' || (status === 'tracked' ? tracked.includes(p.id) : p.status === status))
       .filter((p) => kind === 'all' || (p.kind ?? 'program') === kind)
       .filter((p) => !tag || p.tags.includes(tag))
       .filter((p) => !q || `${p.name} ${p.org} ${p.summary} ${p.tags.join(' ')} ${p.eligibility}`.toLowerCase().includes(q))
-      // Open first, then upcoming, then closed; within each, nearest deadline first, rolling after dated.
-      .sort((a, b) => (RANK[a.status] ?? 3) - (RANK[b.status] ?? 3)
-        || (a.nextDeadline?.date ?? '9999').localeCompare(b.nextDeadline?.date ?? '9999')
-        || a.name.localeCompare(b.name));
-  }, [programs, status, tag, query, tracked, kind]);
+      // For you: best fit first (closed still last). By deadline: open → upcoming → closed, nearest date first.
+      .sort((a, b) => (order === 'for' && scores
+        ? ((a.status === 'closed') - (b.status === 'closed')) || (scores[b.id]?.score ?? 0) - (scores[a.id]?.score ?? 0) || byDeadline(a, b)
+        : byDeadline(a, b)));
+  }, [programs, status, tag, query, tracked, kind, order, scores, hiddenIds]);
   const kindCounts = useMemo(() => programs.reduce((m, p) => ({ ...m, [p.kind ?? 'program']: (m[p.kind ?? 'program'] ?? 0) + 1 }), {}), [programs]);
   const lastChecked = programsQ.data?.sync?.lastCheckedAt;
   const calendarPrograms = tracked.length ? programs.filter((p) => tracked.includes(p.id)) : programs;
@@ -226,6 +251,7 @@ export default function OpportunitiesPage() {
         <MyPrograms />
         {view === 'programs' && (
           <>
+            <GoalsStrip />
             <Segments value={kind} onChange={setKind} options={[
               { value: 'all', label: 'Everything', count: programs.length || undefined },
               ...KINDS.filter(([k]) => kindCounts[k]).map(([k, l]) => ({ value: k, label: l, count: kindCounts[k] })),
@@ -241,6 +267,7 @@ export default function OpportunitiesPage() {
                 { value: 'upcoming', label: 'Upcoming', count: programs.filter((p) => p.status === 'upcoming').length },
                 { value: 'tracked', label: 'Tracking', count: tracked.length },
               ]} />
+              {scores && <Segments value={order} onChange={setOrder} options={[{ value: 'for', label: 'For you' }, { value: 'deadline', label: 'By deadline' }]} />}
               <select value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Filter by tag"
                 className="ctl px-2 rounded-md fs-13 bg-[var(--inset)] border border-[var(--line)] text-[var(--text)]">
                 <option value="">Any type</option>
@@ -251,7 +278,7 @@ export default function OpportunitiesPage() {
             {!programsQ.data && !programsQ.error && <SkeletonRows />}
             {programsQ.data && shown.length === 0 && <p className="fs-13 text-[var(--muted)]">No programs match. Try another word or clear the filters.</p>}
             <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-              {shown.map((p) => <ProgramCard key={p.id} p={p} joined={joinedIds.has(p.id)} />)}
+              {shown.map((p) => <ProgramCard key={p.id} p={p} joined={joinedIds.has(p.id)} why={order === 'for' ? scores?.[p.id]?.reasons : null} />)}
             </div>
             <p className="fs-12 text-[var(--muted)]">
               {lastChecked ? `Checked automatically every day; last check ${new Date(lastChecked).toLocaleString()}. ` : 'Checked automatically every day. '}
