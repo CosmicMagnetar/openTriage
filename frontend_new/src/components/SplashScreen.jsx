@@ -17,11 +17,12 @@ const FADE_MS = 280;
 // Shared between splash instances: was one visible, and when did it go?
 let lastVisibleAt = 0;
 
-const SplashScreen = () => {
+/** `immediate`: show at once (the app's opening screen) instead of waiting DELAY_MS. */
+const SplashScreen = ({ immediate = false }) => {
   const continuing = Date.now() - lastVisibleAt < HANDOFF_MS;
-  const [show, setShow] = useState(continuing);
+  const [show, setShow] = useState(continuing || immediate);
   const ref = useRef(null);
-  const shown = useRef(continuing);
+  const shown = useRef(continuing || immediate);
 
   useEffect(() => {
     if (show) return undefined;

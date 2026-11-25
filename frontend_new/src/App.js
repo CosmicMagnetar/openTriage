@@ -1,11 +1,13 @@
-import { useEffect, useCallback, lazy, Suspense } from "react";
+import { useEffect, useCallback, useState, lazy, Suspense } from "react";
 import { toast } from "sonner";
 import {
   BrowserRouter,
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import useAuthStore from "./stores/authStore";
 import SplashScreen from "./components/SplashScreen";
 import LandingPage from "./components/LandingPage";
@@ -17,7 +19,38 @@ const AuthPage = lazy(() => import("./components/AuthPage"));
 const WorkspaceLayout = lazy(() => import("./components/workspace/WorkspaceLayout"));
 const PublicProfile = lazy(() => import('./components/PublicProfile'));
 
+/** The opening screen stays up at least this long, then fades out. */
+const INTRO_MS = 1200;
+
+/**
+ * Fades between the app's sections (landing, dashboard, public profile).
+ * Moving around inside the dashboard doesn't fade the whole page.
+ */
+function AnimatedRoutes({ children }) {
+  const location = useLocation();
+  const section = location.pathname.startsWith("/dashboard") ? "/dashboard" : location.pathname;
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={section}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+      >
+        <Routes location={location}>{children}</Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function App() {
+  const [introDone, setIntroDone] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setIntroDone(true), INTRO_MS);
+    return () => clearTimeout(t);
+  }, []);
+
   const {
     user,
     isLoading,
@@ -86,8 +119,8 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggingOut]);  // Only isLoggingOut in deps - loadUser should be stable
 
-  if (isLoading) {
-    return <SplashScreen />;
+  if (isLoading || !introDone) {
+    return <SplashScreen immediate />;
   }
 
   // Not logged in - show landing or auth page
@@ -101,12 +134,12 @@ function App() {
           }}
         >
           <Suspense fallback={<SplashScreen />}>
-            <Routes>
+            <AnimatedRoutes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<AuthPage />} />
               <Route path="/u/:login" element={<PublicProfile />} />
               <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            </AnimatedRoutes>
           </Suspense>
         </BrowserRouter>
         <Toaster />
@@ -125,14 +158,14 @@ function App() {
         }}
       >
         <Suspense fallback={<SplashScreen />}>
-          <Routes>
+          <AnimatedRoutes>
             <Route path="/" element={<LandingPage />} />
             {/* One shell for both workspaces; role picks the nav and data. */}
             <Route path="/dashboard/*" element={<WorkspaceLayout />} />
             <Route path="/u/:login" element={<PublicProfile />} />
             {/* Catch all unauthorized routes - redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          </AnimatedRoutes>
         </Suspense>
       </BrowserRouter>
       <Toaster />
