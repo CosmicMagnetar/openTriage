@@ -7,7 +7,8 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, GitMerge, GitPullRequest, MessageSquare, Plus, Scale } from 'lucide-react';
+import { CircleDot, Eye, GitMerge, GitPullRequest, MessageSquare, Plus, Scale } from 'lucide-react';
+import { ContributionGraph } from './ContributionGraph';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'framer-motion';
 import useAuthStore from '../../stores/authStore';
@@ -138,6 +139,69 @@ function ActionRow({ a, i, selected, changed, onOpen, me }) {
 // Contributor Home
 // ---------------------------------------------------------------------------
 
+/**
+ * Your activity on Home: the contribution graph, a few numbers and the latest
+ * things you did. Reuses the journey data (cached, shared with Profile).
+ */
+function ActivityCard({ onOpen }) {
+  const navigate = useNavigate();
+  const q = useQuery(keys.journey(), (o) => workApi.journey(o), { staleMs: 30 * 60_000 });
+  const d = q.data;
+  const days = (d?.graph?.weeks ?? []).flatMap((w) => w.contributionDays);
+  const week = days.slice(-7).reduce((s, x) => s + x.contributionCount, 0);
+  const stats = d ? [
+    ['This week', week],
+    ['Current streak', `${d.graph?.streak?.currentStreak ?? 0} d`],
+    ['PRs merged', d.stats.prsMerged],
+    ['Reviews given', d.stats.reviews],
+  ] : [];
+  const recent = (d?.timeline ?? []).slice(0, 4);
+  return (
+    <Card title="Your activity" bodyClass="px-5 pb-4"
+      right={<button onClick={() => navigate('/dashboard/profile')} className={linkBtn}>Profile</button>}>
+      {q.error && <ErrorLine message={q.error.message} onRetry={q.refresh} />}
+      {!d && !q.error && <SkeletonRows />}
+      {d && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {stats.map(([label, value]) => (
+              <div key={label} className="rounded-lg bg-[var(--inset)] px-3 py-2">
+                <p className="fs-12 text-[var(--muted)]">{label}</p>
+                <p className="fs-16 font-semibold tnum">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+              </div>
+            ))}
+          </div>
+          {d.graph?.weeks && (
+            <div>
+              <ContributionGraph weeks={d.graph.weeks} />
+              <p className="fs-12 text-[var(--muted)] mt-1.5 tnum">{d.graph.totalContributions.toLocaleString()} contributions in the last year</p>
+            </div>
+          )}
+          {recent.length > 0 && (
+            <div className="border-t border-[var(--line)] pt-2 -mx-5">
+              <p className="px-5 pb-1 fs-12 font-semibold text-[var(--muted)]">Latest</p>
+              {recent.map((e) => {
+                const item = e.kind === 'review' ? null : { kind: e.kind === 'pr' ? 'pr' : 'issue', owner: e.repo.split('/')[0], repo: e.repo.split('/')[1], number: e.number };
+                const Icon = e.kind === 'issue' ? CircleDot : e.kind === 'review' ? Eye : e.state === 'merged' ? GitMerge : GitPullRequest;
+                const color = e.state === 'merged' ? 'var(--purple)' : e.state === 'open' ? 'var(--green)' : 'var(--muted)';
+                return (
+                  <button key={`${e.kind}:${e.repo}#${e.number}:${e.at}`} onClick={() => (item && item.repo ? onOpen(item) : window.open(e.url, '_blank', 'noopener'))}
+                    className="w-full text-left flex items-center gap-3 px-5 py-1.5 hover:bg-[var(--hover)]">
+                    <Icon className="w-4 h-4 shrink-0" style={{ color }} />
+                    <span className="flex-1 min-w-0 truncate fs-13-5">{e.title}</span>
+                    <span className="mono fs-12 text-[var(--muted)] hidden md:inline truncate max-w-[220px]">{e.repo}#{e.number}</span>
+                    <span className="fs-12 text-[var(--muted)] w-10 text-right shrink-0">{timeAgo(e.at)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function ContributorHome() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -250,6 +314,8 @@ function ContributorHome() {
                 </div>
               ))}
             </Card>
+
+            <ActivityCard onOpen={open} />
           </div>
           <div className="space-y-4">{side}</div>
         </div>
