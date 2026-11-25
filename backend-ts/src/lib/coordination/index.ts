@@ -9,3 +9,4 @@ export * from "./discovery";
 export { isMaintainer, isNewcomer, isBot } from "./util";
 export * from "./contributor";
 export * from "./history";
+export * from "./priority";

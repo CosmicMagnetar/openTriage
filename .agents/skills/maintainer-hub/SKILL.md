@@ -19,6 +19,13 @@ description: Change the maintainer side, meaning Repo to-do items, Funding & pro
 - **Built-in replies and away reply:** `lib/maintainer/replies.ts`, merged into `GET /api/maintainer/templates`.
 - **Maintainer goals and away mode:** `goals.maintainer` in `lib/ranking` (same `user_goals` row as contributor goals). UI: `maintainerHub.jsx`.
 
+## Priority (P5)
+- `lib/coordination/priority.ts` (pure, tested in `__tests__/coordination/priority.test.ts`):
+  - `itemPriority(item, action, { reactions, board })` returns score 0–100, band P0–P4 (Kubernetes `priority/*` names in `BAND_LABEL`), and up to 3 reasons.
+  - `prQuality(pr)` is the anti-slop signal: description, linked issue, testing note, AI disclosure, checks, first-timer context.
+- `maintainerToday()` adds `score/band/why/quality` to each action. Reactions and Projects board "Priority"/"Status" come from `fetchItemExtras()`, which retries without board fields when the sign-in lacks `read:project`.
+- "Since you were away" (`useSinceLastVisit` in `maintainerHub.jsx`) stores seen action ids per user in localStorage. First visit shows nothing new on purpose.
+
 ## Rules
 - **Every to-do item has exactly one action.** Either `create-doc` (existing PR-from-template flow) or a link. Never add an item the maintainer can't act on in one click.
 - **Facts are cached per viewer** (`facts:<login>:<repo>`), because alerts and private repos must never be shared. Public-only items are skipped for private repos; archived repos have no to-do.

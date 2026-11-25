@@ -39,6 +39,12 @@ export interface NextAction {
     evidence: Evidence[];
     /** Days the item has been waiting in this state. */
     waitingDays: number;
+    /** Maintainer priority (see ./priority.ts): 0–100, band P0–P4, and why. Set for the maintainer queue. */
+    score?: number;
+    band?: "P0" | "P1" | "P2" | "P3" | "P4";
+    why?: string[];
+    /** PR quality signal (anti-slop) for PR actions. */
+    quality?: { score: number; flags: string[]; good: string[] };
 }
 
 export interface NextActionOptions extends EngineOptions, AvailabilityOptions {
@@ -297,5 +303,7 @@ export function isOnMe(action: NextAction, login: string, maintainsRepo: boolean
 }
 
 export function rankActions(actions: NextAction[]): NextAction[] {
-    return [...actions].sort((a, b) => a.priority - b.priority || b.waitingDays - a.waitingDays);
+    // With a priority score (maintainer queue), most important first; otherwise the engine's own order.
+    return [...actions].sort((a, b) =>
+        (a.score != null && b.score != null ? b.score - a.score : 0) || a.priority - b.priority || b.waitingDays - a.waitingDays);
 }

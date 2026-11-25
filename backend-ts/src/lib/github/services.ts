@@ -7,11 +7,12 @@ import {
     activeAreas, assessPickup, computeAvailability, computeResponsiveness, detectStack, extractCodeRefs,
     extractSetupCommands, findSimilar, isMaintainer, issueNextActions, issueSignals, isOnMe, keywords, newcomerLabels,
     ownersFor, packageScripts, parseCodeowners, prNextActions, rankActions, responseThresholdDays, summarizeTree,
-    type IssueItem, type NextAction, type Responsiveness,
+    itemPriority, prQuality,
+    type IssueItem, type NextAction, type PRItem, type Responsiveness,
 } from "@/lib/coordination";
 import { observe } from "@/lib/history";
 import {
-    fetchIssue, fetchRecentMergedFiles, fetchResponsivenessSamples, fetchViewerPermissions, searchIssues, searchPRs,
+    fetchIssue, fetchItemExtras, fetchRecentMergedFiles, fetchResponsivenessSamples, fetchViewerPermissions, searchIssues, searchPRs,
 } from "./graphql";
 import { sharedDropPrefix, sharedGet, sharedSet } from "@/lib/sharedCache";
 
@@ -465,6 +466,19 @@ export async function maintainerToday(octokit: Octokit, login: string, repos: Ar
                     evidence: [{ label: `#${match.item.id}`, url: match.item.url }], waitingDays: 0,
                 });
             }
+        }
+
+        // Priority: reactions + Projects board fields (one extra query), then a score with reasons.
+        const extras = await fetchItemExtras(octokit, owner, repo, actions.map((a) => a.number)).catch(() => new Map());
+        const byNumber = new Map<number, IssueItem | PRItem>([...issues.map((i) => [i.number, i] as const), ...prs.map((p) => [p.number, p] as const)]);
+        for (const a of actions) {
+            const item = byNumber.get(a.number);
+            if (!item) continue;
+            const p = itemPriority(item, a, extras.get(a.number) ?? {});
+            a.score = p.score;
+            a.band = p.band;
+            a.why = p.reasons;
+            if (a.isPR && "reviewDecision" in item) a.quality = prQuality(item);
         }
 
         return {

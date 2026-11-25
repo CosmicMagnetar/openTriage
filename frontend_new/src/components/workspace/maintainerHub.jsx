@@ -3,7 +3,7 @@
  * is waiting against your hours, and rising contributors who could share
  * the load. Goals are stored with your contributor goals (one record).
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Plane, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { workApi } from '../../services/workApi';
@@ -119,6 +119,57 @@ export function AwayBanner() {
       </p>
       <Button size="sm" onClick={off}>I'm back</Button>
     </div>
+  );
+}
+
+/**
+ * Items you haven't seen since your last visit (per user, this device).
+ * Marks everything seen a few seconds after the page shows it, so the next
+ * visit only lists what's new. Pure helper `newSince` is exported for tests.
+ */
+export function newSince(items, seenIds) {
+  const seen = new Set(seenIds);
+  return items.filter((a) => !seen.has(a.id));
+}
+
+export function useSinceLastVisit(storageKey, items) {
+  const [seen] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) ?? 'null'); } catch { return null; }
+  });
+  useEffect(() => {
+    if (!items.length) return undefined;
+    const t = setTimeout(() => {
+      try { localStorage.setItem(storageKey, JSON.stringify(items.map((a) => a.id).slice(0, 500))); } catch { /* private mode */ }
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [storageKey, items]);
+  // First ever visit: nothing is "new", everything is simply yours.
+  return seen ? newSince(items, seen) : [];
+}
+
+/** Top 5 new things since you were last here, most important first. */
+export function SinceAway({ items, onOpen, total }) {
+  const [all, setAll] = useState(false);
+  if (!items.length) return null;
+  const shown = all ? items : items.slice(0, 5);
+  return (
+    <Card title={`Since you were away · ${items.length} new`}
+      right={items.length > 5 && <button onClick={() => setAll((v) => !v)} className="fs-12-5 text-[var(--link)] hover:underline">{all ? 'Show less' : `Show all ${items.length}`}</button>}>
+      <ul className="-mx-1">
+        {shown.map((a) => (
+          <li key={a.id}>
+            <button onClick={() => onOpen(a)} className="w-full text-left flex items-start gap-2.5 px-1 py-1.5 rounded hover:bg-[var(--hover)]">
+              {a.band && <Tag color={a.band === 'P0' ? 'red' : a.band === 'P1' ? 'amber' : 'gray'}>{a.band}</Tag>}
+              <span className="flex-1 min-w-0">
+                <span className="block truncate fs-13">{a.title}</span>
+                <span className="block truncate fs-12 text-[var(--muted)]">{a.repo}#{a.number}{a.why?.[0] ? ` · ${a.why[0]}` : a.reason ? ` · ${a.reason}` : ''}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {total != null && <p className="fs-12 text-[var(--muted)] mt-1">{total} in your queue in total.</p>}
+    </Card>
   );
 }
 

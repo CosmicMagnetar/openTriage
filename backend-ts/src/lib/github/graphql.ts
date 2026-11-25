@@ -268,6 +268,40 @@ export async function fetchResponsivenessSamples(octokit: Octokit, owner: string
         }));
 }
 
+/**
+ * Reactions and GitHub Projects board fields ("Priority", "Status") for some
+ * issues/PRs in one repo. Board fields need the read:project scope; without
+ * it the query is retried for reactions only, so older sign-ins still work.
+ */
+export async function fetchItemExtras(octokit: Octokit, owner: string, repo: string, numbers: number[]) {
+    const nums = [...new Set(numbers)].slice(0, 40);
+    const out = new Map<number, { reactions: number; board: { priority: string | null; status: string | null } | null }>();
+    if (!nums.length) return out;
+    const field = (name: string) => `fieldValueByName(name: "${name}") { ... on ProjectV2ItemFieldSingleSelectValue { name } }`;
+    const body = (withBoard: boolean) => {
+        const inner = `reactions { totalCount }${withBoard ? ` projectItems(first: 3) { nodes { priority: ${field("Priority")} status: ${field("Status")} } }` : ""}`;
+        return `query { repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(repo)}) {
+            ${nums.map((n) => `n${n}: issueOrPullRequest(number: ${n}) { ... on Issue { ${inner} } ... on PullRequest { ${inner} } }`).join("\n")}
+        } }`;
+    };
+    type Node = { reactions?: { totalCount: number }; projectItems?: { nodes: Array<{ priority: { name?: string } | null; status: { name?: string } | null }> } } | null;
+    let data: { repository: Record<string, Node> | null } | null = null;
+    try {
+        data = await octokit.graphql(body(true));
+    } catch {
+        data = await octokit.graphql<{ repository: Record<string, Node> | null }>(body(false)).catch(() => null);
+    }
+    for (const [k, v] of Object.entries(data?.repository ?? {})) {
+        if (!v) continue;
+        const item = v.projectItems?.nodes?.find((x) => x.priority?.name || x.status?.name);
+        out.set(Number(k.slice(1)), {
+            reactions: v.reactions?.totalCount ?? 0,
+            board: item ? { priority: item.priority?.name ?? null, status: item.status?.name ?? null } : null,
+        });
+    }
+    return out;
+}
+
 /** Can the viewer push to this repo? (maintainer workspace routing) */
 export async function fetchViewerPermissions(octokit: Octokit, repos: Array<{ owner: string; repo: string }>) {
     if (repos.length === 0) return new Map<string, boolean>();
