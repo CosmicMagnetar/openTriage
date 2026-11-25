@@ -13,7 +13,7 @@ const SectionBadge = ({ children, color = 'green' }) => {
     const colors = {
         green: 'bg-[hsl(142,70%,45%,0.1)] text-[hsl(142,70%,55%)] border-[hsl(142,70%,45%,0.25)]',
         blue: 'bg-[hsl(217,91%,60%,0.1)] text-[hsl(217,91%,65%)] border-[hsl(217,91%,60%,0.25)]',
-        purple: 'bg-purple-500/10 text-purple-400 border-purple-500/25',
+        purple: 'bg-[#a77ef0]/10 text-[#a77ef0] border-[#a77ef0]/25',
         yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/25',
     };
     return (
@@ -32,33 +32,33 @@ const SectionTitle = ({ badge, badgeColor, title, subtitle }) => (
 );
 
 const FeatureCard = ({ icon: Icon, title, description }) => (
-    <div className="group p-6 bg-[#09090b] border border-zinc-800 rounded-xl hover:border-emerald-500/50 transition-all hover:shadow-lg hover:shadow-emerald-500/5">
-        <div className="w-12 h-12 mb-4 bg-emerald-500/10 rounded-lg flex items-center justify-center group-hover:bg-emerald-500/15 transition-colors">
-            <Icon className="w-6 h-6 text-emerald-400" />
+    <div className="group p-6 bg-[#050506] border border-white/10 rounded-xl hover:border-[#57ab5a]/50 transition-all hover:shadow-lg hover:shadow-[#57ab5a]/5">
+        <div className="w-12 h-12 mb-4 bg-[#57ab5a]/10 rounded-lg flex items-center justify-center group-hover:bg-[#57ab5a]/15 transition-colors">
+            <Icon className="w-6 h-6 text-[#5fbf62]" />
         </div>
-        <h3 className="text-lg font-semibold text-zinc-100 mb-2">{title}</h3>
-        <p className="text-sm text-zinc-500">{description}</p>
+        <h3 className="text-lg font-semibold text-[#ececef] mb-2">{title}</h3>
+        <p className="text-sm text-[#6b6b74]">{description}</p>
     </div>
 );
 
 const AITechCard = ({ icon: Icon, name, description, color }) => {
     const colors = {
-        green: 'from-emerald-500/20 to-transparent border-emerald-500/30',
-        blue: 'from-blue-500/20 to-transparent border-blue-500/30',
-        purple: 'from-purple-500/20 to-transparent border-purple-500/30',
+        green: 'from-[#57ab5a]/20 to-transparent border-[#57ab5a]/30',
+        blue: 'from-[#5b9dff]/20 to-transparent border-[#5b9dff]/30',
+        purple: 'from-[#a77ef0]/20 to-transparent border-[#a77ef0]/30',
         orange: 'from-orange-500/20 to-transparent border-orange-500/30',
     };
     const iconColors = {
-        green: 'text-emerald-400',
-        blue: 'text-blue-400',
-        purple: 'text-purple-400',
+        green: 'text-[#5fbf62]',
+        blue: 'text-[#5b9dff]',
+        purple: 'text-[#a77ef0]',
         orange: 'text-orange-400',
     };
     return (
         <div className={`p-6 rounded-xl bg-gradient-to-br ${colors[color]} border backdrop-blur-sm`}>
             <Icon className={`w-10 h-10 mb-4 ${iconColors[color]}`} />
-            <h3 className="text-lg font-semibold text-white mb-2">{name}</h3>
-            <p className="text-sm text-zinc-400">{description}</p>
+            <h3 className="text-lg font-semibold text-[#ececef] mb-2">{name}</h3>
+            <p className="text-sm text-[#8c8c95]">{description}</p>
         </div>
     );
 };
@@ -127,25 +127,25 @@ const TiltCard3D = ({ children }) => {
 const TwitterTestimonialCard = ({ name, username, avatar, content, verified }) => (
     <motion.div
         whileHover={{ y: -4 }}
-        className="flex-shrink-0 w-[320px] p-5 bg-[#0d0d0f] border border-zinc-800/80 rounded-2xl"
+        className="flex-shrink-0 w-[320px] p-5 bg-[#0f0f12] border border-white/[0.06] rounded-2xl"
     >
         <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 flex items-center justify-center text-sm font-medium text-white overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6b6b74] to-[#17171b] flex items-center justify-center text-sm font-medium text-[#ececef] overflow-hidden">
                 {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                    <span className="font-semibold text-white text-sm truncate">{name}</span>
+                    <span className="font-semibold text-[#ececef] text-sm truncate">{name}</span>
                     {verified && (
-                        <svg className="w-4 h-4 text-blue-400 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <svg className="w-4 h-4 text-[#5b9dff] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M22.5 12.5c0-1.58-.875-2.95-2.148-3.6.154-.435.238-.905.238-1.4 0-2.21-1.71-3.998-3.818-3.998-.47 0-.92.084-1.336.25C14.818 2.415 13.51 1.5 12 1.5s-2.816.917-3.437 2.25c-.415-.165-.866-.25-1.336-.25-2.11 0-3.818 1.79-3.818 4 0 .494.083.964.237 1.4-1.272.65-2.147 2.018-2.147 3.6 0 1.495.782 2.798 1.942 3.486-.02.17-.032.34-.032.514 0 2.21 1.708 4 3.818 4 .47 0 .92-.086 1.335-.25.62 1.334 1.926 2.25 3.437 2.25 1.512 0 2.818-.916 3.437-2.25.415.163.865.248 1.336.248 2.11 0 3.818-1.79 3.818-4 0-.174-.012-.344-.033-.513 1.158-.687 1.943-1.99 1.943-3.484zm-6.616-3.334l-4.334 6.5c-.145.217-.382.334-.625.334-.143 0-.288-.04-.416-.126l-.115-.094-2.415-2.415c-.293-.293-.293-.768 0-1.06s.768-.294 1.06 0l1.77 1.767 3.825-5.74c.23-.345.696-.436 1.04-.207.346.23.44.696.21 1.04z" />
                         </svg>
                     )}
                 </div>
-                <div className="text-zinc-500 text-sm truncate">@{username}</div>
+                <div className="text-[#6b6b74] text-sm truncate">@{username}</div>
             </div>
         </div>
-        <p className="text-zinc-300 text-sm leading-relaxed">{content}</p>
+        <p className="text-[#b9b9c1] text-sm leading-relaxed">{content}</p>
     </motion.div>
 );
 
@@ -172,8 +172,8 @@ const TestimonialsMarquee = ({ testimonials }) => {
                 ))}
             </div>
             {/* Fade edges */}
-            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#09090b] to-transparent pointer-events-none z-10" />
-            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#09090b] to-transparent pointer-events-none z-10" />
+            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#050506] to-transparent pointer-events-none z-10" />
+            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#050506] to-transparent pointer-events-none z-10" />
         </div>
     );
 };
@@ -185,12 +185,12 @@ const TestimonialsMarquee = ({ testimonials }) => {
 // Enhanced step indicator with progress connection
 const StepIndicator = ({ icon: Icon, title, color = 'emerald', index, isActive, isCompleted, onClick, isLast }) => {
     const colorClasses = {
-        emerald: { bg: 'bg-emerald-500', ring: 'ring-emerald-500/30', text: 'text-emerald-400' },
-        blue: { bg: 'bg-blue-500', ring: 'ring-blue-500/30', text: 'text-blue-400' },
-        purple: { bg: 'bg-purple-500', ring: 'ring-purple-500/30', text: 'text-purple-400' },
+        emerald: { bg: 'bg-[#57ab5a]', ring: 'ring-[#57ab5a]/30', text: 'text-[#5fbf62]' },
+        blue: { bg: 'bg-[#5b9dff]', ring: 'ring-[#5b9dff]/30', text: 'text-[#5b9dff]' },
+        purple: { bg: 'bg-[#a77ef0]', ring: 'ring-[#a77ef0]/30', text: 'text-[#a77ef0]' },
         orange: { bg: 'bg-orange-500', ring: 'ring-orange-500/30', text: 'text-orange-400' },
-        amber: { bg: 'bg-amber-500', ring: 'ring-amber-500/30', text: 'text-amber-400' },
-        cyan: { bg: 'bg-cyan-500', ring: 'ring-cyan-500/30', text: 'text-cyan-400' },
+        amber: { bg: 'bg-[#e3a72f]', ring: 'ring-[#e3a72f]/30', text: 'text-[#e3a72f]' },
+        cyan: { bg: 'bg-[#5fbf62]', ring: 'ring-[#5fbf62]/30', text: 'text-[#5fbf62]' },
     };
 
     const c = colorClasses[color];
@@ -208,7 +208,7 @@ const StepIndicator = ({ icon: Icon, title, color = 'emerald', index, isActive, 
                     ? `${c.bg} ring-4 ${c.ring} shadow-lg`
                     : isCompleted
                         ? `${c.bg} opacity-80`
-                        : 'bg-zinc-800 border-2 border-zinc-700'
+                        : 'bg-[#17171b] border-2 border-white/[0.14]'
                     }`}>
                     <Icon className={`w-6 h-6 ${isActive || isCompleted ? 'text-black' : c.text}`} />
                     {isActive && (
@@ -221,7 +221,7 @@ const StepIndicator = ({ icon: Icon, title, color = 'emerald', index, isActive, 
                 </div>
                 {/* Label */}
                 <div className="text-center w-20">
-                    <div className={`text-xs font-semibold ${isActive ? 'text-white' : isCompleted ? c.text : 'text-zinc-500'}`}>
+                    <div className={`text-xs font-semibold ${isActive ? 'text-[#ececef]' : isCompleted ? c.text : 'text-[#6b6b74]'}`}>
                         {title}
                     </div>
                 </div>
@@ -230,7 +230,7 @@ const StepIndicator = ({ icon: Icon, title, color = 'emerald', index, isActive, 
             {/* Connection line */}
             {!isLast && (
                 <div className="w-8 h-0.5 mx-1 relative -top-3">
-                    <div className="absolute inset-0 bg-zinc-700 rounded-full" />
+                    <div className="absolute inset-0 bg-[#26262c] rounded-full" />
                     <motion.div
                         className={`absolute inset-0 ${c.bg} rounded-full origin-left`}
                         initial={{ scaleX: 0 }}
@@ -272,7 +272,7 @@ const TypewriterText = ({ text, delay = 0 }) => {
         <span>
             {displayText}
             {displayText.length < text.length && started && (
-                <span className="inline-block w-2 h-4 bg-emerald-400 ml-0.5 animate-pulse" />
+                <span className="inline-block w-2 h-4 bg-[#5fbf62] ml-0.5 animate-pulse" />
             )}
         </span>
     );
@@ -280,7 +280,7 @@ const TypewriterText = ({ text, delay = 0 }) => {
 
 // Confetti celebration component
 const Confetti = ({ show }) => {
-    const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#6366f1', '#06b6d4'];
+    const colors = ['#57ab5a', '#5b9dff', '#a77ef0', '#e3a72f', '#6ea8ff', '#5fbf62'];
 
     if (!show) return null;
 
@@ -324,12 +324,12 @@ const InteractiveDemo = ({ role, step }) => {
                         <motion.div
                             animate={{ scale: [1, 1.05, 1] }}
                             transition={{ repeat: Infinity, duration: 2 }}
-                            className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center"
+                            className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#57ab5a] to-[#5fbf62] flex items-center justify-center"
                         >
                             <Github className="w-10 h-10 text-black" />
                         </motion.div>
-                        <h4 className="text-white font-semibold mb-2">Connect Your GitHub</h4>
-                        <p className="text-zinc-400 text-sm mb-4">One-click secure authentication</p>
+                        <h4 className="text-[#ececef] font-semibold mb-2">Connect Your GitHub</h4>
+                        <p className="text-[#8c8c95] text-sm mb-4">One-click secure authentication</p>
                         <motion.button
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
@@ -345,27 +345,27 @@ const InteractiveDemo = ({ role, step }) => {
         {
             content: (
                 <div className="space-y-4">
-                    <div className="flex items-center gap-2 p-3 bg-zinc-800 rounded-lg border border-zinc-700">
-                        <Link className="w-5 h-5 text-zinc-400" />
-                        <span className="text-zinc-300"><TypewriterText text="https://github.com/facebook/react" /></span>
+                    <div className="flex items-center gap-2 p-3 bg-[#17171b] rounded-lg border border-white/[0.14]">
+                        <Link className="w-5 h-5 text-[#8c8c95]" />
+                        <span className="text-[#b9b9c1]"><TypewriterText text="https://github.com/facebook/react" /></span>
                     </div>
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 1.5 }}
-                        className="flex items-center gap-3 p-4 bg-zinc-800/50 rounded-xl border border-emerald-500/30"
+                        className="flex items-center gap-3 p-4 bg-[#17171b]/50 rounded-xl border border-[#57ab5a]/30"
                     >
-                        <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                            <FolderPlus className="w-6 h-6 text-blue-400" />
+                        <div className="w-12 h-12 rounded-lg bg-[#5b9dff]/20 flex items-center justify-center">
+                            <FolderPlus className="w-6 h-6 text-[#5b9dff]" />
                         </div>
                         <div className="flex-1">
-                            <div className="text-white font-semibold">facebook/react</div>
-                            <div className="text-zinc-400 text-sm">A JavaScript library for building UIs</div>
+                            <div className="text-[#ececef] font-semibold">facebook/react</div>
+                            <div className="text-[#8c8c95] text-sm">A JavaScript library for building UIs</div>
                         </div>
                         <motion.div
                             animate={{ scale: [1, 1.1, 1] }}
                             transition={{ repeat: Infinity, duration: 1.5 }}
-                            className="px-4 py-2 bg-emerald-500 text-black font-semibold rounded-lg"
+                            className="px-4 py-2 bg-[#57ab5a] text-black font-semibold rounded-lg"
                         >
                             Add Project
                         </motion.div>
@@ -386,21 +386,21 @@ const InteractiveDemo = ({ role, step }) => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.2 }}
-                            whileHover={{ x: 5, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
-                            className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50 cursor-pointer transition-all"
+                            whileHover={{ x: 5, backgroundColor: 'rgba(87, 171, 90, 0.1)' }}
+                            className="flex items-center gap-3 p-3 bg-[#17171b]/50 rounded-lg border border-white/10 cursor-pointer transition-all"
                         >
-                            <div className={`w-3 h-3 rounded-full ${i === 0 ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+                            <div className={`w-3 h-3 rounded-full ${i === 0 ? 'bg-[#5fbf62]' : 'bg-[#6b6b74]'}`} />
                             <div className="flex-1">
-                                <div className="text-white text-sm font-medium">{issue.title}</div>
+                                <div className="text-[#ececef] text-sm font-medium">{issue.title}</div>
                                 <div className="flex gap-2 mt-1">
                                     {issue.labels.map((label, j) => (
-                                        <span key={j} className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">
+                                        <span key={j} className="px-2 py-0.5 bg-[#5b9dff]/20 text-[#5b9dff] text-xs rounded-full">
                                             {label}
                                         </span>
                                     ))}
                                 </div>
                             </div>
-                            <div className="text-zinc-500 text-sm flex items-center gap-1">
+                            <div className="text-[#6b6b74] text-sm flex items-center gap-1">
                                 <MessageSquare className="w-4 h-4" /> {issue.comments}
                             </div>
                         </motion.div>
@@ -412,11 +412,11 @@ const InteractiveDemo = ({ role, step }) => {
             content: (
                 <div className="space-y-4">
                     <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                            <Bot className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#5b9dff] to-[#a77ef0] flex items-center justify-center flex-shrink-0">
+                            <Bot className="w-4 h-4 text-[#ececef]" />
                         </div>
-                        <div className="flex-1 p-4 bg-zinc-800/80 rounded-2xl rounded-tl-none">
-                            <div className="text-zinc-300 text-sm">
+                        <div className="flex-1 p-4 bg-[#17171b]/80 rounded-2xl rounded-tl-none">
+                            <div className="text-[#b9b9c1] text-sm">
                                 <TypewriterText text="I've analyzed the codebase. The memory leak occurs in the cleanup function. Here's a suggested fix..." delay={500} />
                             </div>
                         </div>
@@ -425,10 +425,10 @@ const InteractiveDemo = ({ role, step }) => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 2.5 }}
-                        className="ml-11 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/30"
+                        className="ml-11 p-3 bg-[#57ab5a]/10 rounded-lg border border-[#57ab5a]/30"
                     >
-                        <div className="text-xs text-emerald-400 mb-2">AI Suggested Code</div>
-                        <code className="text-sm text-zinc-300 font-mono block">
+                        <div className="text-xs text-[#5fbf62] mb-2">AI Suggested Code</div>
+                        <code className="text-sm text-[#b9b9c1] font-mono block">
                             useEffect(() =&gt; {'{'}<br />
                             &nbsp;&nbsp;const sub = subscribe();<br />
                             &nbsp;&nbsp;return () =&gt; sub.cleanup();<br />
@@ -442,23 +442,23 @@ const InteractiveDemo = ({ role, step }) => {
             content: (
                 <div className="space-y-3">
                     <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center">
-                            <User className="w-4 h-4 text-zinc-300" />
+                        <div className="w-8 h-8 rounded-full bg-[#26262c] flex items-center justify-center">
+                            <User className="w-4 h-4 text-[#b9b9c1]" />
                         </div>
-                        <div className="p-3 bg-zinc-700/50 rounded-2xl rounded-tl-none">
-                            <p className="text-zinc-200 text-sm">How does the reconciler work?</p>
+                        <div className="p-3 bg-[#26262c]/50 rounded-2xl rounded-tl-none">
+                            <p className="text-[#ececef] text-sm">How does the reconciler work?</p>
                         </div>
                     </div>
                     <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
-                            <Sparkles className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 rounded-full bg-[#4a944d] flex items-center justify-center flex-shrink-0">
+                            <Sparkles className="w-4 h-4 text-[#ececef]" />
                         </div>
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="flex-1 p-4 bg-zinc-800/80 rounded-2xl rounded-tl-none border border-purple-500/20"
+                            className="flex-1 p-4 bg-[#17171b]/80 rounded-2xl rounded-tl-none border border-[#a77ef0]/20"
                         >
-                            <div className="text-zinc-300 text-sm leading-relaxed">
+                            <div className="text-[#b9b9c1] text-sm leading-relaxed">
                                 <TypewriterText text="React's reconciliation uses a 'diffing' algorithm to compare Virtual DOM trees. It updates only changed elements for optimal performance!" delay={300} />
                             </div>
                         </motion.div>
@@ -475,19 +475,19 @@ const InteractiveDemo = ({ role, step }) => {
                         transition={{ type: 'spring', damping: 10 }}
                         className="relative inline-block mb-4"
                     >
-                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-500 via-orange-500 to-red-500 flex items-center justify-center">
-                            <Trophy className="w-12 h-12 text-white" />
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-yellow-500 via-orange-500 to-[#f0605a] flex items-center justify-center">
+                            <Trophy className="w-12 h-12 text-[#ececef]" />
                         </div>
                         <motion.div
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ repeat: Infinity, duration: 1 }}
-                            className="absolute -top-1 -right-1 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-black font-bold text-sm"
+                            className="absolute -top-1 -right-1 w-8 h-8 bg-[#57ab5a] rounded-full flex items-center justify-center text-black font-bold text-sm"
                         >
                             +1
                         </motion.div>
                     </motion.div>
-                    <h4 className="text-white font-bold text-lg mb-1">First Contribution!</h4>
-                    <p className="text-zinc-400 text-sm mb-4">You earned your first badge</p>
+                    <h4 className="text-[#ececef] font-bold text-lg mb-1">First Contribution!</h4>
+                    <p className="text-[#8c8c95] text-sm mb-4">You earned your first badge</p>
                     <div className="flex gap-3 justify-center flex-wrap">
                         {['3 day streak', '150 XP', 'Level 2'].map((stat, i) => (
                             <motion.div
@@ -495,7 +495,7 @@ const InteractiveDemo = ({ role, step }) => {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.5 + i * 0.1 }}
-                                className="px-3 py-2 bg-zinc-800 rounded-lg text-sm text-white"
+                                className="px-3 py-2 bg-[#17171b] rounded-lg text-sm text-[#ececef]"
                             >
                                 {stat}
                             </motion.div>
@@ -511,33 +511,33 @@ const InteractiveDemo = ({ role, step }) => {
         {
             content: (
                 <div className="space-y-3">
-                    <div className="text-xs text-zinc-500 mb-2">Syncing your repositories...</div>
+                    <div className="text-xs text-[#6b6b74] mb-2">Syncing your repositories...</div>
                     {['awesome-project', 'react-toolkit', 'node-api'].map((repo, i) => (
                         <motion.div
                             key={i}
                             initial={{ opacity: 0, x: -30 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.3 }}
-                            className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50"
+                            className="flex items-center gap-3 p-3 bg-[#17171b]/50 rounded-lg border border-white/10"
                         >
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ delay: i * 0.3 + 0.2, type: 'spring' }}
-                                className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center"
+                                className="w-10 h-10 rounded-lg bg-[#5b9dff]/20 flex items-center justify-center"
                             >
-                                <FolderPlus className="w-5 h-5 text-blue-400" />
+                                <FolderPlus className="w-5 h-5 text-[#5b9dff]" />
                             </motion.div>
                             <div className="flex-1">
-                                <div className="text-white font-medium">{repo}</div>
-                                <div className="text-zinc-500 text-xs">{Math.floor(Math.random() * 50 + 10)} open issues</div>
+                                <div className="text-[#ececef] font-medium">{repo}</div>
+                                <div className="text-[#6b6b74] text-xs">{Math.floor(Math.random() * 50 + 10)} open issues</div>
                             </div>
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: i * 0.3 + 0.4 }}
                             >
-                                <Check className="w-5 h-5 text-emerald-400" />
+                                <Check className="w-5 h-5 text-[#5fbf62]" />
                             </motion.div>
                         </motion.div>
                     ))}
@@ -546,22 +546,22 @@ const InteractiveDemo = ({ role, step }) => {
         },
         {
             content: (
-                <div className="p-4 bg-zinc-800/50 rounded-xl border border-purple-500/30">
+                <div className="p-4 bg-[#17171b]/50 rounded-xl border border-[#a77ef0]/30">
                     <div className="flex items-center gap-3 mb-4">
-                        <GitPullRequest className="w-6 h-6 text-purple-400" />
+                        <GitPullRequest className="w-6 h-6 text-[#a77ef0]" />
                         <div>
-                            <div className="text-white font-semibold">#127 – Add dark mode</div>
-                            <div className="text-zinc-400 text-xs">+312 -45 • 8 files</div>
+                            <div className="text-[#ececef] font-semibold">#127 – Add dark mode</div>
+                            <div className="text-[#8c8c95] text-xs">+312 -45 • 8 files</div>
                         </div>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                         {[
-                            { label: 'Quality', value: 92, color: '#10b981' },
-                            { label: 'Tests', value: 85, color: '#3b82f6' },
-                            { label: 'Security', value: 100, color: '#8b5cf6' },
+                            { label: 'Quality', value: 92, color: '#57ab5a' },
+                            { label: 'Tests', value: 85, color: '#5b9dff' },
+                            { label: 'Security', value: 100, color: '#a77ef0' },
                         ].map((metric, i) => (
                             <div key={i} className="text-center">
-                                <div className="h-2 bg-zinc-700 rounded-full overflow-hidden mb-2">
+                                <div className="h-2 bg-[#26262c] rounded-full overflow-hidden mb-2">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${metric.value}%` }}
@@ -570,8 +570,8 @@ const InteractiveDemo = ({ role, step }) => {
                                         style={{ backgroundColor: metric.color }}
                                     />
                                 </div>
-                                <div className="text-zinc-400 text-xs">{metric.label}</div>
-                                <div className="text-white font-semibold">{metric.value}%</div>
+                                <div className="text-[#8c8c95] text-xs">{metric.label}</div>
+                                <div className="text-[#ececef] font-semibold">{metric.value}%</div>
                             </div>
                         ))}
                     </div>
@@ -585,7 +585,7 @@ const InteractiveDemo = ({ role, step }) => {
                         <Sparkles className="w-5 h-5 text-orange-400" />
                         <span className="text-orange-400 font-semibold text-sm">AI Summary</span>
                     </div>
-                    <div className="text-zinc-200 text-sm leading-relaxed">
+                    <div className="text-[#ececef] text-sm leading-relaxed">
                         <TypewriterText text="This PR implements dark mode using CSS variables and React Context. All tests pass. Ready for review!" delay={300} />
                     </div>
                 </div>
@@ -594,7 +594,7 @@ const InteractiveDemo = ({ role, step }) => {
         {
             content: (
                 <div className="space-y-3">
-                    <div className="text-xs text-zinc-500 mb-2">Quick Response Templates</div>
+                    <div className="text-xs text-[#6b6b74] mb-2">Quick Response Templates</div>
                     {[
                         { icon: Check, label: 'LGTM', text: 'Looks good! Great work.' },
                         { icon: Settings, label: 'Minor Changes', text: 'Just a few tweaks needed.' },
@@ -606,14 +606,14 @@ const InteractiveDemo = ({ role, step }) => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.15 }}
                             whileHover={{ scale: 1.02, x: 5 }}
-                            className="flex items-center gap-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50 cursor-pointer hover:border-cyan-500/30 transition-all"
+                            className="flex items-center gap-3 p-3 bg-[#17171b]/50 rounded-lg border border-white/10 cursor-pointer hover:border-[#5fbf62]/30 transition-all"
                         >
-                            <template.icon className="w-5 h-5 text-cyan-400" />
+                            <template.icon className="w-5 h-5 text-[#5fbf62]" />
                             <div className="flex-1">
-                                <div className="text-white text-sm font-medium">{template.label}</div>
-                                <div className="text-zinc-400 text-xs">{template.text}</div>
+                                <div className="text-[#ececef] text-sm font-medium">{template.label}</div>
+                                <div className="text-[#8c8c95] text-xs">{template.text}</div>
                             </div>
-                            <Send className="w-4 h-4 text-zinc-500" />
+                            <Send className="w-4 h-4 text-[#6b6b74]" />
                         </motion.div>
                     ))}
                 </div>
@@ -622,29 +622,29 @@ const InteractiveDemo = ({ role, step }) => {
         {
             content: (
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
+                    <div className="flex items-center justify-between p-3 bg-[#57ab5a]/10 rounded-lg border border-[#57ab5a]/30">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#57ab5a] to-[#5fbf62] flex items-center justify-center">
                                 <User className="w-5 h-5 text-black" />
                             </div>
                             <div>
-                                <div className="text-white font-medium">Alex Chen</div>
-                                <div className="text-emerald-400 text-xs">3 PRs merged</div>
+                                <div className="text-[#ececef] font-medium">Alex Chen</div>
+                                <div className="text-[#5fbf62] text-xs">3 PRs merged</div>
                             </div>
                         </div>
                         <motion.span
                             animate={{ scale: [1, 1.1, 1] }}
                             transition={{ repeat: Infinity, duration: 1.5 }}
-                            className="px-3 py-1 bg-emerald-500 text-black text-xs font-bold rounded-full"
+                            className="px-3 py-1 bg-[#57ab5a] text-black text-xs font-bold rounded-full"
                         >
                             Top Contributor
                         </motion.span>
                     </div>
                     <div className="grid grid-cols-3 gap-3 text-center">
                         {[{ value: '24', label: 'Open PRs' }, { value: '156', label: 'This month' }, { value: '98%', label: 'Response' }].map((stat, i) => (
-                            <div key={i} className="p-3 bg-zinc-800/50 rounded-lg">
-                                <div className="text-white font-bold text-xl">{stat.value}</div>
-                                <div className="text-zinc-400 text-xs">{stat.label}</div>
+                            <div key={i} className="p-3 bg-[#17171b]/50 rounded-lg">
+                                <div className="text-[#ececef] font-bold text-xl">{stat.value}</div>
+                                <div className="text-[#8c8c95] text-xs">{stat.label}</div>
                             </div>
                         ))}
                     </div>
@@ -656,13 +656,13 @@ const InteractiveDemo = ({ role, step }) => {
     const steps = role === 'contributor' ? contributorSteps : maintainerSteps;
 
     return (
-        <div className="relative min-h-[350px] bg-zinc-900/70 rounded-2xl p-6 border border-zinc-800 overflow-hidden">
+        <div className="relative min-h-[350px] bg-[#0f0f12]/70 rounded-2xl p-6 border border-white/10 overflow-hidden">
             <motion.div
                 animate={{
                     background: [
-                        'radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%)',
-                        'radial-gradient(circle at 80% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)',
-                        'radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%)',
+                        'radial-gradient(circle at 20% 50%, rgba(87, 171, 90, 0.08) 0%, transparent 50%)',
+                        'radial-gradient(circle at 80% 50%, rgba(91, 157, 255, 0.08) 0%, transparent 50%)',
+                        'radial-gradient(circle at 20% 50%, rgba(87, 171, 90, 0.08) 0%, transparent 50%)',
                     ]
                 }}
                 transition={{ duration: 6, repeat: Infinity }}
@@ -671,16 +671,16 @@ const InteractiveDemo = ({ role, step }) => {
 
             <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="text-xs text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                        <Play className="w-4 h-4 text-emerald-400" />
+                    <div className="text-xs text-[#6b6b74] uppercase tracking-wider flex items-center gap-2">
+                        <Play className="w-4 h-4 text-[#5fbf62]" />
                         Interactive Demo
                     </div>
-                    <div className="text-xs text-zinc-500">Step {step + 1} / {steps.length}</div>
+                    <div className="text-xs text-[#6b6b74]">Step {step + 1} / {steps.length}</div>
                 </div>
 
-                <div className="h-1 bg-zinc-800 rounded-full mb-6 overflow-hidden">
+                <div className="h-1 bg-[#17171b] rounded-full mb-6 overflow-hidden">
                     <motion.div
-                        className="h-full bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500"
+                        className="h-full bg-gradient-to-r from-[#57ab5a] via-[#5b9dff] to-[#a77ef0]"
                         initial={{ width: 0 }}
                         animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
                         transition={{ duration: 0.5 }}
@@ -754,14 +754,14 @@ const OnboardingTutorial = () => {
     };
 
     return (
-        <section className="py-24 px-4 bg-[#09090b] relative overflow-hidden">
+        <section className="py-24 px-4 bg-[#050506] relative overflow-hidden">
             <Confetti show={showConfetti} />
 
             <div className="absolute inset-0 pointer-events-none">
                 {Array.from({ length: 15 }).map((_, i) => (
                     <motion.div
                         key={i}
-                        className="absolute w-1 h-1 bg-emerald-500/30 rounded-full"
+                        className="absolute w-1 h-1 bg-[#57ab5a]/30 rounded-full"
                         style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
                         animate={{
                             y: [0, -100, 0],
@@ -789,7 +789,7 @@ const OnboardingTutorial = () => {
                         onClick={handleLogin}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-black rounded-xl font-semibold shadow-lg shadow-emerald-500/20"
+                        className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-[#57ab5a] to-[#5fbf62] text-black rounded-xl font-semibold shadow-lg shadow-[#57ab5a]/20"
                     >
                         <Github className="w-5 h-5" />
                         Start Contributing Now
@@ -798,14 +798,14 @@ const OnboardingTutorial = () => {
                 </div>
 
                 <div className="flex justify-center mb-8">
-                    <div className="inline-flex p-1.5 bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-800">
+                    <div className="inline-flex p-1.5 bg-[#0f0f12]/80 backdrop-blur-sm rounded-2xl border border-white/10">
                         <motion.button
                             onClick={() => setActiveTab('contributor')}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'contributor'
-                                ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-black shadow-lg shadow-emerald-500/30'
-                                : 'text-zinc-400 hover:text-white'
+                                ? 'bg-gradient-to-r from-[#57ab5a] to-[#4a944d] text-black shadow-lg shadow-[#57ab5a]/30'
+                                : 'text-[#8c8c95] hover:text-[#ececef]'
                                 }`}
                         >
                             <Code2 className="w-5 h-5" />
@@ -816,8 +816,8 @@ const OnboardingTutorial = () => {
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${activeTab === 'maintainer'
-                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-black shadow-lg shadow-blue-500/30'
-                                : 'text-zinc-400 hover:text-white'
+                                ? 'bg-gradient-to-r from-[#5b9dff] to-[#5b9dff] text-black shadow-lg shadow-[#5b9dff]/30'
+                                : 'text-[#8c8c95] hover:text-[#ececef]'
                                 }`}
                         >
                             <Settings className="w-5 h-5" />
@@ -831,16 +831,16 @@ const OnboardingTutorial = () => {
                     {/* Progress bar */}
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                            <span className="text-zinc-400 text-sm">Step {activeStep + 1} of {steps.length}</span>
+                            <div className="w-2 h-2 rounded-full bg-[#57ab5a]" />
+                            <span className="text-[#8c8c95] text-sm">Step {activeStep + 1} of {steps.length}</span>
                         </div>
                         <motion.button
                             onClick={() => { setActiveStep(0); setIsAutoPlaying(true); }}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isAutoPlaying
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                                ? 'bg-[#57ab5a]/20 text-[#5fbf62] border border-[#57ab5a]/30'
+                                : 'bg-[#17171b] text-[#b9b9c1] hover:bg-[#26262c]'
                                 }`}
                         >
                             <Play className="w-4 h-4" />
@@ -874,7 +874,7 @@ const OnboardingTutorial = () => {
                             disabled={activeStep === 0}
                             whileHover={{ scale: activeStep === 0 ? 1 : 1.05 }}
                             whileTap={{ scale: activeStep === 0 ? 1 : 0.95 }}
-                            className="flex-1 py-3 bg-zinc-800 text-zinc-300 rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-700 transition-all"
+                            className="flex-1 py-3 bg-[#17171b] text-[#b9b9c1] rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#26262c] transition-all"
                         >
                             Previous
                         </motion.button>
@@ -890,8 +890,8 @@ const OnboardingTutorial = () => {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className={`flex-1 py-3 rounded-xl font-medium transition-all ${activeStep === steps.length - 1
-                                ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-black'
-                                : 'bg-emerald-500 text-black hover:bg-emerald-400'
+                                ? 'bg-gradient-to-r from-[#57ab5a] to-[#5fbf62] text-black'
+                                : 'bg-[#57ab5a] text-black hover:bg-[#5fbf62]'
                                 }`}
                         >
                             {activeStep === steps.length - 1 ? 'Complete' : 'Next'}
@@ -987,38 +987,38 @@ const LandingPage = () => {
     ];
 
     return (
-        <div className="bg-[#09090b] min-h-screen">
+        <div className="ot bg-[#050506] min-h-screen">
             {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-[#09090b]/95 backdrop-blur-md border-b border-zinc-800/50">
+            <header className="fixed top-0 left-0 right-0 z-50 bg-[#050506]/95 backdrop-blur-md border-b border-white/[0.06]">
                 <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Logo size="sm" />
-                        <span className="text-lg font-bold text-white">OpenTriage</span>
+                        <span className="text-lg font-bold text-[#ececef]">OpenTriage</span>
                     </div>
                     <nav className="hidden md:flex items-center gap-6 text-sm">
-                        <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-zinc-400 hover:text-white transition-colors">Features</a>
-                        <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-zinc-400 hover:text-white transition-colors">How it Works</a>
-                        <a href="#testimonials" onClick={(e) => scrollToSection(e, 'testimonials')} className="text-zinc-400 hover:text-white transition-colors">Reviews</a>
-                        <a href="#contribute" onClick={(e) => scrollToSection(e, 'contribute')} className="text-zinc-400 hover:text-white transition-colors">Contribute</a>
+                        <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-[#8c8c95] hover:text-[#ececef] transition-colors">Features</a>
+                        <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-[#8c8c95] hover:text-[#ececef] transition-colors">How it Works</a>
+                        <a href="#testimonials" onClick={(e) => scrollToSection(e, 'testimonials')} className="text-[#8c8c95] hover:text-[#ececef] transition-colors">Reviews</a>
+                        <a href="#contribute" onClick={(e) => scrollToSection(e, 'contribute')} className="text-[#8c8c95] hover:text-[#ececef] transition-colors">Contribute</a>
                     </nav>
                     {user ? (
                         <div className="flex items-center gap-3">
                             <img
                                 src={user.avatarUrl || 'https://github.com/ghost.png'}
                                 alt={user.username}
-                                className="w-8 h-8 rounded-full border border-zinc-700"
+                                className="w-8 h-8 rounded-full border border-white/[0.14]"
                             />
-                            <span className="text-white text-sm font-medium hidden sm:inline">{user.username}</span>
+                            <span className="text-[#ececef] text-sm font-medium hidden sm:inline">{user.username}</span>
                             <button
                                 onClick={goToDashboard}
-                                className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black rounded-lg font-medium transition-colors"
+                                className="flex items-center gap-2 px-4 py-2 bg-[#57ab5a] hover:bg-[#4a944d] text-black rounded-lg font-medium transition-colors"
                             >
                                 <ArrowRight className="w-4 h-4" />
                                 Go to Dashboard
                             </button>
                         </div>
                     ) : (
-                        <button onClick={handleLogin} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-black rounded-lg font-medium transition-colors">
+                        <button onClick={handleLogin} className="flex items-center gap-2 px-4 py-2 bg-[#57ab5a] hover:bg-[#4a944d] text-black rounded-lg font-medium transition-colors">
                             <Github className="w-4 h-4" />
                             Sign In
                         </button>
@@ -1062,23 +1062,23 @@ const LandingPage = () => {
                     {/* Left Content */}
                     <div className="order-2 lg:order-1">
                         <div className="flex items-center gap-4 mb-8">
-                            <Logo size={64} animated className="text-zinc-300" />
-                            <span className="text-5xl md:text-6xl font-bold text-white tracking-tight">OpenTriage</span>
+                            <Logo size={64} animated className="text-[#b9b9c1]" />
+                            <span className="text-5xl md:text-6xl font-bold text-[#ececef] tracking-tight">OpenTriage</span>
                         </div>
-                        <h1 className="text-2xl md:text-3xl text-zinc-300 mb-4 font-medium leading-snug">
-                            Grow in open source, <span className="text-emerald-400">one clear next step a day.</span>
+                        <h1 className="text-2xl md:text-3xl text-[#b9b9c1] mb-4 font-medium leading-snug">
+                            Grow in open source, <span className="text-[#5fbf62]">one clear next step a day.</span>
                         </h1>
-                        <p className="text-lg text-zinc-400 mb-10 leading-relaxed max-w-xl">
+                        <p className="text-lg text-[#8c8c95] mb-10 leading-relaxed max-w-xl">
                             OpenTriage sorts your pull requests, the people waiting on you and the best issue to pick next into one short list, so contributors grow steadily and maintainers keep their community moving.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 mb-10">
-                            <button onClick={handleLogin} className="flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-zinc-100 text-black rounded-xl font-semibold transition-all text-lg">
+                            <button onClick={handleLogin} className="flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-[#ececef] text-black rounded-xl font-semibold transition-all text-lg">
                                 <Github className="w-5 h-5" />
                                 Get Started with GitHub
                                 <ArrowRight className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="flex items-center gap-8 text-sm text-zinc-500">
+                        <div className="flex items-center gap-8 text-sm text-[#6b6b74]">
                             <div className="flex items-center gap-2"><Shield className="w-4 h-4" /><span>Secure OAuth</span></div>
                             <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /><span>100% Free</span></div>
                             <div className="flex items-center gap-2"><Clock className="w-4 h-4" /><span>2 min setup</span></div>
@@ -1092,23 +1092,23 @@ const LandingPage = () => {
                             <div
                                 className="absolute inset-0 blur-3xl opacity-30 pointer-events-none"
                                 style={{
-                                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.4) 0%, rgba(59, 130, 246, 0.3) 100%)',
+                                    background: 'linear-gradient(135deg, rgba(87, 171, 90, 0.4) 0%, rgba(91, 157, 255, 0.3) 100%)',
                                     transform: 'scale(1.2)'
                                 }}
                             />
                             {/* Dashboard frame */}
-                            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-zinc-700/50">
-                                <div className="bg-zinc-900 p-1">
+                            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+                                <div className="bg-[#0f0f12] p-1">
                                     {/* Browser bar */}
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800/50 rounded-t-lg">
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-[#17171b]/50 rounded-t-lg">
                                         <div className="flex gap-1.5">
                                             <div className="w-3 h-3 rounded-full bg-red-500/80" />
                                             <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
                                             <div className="w-3 h-3 rounded-full bg-green-500/80" />
                                         </div>
                                         <div className="flex-1 mx-4">
-                                            <div className="h-6 bg-zinc-700/50 rounded-md flex items-center px-3">
-                                                <span className="text-xs text-zinc-500">opentriage.io/dashboard</span>
+                                            <div className="h-6 bg-[#26262c]/50 rounded-md flex items-center px-3">
+                                                <span className="text-xs text-[#6b6b74]">opentriage.io/dashboard</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1121,13 +1121,13 @@ const LandingPage = () => {
             </section>
 
             {/* Stats Bar */}
-            <section className="py-12 border-y border-zinc-800 bg-zinc-900/30">
+            <section className="py-12 border-y border-white/10 bg-[#0f0f12]/30">
                 <div className="max-w-6xl mx-auto px-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                         {stats.map((stat, idx) => (
                             <div key={idx} className="text-center">
-                                <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stat.value}</div>
-                                <div className="text-sm text-zinc-500">{stat.label}</div>
+                                <div className="text-3xl md:text-4xl font-bold text-[#ececef] mb-1">{stat.value}</div>
+                                <div className="text-sm text-[#6b6b74]">{stat.label}</div>
                             </div>
                         ))}
                     </div>
@@ -1156,14 +1156,14 @@ const LandingPage = () => {
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {aiTechnologies.map((t, idx) => <AITechCard key={idx} {...t} />)}
                     </div>
-                    <div className="mt-12 p-6 bg-zinc-900/50 border border-zinc-800 rounded-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="mt-12 p-6 bg-[#0f0f12]/50 border border-white/10 rounded-xl flex flex-col md:flex-row items-center justify-between gap-6">
                         <div>
-                            <h3 className="text-xl font-semibold text-white mb-2">How Our AI Works</h3>
-                            <p className="text-zinc-400 max-w-2xl">
+                            <h3 className="text-xl font-semibold text-[#ececef] mb-2">How Our AI Works</h3>
+                            <p className="text-[#8c8c95] max-w-2xl">
                                 OpenTriage uses LLMs and ML pipelines to analyze issues, suggest labels, match mentors, and provide insights.
                             </p>
                         </div>
-                        <a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg font-medium whitespace-nowrap hover:bg-blue-600 transition-colors">
+                        <a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3 bg-[#5b9dff] text-[#ececef] rounded-lg font-medium whitespace-nowrap hover:bg-[#5b9dff] transition-colors">
                             <Github className="w-5 h-5" />
                             View on GitHub
                         </a>
@@ -1172,7 +1172,7 @@ const LandingPage = () => {
             </section>
 
             {/* Testimonials - Twitter Style Marquee */}
-            <section id="testimonials" className="py-24 bg-[#09090b] scroll-mt-20">
+            <section id="testimonials" className="py-24 bg-[#050506] scroll-mt-20">
                 <div className="max-w-6xl mx-auto px-4 mb-8">
                     <SectionTitle
                         badge="TESTIMONIALS"
@@ -1185,27 +1185,27 @@ const LandingPage = () => {
             </section>
 
             {/* Contribute */}
-            <section id="contribute" className="py-24 px-4 scroll-mt-20 bg-zinc-900/30">
+            <section id="contribute" className="py-24 px-4 scroll-mt-20 bg-[#0f0f12]/30">
                 <div className="max-w-6xl mx-auto">
                     <SectionTitle badge="CONTRIBUTE" badgeColor="green" title="Join the Community" subtitle="OpenTriage is open source. We welcome contributions!" />
                     <div className="grid md:grid-cols-3 gap-6">
-                        <a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="group p-6 bg-[#09090b] border border-zinc-800 rounded-xl hover:border-emerald-500/50 transition-all">
-                            <Github className="w-10 h-10 text-zinc-500 group-hover:text-white mb-4 transition-colors" />
-                            <h3 className="text-lg font-semibold text-white mb-2">GitHub Repository</h3>
-                            <p className="text-sm text-zinc-500 mb-4">Star, report issues, submit PRs.</p>
-                            <span className="text-emerald-400 text-sm flex items-center gap-1">View Repository <ExternalLink className="w-4 h-4" /></span>
+                        <a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="group p-6 bg-[#050506] border border-white/10 rounded-xl hover:border-[#57ab5a]/50 transition-all">
+                            <Github className="w-10 h-10 text-[#6b6b74] group-hover:text-[#ececef] mb-4 transition-colors" />
+                            <h3 className="text-lg font-semibold text-[#ececef] mb-2">GitHub Repository</h3>
+                            <p className="text-sm text-[#6b6b74] mb-4">Star, report issues, submit PRs.</p>
+                            <span className="text-[#5fbf62] text-sm flex items-center gap-1">View Repository <ExternalLink className="w-4 h-4" /></span>
                         </a>
-                        <a href="https://github.com/CosmicMagnetar/openTriage/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="group p-6 bg-[#09090b] border border-zinc-800 rounded-xl hover:border-blue-500/50 transition-all">
-                            <BookOpen className="w-10 h-10 text-zinc-500 group-hover:text-white mb-4 transition-colors" />
-                            <h3 className="text-lg font-semibold text-white mb-2">Contribution Guide</h3>
-                            <p className="text-sm text-zinc-500 mb-4">Learn how to contribute.</p>
-                            <span className="text-blue-400 text-sm flex items-center gap-1">Read Guide <ExternalLink className="w-4 h-4" /></span>
+                        <a href="https://github.com/CosmicMagnetar/openTriage/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="group p-6 bg-[#050506] border border-white/10 rounded-xl hover:border-[#5b9dff]/50 transition-all">
+                            <BookOpen className="w-10 h-10 text-[#6b6b74] group-hover:text-[#ececef] mb-4 transition-colors" />
+                            <h3 className="text-lg font-semibold text-[#ececef] mb-2">Contribution Guide</h3>
+                            <p className="text-sm text-[#6b6b74] mb-4">Learn how to contribute.</p>
+                            <span className="text-[#5b9dff] text-sm flex items-center gap-1">Read Guide <ExternalLink className="w-4 h-4" /></span>
                         </a>
-                        <a href="https://github.com/CosmicMagnetar/openTriage/issues" target="_blank" rel="noopener noreferrer" className="group p-6 bg-[#09090b] border border-zinc-800 rounded-xl hover:border-purple-500/50 transition-all">
-                            <GitBranch className="w-10 h-10 text-zinc-500 group-hover:text-white mb-4 transition-colors" />
-                            <h3 className="text-lg font-semibold text-white mb-2">Good First Issues</h3>
-                            <p className="text-sm text-zinc-500 mb-4">Beginner-friendly issues.</p>
-                            <span className="text-purple-400 text-sm flex items-center gap-1">Browse Issues <ExternalLink className="w-4 h-4" /></span>
+                        <a href="https://github.com/CosmicMagnetar/openTriage/issues" target="_blank" rel="noopener noreferrer" className="group p-6 bg-[#050506] border border-white/10 rounded-xl hover:border-[#a77ef0]/50 transition-all">
+                            <GitBranch className="w-10 h-10 text-[#6b6b74] group-hover:text-[#ececef] mb-4 transition-colors" />
+                            <h3 className="text-lg font-semibold text-[#ececef] mb-2">Good First Issues</h3>
+                            <p className="text-sm text-[#6b6b74] mb-4">Beginner-friendly issues.</p>
+                            <span className="text-[#a77ef0] text-sm flex items-center gap-1">Browse Issues <ExternalLink className="w-4 h-4" /></span>
                         </a>
                     </div>
                 </div>
@@ -1214,19 +1214,19 @@ const LandingPage = () => {
             {/* Newsletter */}
             <section className="py-24 px-4">
                 <div className="max-w-3xl mx-auto">
-                    <div className="p-8 md:p-12 bg-zinc-900/50 border border-zinc-800 rounded-2xl text-center">
-                        <Mail className="w-12 h-12 mx-auto mb-6 text-emerald-400" />
-                        <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Stay Ahead with OpenTriage</h2>
-                        <p className="text-zinc-400 mb-8">Join our newsletter for product updates, open source insights, and tips to maximize your contribution impact.</p>
+                    <div className="p-8 md:p-12 bg-[#0f0f12]/50 border border-white/10 rounded-2xl text-center">
+                        <Mail className="w-12 h-12 mx-auto mb-6 text-[#5fbf62]" />
+                        <h2 className="text-2xl md:text-3xl font-bold text-[#ececef] mb-4">Stay Ahead with OpenTriage</h2>
+                        <p className="text-[#8c8c95] mb-8">Join our newsletter for product updates, open source insights, and tips to maximize your contribution impact.</p>
                         {emailSubmitted ? (
-                            <div className="flex items-center justify-center gap-2 text-emerald-400">
+                            <div className="flex items-center justify-center gap-2 text-[#5fbf62]">
                                 <CheckCircle2 className="w-5 h-5" />
                                 <span>You're all set! Check your inbox for a welcome message.</span>
                             </div>
                         ) : (
                             <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500" required />
-                                <button type="submit" className="px-6 py-3 bg-emerald-500 text-black rounded-lg font-medium hover:bg-emerald-600 transition-colors">Subscribe</button>
+                                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" className="flex-1 px-4 py-3 bg-[#17171b] border border-white/[0.14] rounded-lg text-[#ececef] placeholder-[#6b6b74] focus:outline-none focus:border-[#57ab5a]" required />
+                                <button type="submit" className="px-6 py-3 bg-[#57ab5a] text-black rounded-lg font-medium hover:bg-[#4a944d] transition-colors">Subscribe</button>
                             </form>
                         )}
                     </div>
@@ -1234,16 +1234,16 @@ const LandingPage = () => {
             </section>
 
             {/* CTA */}
-            <section className="py-24 px-4 bg-zinc-900/30">
+            <section className="py-24 px-4 bg-[#0f0f12]/30">
                 <div className="max-w-4xl mx-auto text-center">
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Transform Your Workflow?</h2>
-                    <p className="text-zinc-400 mb-8">Join thousands of developers using OpenTriage.</p>
+                    <h2 className="text-3xl md:text-4xl font-bold text-[#ececef] mb-4">Ready to Transform Your Workflow?</h2>
+                    <p className="text-[#8c8c95] mb-8">Join thousands of developers using OpenTriage.</p>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <button onClick={handleLogin} className="inline-flex items-center gap-2 px-8 py-4 bg-emerald-500 text-black rounded-lg font-semibold text-lg hover:bg-emerald-600 transition-colors">
+                        <button onClick={handleLogin} className="inline-flex items-center gap-2 px-8 py-4 bg-[#57ab5a] text-black rounded-lg font-semibold text-lg hover:bg-[#4a944d] transition-colors">
                             <Github className="w-5 h-5" />
                             Get Started Free
                         </button>
-                        <a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-8 py-4 border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-600 rounded-lg font-medium transition-colors">
+                        <a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-8 py-4 border border-white/[0.14] text-[#b9b9c1] hover:text-[#ececef] hover:border-white/20 rounded-lg font-medium transition-colors">
                             <Star className="w-5 h-5" />
                             Star on GitHub
                         </a>
@@ -1252,23 +1252,23 @@ const LandingPage = () => {
             </section>
 
             {/* Footer - Professional */}
-            <footer className="py-16 px-4 border-t border-zinc-800 bg-[#09090b]">
+            <footer className="py-16 px-4 border-t border-white/10 bg-[#050506]">
                 <div className="max-w-6xl mx-auto">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
                         {/* Brand */}
                         <div className="col-span-2">
                             <div className="flex items-center gap-3 mb-4">
                                 <Logo size="sm" />
-                                <span className="text-xl font-bold text-white">OpenTriage</span>
+                                <span className="text-xl font-bold text-[#ececef]">OpenTriage</span>
                             </div>
-                            <p className="text-zinc-400 text-sm mb-6 max-w-xs leading-relaxed">
+                            <p className="text-[#8c8c95] text-sm mb-6 max-w-xs leading-relaxed">
                                 AI-powered intelligence for open source communities. Transform how maintainers and contributors collaborate.
                             </p>
                             <div className="flex items-center gap-3">
-                                <a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-zinc-800/80 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all">
+                                <a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg bg-[#17171b]/80 border border-white/10 flex items-center justify-center text-[#8c8c95] hover:text-[#ececef] hover:bg-[#26262c] transition-all">
                                     <Github className="w-4 h-4" />
                                 </a>
-                                <a href="#" className="w-9 h-9 rounded-lg bg-zinc-800/80 border border-zinc-700/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all">
+                                <a href="#" className="w-9 h-9 rounded-lg bg-[#17171b]/80 border border-white/10 flex items-center justify-center text-[#8c8c95] hover:text-[#ececef] hover:bg-[#26262c] transition-all">
                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
                                 </a>
                             </div>
@@ -1276,44 +1276,44 @@ const LandingPage = () => {
 
                         {/* Product */}
                         <div>
-                            <h4 className="text-white font-semibold mb-4">Product</h4>
+                            <h4 className="text-[#ececef] font-semibold mb-4">Product</h4>
                             <ul className="space-y-3 text-sm">
-                                <li><a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-zinc-400 hover:text-white transition-colors">Features</a></li>
-                                <li><a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-zinc-400 hover:text-white transition-colors">How it Works</a></li>
-                                <li><a href="#testimonials" onClick={(e) => scrollToSection(e, 'testimonials')} className="text-zinc-400 hover:text-white transition-colors">Reviews</a></li>
-                                <li><a href="#ai-tech" onClick={(e) => scrollToSection(e, 'ai-tech')} className="text-zinc-400 hover:text-white transition-colors">AI Technologies</a></li>
+                                <li><a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-[#8c8c95] hover:text-[#ececef] transition-colors">Features</a></li>
+                                <li><a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-[#8c8c95] hover:text-[#ececef] transition-colors">How it Works</a></li>
+                                <li><a href="#testimonials" onClick={(e) => scrollToSection(e, 'testimonials')} className="text-[#8c8c95] hover:text-[#ececef] transition-colors">Reviews</a></li>
+                                <li><a href="#ai-tech" onClick={(e) => scrollToSection(e, 'ai-tech')} className="text-[#8c8c95] hover:text-[#ececef] transition-colors">AI Technologies</a></li>
                             </ul>
                         </div>
 
                         {/* Resources */}
                         <div>
-                            <h4 className="text-white font-semibold mb-4">Resources</h4>
+                            <h4 className="text-[#ececef] font-semibold mb-4">Resources</h4>
                             <ul className="space-y-3 text-sm">
-                                <li><a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1">Documentation <ExternalLink className="w-3 h-3" /></a></li>
-                                <li><a href="https://github.com/CosmicMagnetar/openTriage/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1">Contributing <ExternalLink className="w-3 h-3" /></a></li>
-                                <li><a href="https://github.com/CosmicMagnetar/openTriage/issues" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1">Issues <ExternalLink className="w-3 h-3" /></a></li>
-                                <li><a href="https://github.com/CosmicMagnetar/openTriage/releases" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1">Changelog <ExternalLink className="w-3 h-3" /></a></li>
+                                <li><a href="https://github.com/CosmicMagnetar/openTriage" target="_blank" rel="noopener noreferrer" className="text-[#8c8c95] hover:text-[#ececef] transition-colors flex items-center gap-1">Documentation <ExternalLink className="w-3 h-3" /></a></li>
+                                <li><a href="https://github.com/CosmicMagnetar/openTriage/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="text-[#8c8c95] hover:text-[#ececef] transition-colors flex items-center gap-1">Contributing <ExternalLink className="w-3 h-3" /></a></li>
+                                <li><a href="https://github.com/CosmicMagnetar/openTriage/issues" target="_blank" rel="noopener noreferrer" className="text-[#8c8c95] hover:text-[#ececef] transition-colors flex items-center gap-1">Issues <ExternalLink className="w-3 h-3" /></a></li>
+                                <li><a href="https://github.com/CosmicMagnetar/openTriage/releases" target="_blank" rel="noopener noreferrer" className="text-[#8c8c95] hover:text-[#ececef] transition-colors flex items-center gap-1">Changelog <ExternalLink className="w-3 h-3" /></a></li>
                             </ul>
                         </div>
 
                         {/* Legal */}
                         <div>
-                            <h4 className="text-white font-semibold mb-4">Legal</h4>
+                            <h4 className="text-[#ececef] font-semibold mb-4">Legal</h4>
                             <ul className="space-y-3 text-sm">
-                                <li><a href="#" className="text-zinc-400 hover:text-white transition-colors">Privacy Policy</a></li>
-                                <li><a href="#" className="text-zinc-400 hover:text-white transition-colors">Terms of Service</a></li>
-                                <li><a href="https://github.com/CosmicMagnetar/openTriage/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1">MIT License <ExternalLink className="w-3 h-3" /></a></li>
+                                <li><a href="#" className="text-[#8c8c95] hover:text-[#ececef] transition-colors">Privacy Policy</a></li>
+                                <li><a href="#" className="text-[#8c8c95] hover:text-[#ececef] transition-colors">Terms of Service</a></li>
+                                <li><a href="https://github.com/CosmicMagnetar/openTriage/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-[#8c8c95] hover:text-[#ececef] transition-colors flex items-center gap-1">MIT License <ExternalLink className="w-3 h-3" /></a></li>
                             </ul>
                         </div>
                     </div>
 
                     {/* Bottom bar */}
-                    <div className="pt-8 border-t border-zinc-800/50 flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-6 text-sm text-zinc-500">
+                    <div className="pt-8 border-t border-white/[0.06] flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-6 text-sm text-[#6b6b74]">
                             <p>© 2024 OpenTriage. All rights reserved.</p>
                         </div>
-                        <p className="text-sm text-zinc-500 flex items-center gap-1">
-                            Built with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> for the open source community
+                        <p className="text-sm text-[#6b6b74] flex items-center gap-1">
+                            Built with <Heart className="w-3.5 h-3.5 text-[#f0605a] fill-[#f0605a]" /> for the open source community
                         </p>
                     </div>
                 </div>
