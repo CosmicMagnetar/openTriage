@@ -4,7 +4,7 @@
  * Each page has its own hue: its icon, header tint and key numbers use it,
  * so you can tell where you are at a glance.
  */
-import { BookOpen, Coins, Columns3, Compass, FileCheck2, GitPullRequest, Home, Inbox, Layers, LayoutDashboard, Settings, Sparkles, Trophy, Users } from 'lucide-react';
+import { Award, BookOpen, Coins, Columns3, Compass, FileCheck2, GitPullRequest, Home, Inbox, Layers, LayoutDashboard, Settings, Sparkles, Trophy, Users } from 'lucide-react';
 
 export const HUES = {
   green: '#57ab5a',
@@ -30,6 +30,7 @@ export const NAV = {
     ] },
     { id: 'grow', title: 'Grow', items: [
       { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.indigo },
+      { icon: Award, label: 'Badges', path: '/dashboard/badges', hue: HUES.amber },
       { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens', hue: HUES.slate },
     ] },
   ],
@@ -49,6 +50,7 @@ export const NAV = {
     ] },
     { id: 'understand', title: 'Understand', items: [
       { icon: Sparkles, label: 'Profile', path: '/dashboard/profile', hue: HUES.indigo },
+      { icon: Award, label: 'Badges', path: '/dashboard/badges', hue: HUES.amber },
       { icon: BookOpen, label: 'Repo lens', path: '/dashboard/lens', hue: HUES.slate },
     ] },
   ],

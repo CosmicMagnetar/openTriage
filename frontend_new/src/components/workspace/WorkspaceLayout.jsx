@@ -41,6 +41,7 @@ const loaders = {
   issue: () => import('./IssueFullPage'),
   settings: () => import('./SettingsPage'),
   profile: () => import('./ProfilePage'),
+  badges: () => import('./BadgesPage'),
   triage: () => import('./TriagePage'),
   community: () => import('./CommunityPage'),
   docs: () => import('./DocsPage'),
@@ -56,6 +57,7 @@ const RepoLensPage = lazyRetry(loaders.lens);
 const IssueFullPage = lazyRetry(loaders.issue);
 const SettingsPage = lazyRetry(loaders.settings);
 const ProfilePage = lazyRetry(loaders.profile);
+const BadgesPage = lazyRetry(loaders.badges);
 const TriagePage = lazyRetry(loaders.triage);
 const CommunityPage = lazyRetry(loaders.community);
 const DocsPage = lazyRetry(loaders.docs);
@@ -165,6 +167,7 @@ export default function WorkspaceLayout() {
               <Route path="settings" element={<SettingsPage />} />
               <Route path="journey" element={<Navigate to="/dashboard/profile" replace />} />
               <Route path="profile" element={<ProfilePage />} />
+              <Route path="badges" element={<BadgesPage />} />
               <Route path="triage" element={ws === 'maintainer' ? <TriagePage /> : <Navigate to="/dashboard" replace />} />
               <Route path="community" element={ws === 'maintainer' ? <CommunityPage /> : <Navigate to="/dashboard" replace />} />
               <Route path="docs" element={ws === 'maintainer' ? <DocsPage /> : <Navigate to="/dashboard" replace />} />
