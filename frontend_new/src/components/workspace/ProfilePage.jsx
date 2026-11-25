@@ -178,30 +178,37 @@ export function useBadgeResults() {
   return { q, d, results, maintainerResults };
 }
 
-export function BadgeTile({ r, onOpen, isNew, hidden, pinned }) {
+/** "47 more to Diamond": matches the bar, which fills between the current tier and the next. */
+export function toNextTier(r) {
+  if (r.maxed || r.next == null) return null;
+  const left = Math.max(0, r.next - r.value);
+  return `${left.toLocaleString()} more to ${TIERS[r.tier + 1]?.label ?? 'unlock'}`;
+}
+
+export function BadgeTile({ r, onOpen, isNew, hidden, pinned, showHow }) {
   const motionOn = useMotionOn();
   const t = r.tier >= 0 ? TIERS[r.tier] : null;
+  const nextT = TIERS[r.tier + 1];
   const Wrap = motionOn && isNew ? motion.button : 'button';
   const anim = motionOn && isNew ? { initial: { scale: 0.85 }, animate: { scale: [0.85, 1.06, 1] }, transition: { duration: 0.45 } } : {};
   return (
-    <Wrap onClick={onOpen} {...anim}
-      className={`relative text-left rounded-[10px] border p-3.5 flex flex-col items-center gap-2 transition-colors hover:bg-[var(--hover)] ${t ? 'border-[var(--line)] bg-[var(--panel)]' : 'border-dashed border-[var(--line)] bg-transparent'}`}>
+    <Wrap onClick={onOpen} {...anim} title={r.badge.how}
+      className={`relative w-full h-full text-left rounded-[10px] border px-3 pt-4 pb-3 flex flex-col items-center gap-1.5 transition-colors hover:bg-[var(--hover)] ${t ? 'border-[var(--line)] bg-[var(--panel)]' : 'border-dashed border-[var(--line)] bg-transparent'}`}>
       {isNew && <span className="absolute top-2 left-2 fs-11 font-semibold px-1.5 rounded bg-[var(--hue)] text-[#1a0d16]">New</span>}
       <span className="absolute top-2 right-2 flex gap-1 text-[var(--muted)]">
         {pinned && <Pin className="w-3.5 h-3.5" aria-label="Pinned" />}
         {hidden && <EyeOff className="w-3.5 h-3.5" aria-label="Hidden from your public profile" />}
       </span>
-      <BadgeArt badge={r.badge} tier={r.tier} size={68} />
-      <span className={`fs-13-5 font-semibold text-center ${t ? '' : 'text-[var(--muted)]'}`}>{r.badge.name}</span>
-      <span className="fs-12 text-center" style={{ color: t ? t.color : 'var(--muted)' }}>
+      <span className={t ? '' : 'opacity-50 grayscale'}><BadgeArt badge={r.badge} tier={r.tier} size={60} /></span>
+      <span className={`fs-13 font-semibold text-center leading-tight ${t ? '' : 'text-[var(--text-2)]'}`}>{r.badge.name}</span>
+      <span className="fs-11-5 text-center" style={{ color: t ? t.color : 'var(--muted)' }}>
         {t ? (r.maxed ? `${t.label} · maxed` : t.label) : 'Locked'}
       </span>
+      {showHow && !t && <span className="fs-11-5 text-center text-[var(--muted)] leading-snug">{r.badge.how}</span>}
       {!r.maxed && (
-        <span className="w-full">
-          <Progress value={r.progress} color={t ? t.color : 'var(--muted)'} />
-          <span className="block fs-11-5 text-[var(--muted)] text-center mt-1 tnum">
-            {r.value.toLocaleString()} / {r.next.toLocaleString()}{r.badge.unit ? ` ${r.badge.unit}` : ''}
-          </span>
+        <span className="w-full mt-auto pt-1.5">
+          <Progress value={r.progress} color={nextT?.color ?? 'var(--muted)'} />
+          <span className="block fs-11 text-[var(--muted)] text-center mt-1 tnum">{toNextTier(r)}</span>
         </span>
       )}
     </Wrap>
@@ -493,7 +500,7 @@ export default function ProfilePage() {
   const [share, setShare] = useState(false);
   const hue = HUES[profile.hue] ?? HUES.indigo;
   // One collection: pins, hiding, "New" and sharing work across both kinds.
-  const { q, d, results, maintainerResults } = useBadgeResults();
+  const { q, d, results } = useBadgeResults();
   const earned = results.filter((r) => r.tier >= 0);
   const shelf = featuredBadges(results, profile, 6);
   // What was already seen when the page opened; only badges beyond that are "New".
@@ -620,38 +627,25 @@ export default function ProfilePage() {
             <AnimatePresence mode="wait" initial={false}>
               <motion.div key={tab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.12 }}>
                 {tab === 'badges' && (
-                  <div className="space-y-6">
-                    {/* Only what you've earned here; the full catalogue with unlock rules lives on the Badges page. */}
-                    <button onClick={() => navigate('/dashboard/badges')}
-                      className="w-full card px-4 py-3 flex items-center gap-3 text-left hover:bg-[var(--hover)]">
-                      <span className="flex-1 fs-13-5">See all {results.length} badges, how to unlock each, and the ones you're closest to</span>
-                      <span className="fs-12-5 text-[var(--link)]">Badges →</span>
-                    </button>
-                    {earned.length === 0 && <p className="fs-13-5 text-[var(--muted)]">No badges yet. Your first one comes from commenting on an issue you could help with.</p>}
-                    {[...FAMILIES, ...(maintainerResults.some((r) => r.tier >= 0) ? [{ id: '__m', heading: true }] : []), ...MAINTAINER_FAMILIES].map((f) => {
-                      if (f.heading) return (
-                        <div key={f.id} className="pt-2 border-t border-[var(--line)]">
-                          <h3 className="fs-19 font-semibold mt-4">As a maintainer</h3>
-                          <p className="fs-13-5 text-[var(--muted)]">Earned from the repositories you track. They count towards your profile like any other badge.</p>
-                        </div>
-                      );
-                      const list = results.filter((r) => r.badge.family === f.id && r.tier >= 0);
-                      if (!list.length) return null;
-                      return (
-                        <section key={f.id}>
-                          <div className="flex items-baseline gap-2 mb-3">
-                            <h3 className="fs-16 font-semibold">{f.label}</h3>
-                            <span className="fs-13 text-[var(--muted)]">{f.blurb}</span>
-                          </div>
-                          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
-                            {list.map((r) => (
-                              <BadgeTile key={r.badge.id} r={r} onOpen={() => setOpen(r)} isNew={fresh.has(r.badge.id)}
-                                hidden={profile.hidden.includes(r.badge.id)} pinned={profile.featured.includes(r.badge.id)} />
-                            ))}
-                          </div>
-                        </section>
-                      );
-                    })}
+                  <div className="space-y-4">
+                    {/* Only what you've earned here, best first; the full catalogue with unlock rules lives on the Badges page. */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <p className="flex-1 fs-13-5">
+                        <span className="font-semibold tnum">{earned.length}</span> earned
+                        <span className="text-[var(--muted)]"> · tap one to pin it or hide it from your public profile</span>
+                      </p>
+                      <button onClick={() => navigate('/dashboard/badges')} className="fs-13 text-[var(--link)] hover:underline">
+                        All {results.length} badges and how to unlock them →
+                      </button>
+                    </div>
+                    {earned.length === 0 ? <p className="fs-13-5 text-[var(--muted)]">No badges yet. Your first one comes from commenting on an issue you could help with.</p> : (
+                      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(148px,1fr))]">
+                        {[...earned].sort((a, b) => b.tier - a.tier || b.progress - a.progress || a.badge.name.localeCompare(b.badge.name)).map((r) => (
+                          <BadgeTile key={r.badge.id} r={r} onOpen={() => setOpen(r)} isNew={fresh.has(r.badge.id)}
+                            hidden={profile.hidden.includes(r.badge.id)} pinned={profile.featured.includes(r.badge.id)} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 {tab === 'activity' && <Activity d={d} />}
