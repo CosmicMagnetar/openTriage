@@ -9,7 +9,7 @@ import { disableNotify, enableNotify, notifyEnabled, notifySupported } from '../
 import useAuthStore from '../../stores/authStore';
 import { keys, parseGitHubRef, workApi } from '../../services/workApi';
 import { invalidate, useQuery } from '../../lib/query';
-import AISettingsPanel from '../settings/AISettingsPanel';
+import { AiKeySettings } from './aiAnalysis';
 import { Reorder } from 'framer-motion';
 import usePrefs, { ACCENTS, DEFAULT_ACCENT, TODAY_WIDGETS, arrangeNav, widgetsFor } from '../../stores/prefsStore';
 import { NAV } from './nav';
@@ -303,9 +303,12 @@ export default function SettingsPage() {
         {ws === 'contributor' && <Suggestions />}
         {role === 'MAINTAINER' && <TrackedRepos />}
         {role === 'MAINTAINER' && <SavedReplies />}
-        <Block title="AI (optional)">
-          <AISettingsPanel />
-        </Block>
+        <div id="ai" className="scroll-mt-20">
+          {/* Server-side, encrypted per user (replaces the old panel that kept keys in this browser's storage). */}
+          <Block title="AI with your own key (optional)">
+            <AiKeySettings />
+          </Block>
+        </div>
       </div>
     </Page>
   );

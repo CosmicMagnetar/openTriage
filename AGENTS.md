@@ -69,6 +69,7 @@ DB schema change: edit `backend-ts/src/db/schema.ts`, then `npm run db:generate`
 | [workspace-ui](.agents/skills/workspace-ui/SKILL.md) | Adding or changing any workspace screen |
 | [github-data](.agents/skills/github-data/SKILL.md) | Adding an API route that reads GitHub |
 | [ranking](.agents/skills/ranking/SKILL.md) | Changing how repos, opportunities or issues are ranked for a contributor |
+| [ai-byok](.agents/skills/ai-byok/SKILL.md) | Bring-your-own AI key: storage, providers, deep repo analysis |
 | [repo-context](.agents/skills/repo-context/SKILL.md) | Repo map without AI, context score, starter AGENTS.md, Change card, PR test run |
 | [maintainer-hub](.agents/skills/maintainer-hub/SKILL.md) | Repo to-do, Funding & programs, rising contributors, workload, away mode, built-in replies |
 

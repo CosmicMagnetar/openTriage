@@ -77,6 +77,11 @@ export const workApi = {
   goals: () => get("/me/goals"),
   saveGoals: (goals) => send("put", "/me/goals", { goals }),
   feedback: (id, action, tags) => send("post", "/me/goals", { id, action, tags }),
+  /** Your own AI key (encrypted on the server; never sent back) and the deep repo analysis it powers. */
+  aiKey: () => get("/me/ai-key"),
+  saveAiKey: (provider, apiKey, model) => send("put", "/me/ai-key", { provider, apiKey, model }),
+  deleteAiKey: () => send("delete", "/me/ai-key"),
+  repoAnalysis: (repo, fresh = false) => send("post", "/ai/repo-analysis", { repo, fresh }),
   /** Repo context without AI: map, skills, score, starter AGENTS.md; Change card and test run for a PR. */
   repoContext: (owner, repo, o) => get(`/context/${enc(owner)}/${enc(repo)}`, fresh(o)),
   changeCard: (repo, number) => get("/context/change-card", { repo, number }),
@@ -116,6 +121,8 @@ export const keys = {
   goals: () => "goals",
   todo: (repo) => `todo:${repo}`.toLowerCase(),
   context: (o, r) => `context:${o}/${r}`.toLowerCase(),
+  aiKey: () => "ai-key",
+  analysis: (o, r) => `ai:${o}/${r}`.toLowerCase(),
   funding: () => "funding",
   recRepos: (params) => `rec:repos:${JSON.stringify(params)}`,
   recOpportunities: () => "rec:opps",
