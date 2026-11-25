@@ -9,6 +9,7 @@ import { useSignals } from './opportunities';
 import { toast } from 'sonner';
 import { BACKEND_URL } from '../../lib/config';
 import { Block, Button, Dot, Empty, ErrorLine, ExtLink, Input, Page, RESPONSIVENESS, SkeletonRows, Tag, timeAgo } from './ui';
+import { RepoContext } from './repoContext';
 
 function RepoPicker({ initial = '' }) {
   const navigate = useNavigate();
@@ -114,6 +115,8 @@ export default function RepoLensPage() {
           </div>
 
           <ReadmeBadge fullName={lens.repo.fullName} />
+
+          <RepoContext owner={owner} repo={repo} />
 
           {lens.warnings.map((w) => (
             <p key={w} className="flex items-center gap-2 py-2 fs-12-5 text-[var(--text-2)] border-b border-[var(--line-soft)]">

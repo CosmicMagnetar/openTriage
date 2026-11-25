@@ -15,7 +15,7 @@ const facts = (over: Partial<RepoFacts> = {}): RepoFacts => ({
         { id: 'license', label: 'License', present: true, creatable: true },
         { id: 'good-first-issue', label: '`good first issue` label', present: true, creatable: true },
     ],
-    extras: { funding: true, agents: false, skills: false, evals: false },
+    extras: { funding: true, agents: true, skills: false, evals: false },
     privateVulnReporting: true, dependabotOpen: 0, scorecard: 7.5,
     latestRelease: { tag: 'v1.0.0', publishedAt: '2026-11-01T00:00:00Z', commitsSince: 2 },
     staleBotPRs: 0, flakyWorkflows: [], openGoodFirstIssues: 3, ...over,
@@ -24,6 +24,10 @@ const facts = (over: Partial<RepoFacts> = {}): RepoFacts => ({
 describe('repo to-do', () => {
     it('a healthy repo has nothing to do', () => {
         expect(buildTodo(facts(), [], NOW)).toEqual([]);
+    });
+    it('no AGENTS.md: suggests the starter, linking to the repo context view', () => {
+        const [i] = buildTodo(facts({ extras: { funding: true, agents: false, skills: false, evals: false } }), [], NOW);
+        expect(i).toMatchObject({ id: 'context:agents', action: { kind: 'link', url: '/dashboard/lens/me/app#context' } });
     });
     it('missing licence and contributing are high priority and open a PR from a template', () => {
         const items = buildTodo(facts({ docs: [{ id: 'license', label: 'License', present: false, creatable: true }, { id: 'contributing', label: 'Contributing guide', present: false, creatable: true }] }), [], NOW);
@@ -44,11 +48,11 @@ describe('repo to-do', () => {
         expect(buildTodo(facts({ latestRelease: { tag: 'v1', publishedAt: '2026-11-20T00:00:00Z', commitsSince: 6 } }), [], NOW)).toHaveLength(0);
     });
     it('private repos skip public-only items; archived repos have no to-do', () => {
-        expect(buildTodo(facts({ private: true, extras: { funding: false, agents: false, skills: false, evals: false }, privateVulnReporting: false }), [], NOW)).toEqual([]);
+        expect(buildTodo(facts({ private: true, extras: { funding: false, agents: true, skills: false, evals: false }, privateVulnReporting: false }), [], NOW)).toEqual([]);
         expect(buildTodo(facts({ archived: true, dependabotOpen: 9 }), [], NOW)).toEqual([]);
     });
     it('goals pull their area up within the same priority', () => {
-        const f = facts({ staleBotPRs: 2, extras: { funding: false, agents: false, skills: false, evals: false } });
+        const f = facts({ staleBotPRs: 2, extras: { funding: false, agents: true, skills: false, evals: false } });
         expect(buildTodo(f, [], NOW).map((i) => i.id)).toEqual(['health:botprs', 'funding:yml']);
         expect(buildTodo(f, ['funding'], NOW).map((i) => i.id)).toEqual(['funding:yml', 'health:botprs']);
     });

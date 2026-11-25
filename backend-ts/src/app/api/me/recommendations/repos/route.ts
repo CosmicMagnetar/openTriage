@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         language: p.get("language") ?? undefined,
         program: p.get("program") ?? undefined,
         foundation: p.get("foundation") ?? undefined,
+        contextReady: p.get("contextReady") === "1",
     });
     if (p.get("saved") === "1") pool = pool.filter((x) => ctx.feedback.saved.includes(x.id));
     const ranked = rankProjects(pool, ctx.me, ctx.goals, ctx.feedback);

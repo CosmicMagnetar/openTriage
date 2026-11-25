@@ -175,15 +175,17 @@ export function RepoRecommendations() {
   const [language, setLanguage] = useState('');
   const [q, setQ] = useState('');
   const [saved, setSaved] = useState(false);
+  const [ready, setReady] = useState(false);
   const [limit, setLimit] = useState(PAGE);
   const params = useMemo(() => {
     const p = { limit };
+    if (ready) p.contextReady = 1;
     if (program) p.program = program;
     if (language.trim()) p.language = language.trim().toLowerCase();
     if (q.trim()) p.q = q.trim();
     if (saved) p.saved = 1;
     return p;
-  }, [program, language, q, saved, limit]);
+  }, [program, language, q, saved, ready, limit]);
   const live = useQuery(keys.recRepos(params), () => workApi.recRepos(params), { staleMs: 10 * 60_000 });
   // Keep the last answer on screen while a new filter/page loads (no flash to a skeleton).
   const last = useRef(null);
@@ -209,6 +211,8 @@ export function RepoRecommendations() {
         <Segments value={program} onChange={(v) => { setProgram(v); setLimit(PAGE); }} options={PROGRAMS.map(([value, label]) => ({ value, label }))} />
         <Input value={language} onChange={(e) => { setLanguage(e.target.value); setLimit(PAGE); }} placeholder="Language" className="w-28" aria-label="Language" />
         <Input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder="Search projects" className="w-48" aria-label="Search projects" />
+        <Button variant={ready ? 'primary' : 'subtle'} size="sm" onClick={() => { setReady((s) => !s); setLimit(PAGE); }}
+          title="Projects whose docs explain the repo to people and agents (CLOMonitor agent-readiness 60+)">Context-ready</Button>
         <Button variant={saved ? 'primary' : 'subtle'} size="sm" onClick={() => setSaved((s) => !s)}><Bookmark className="w-3.5 h-3.5" /> Saved</Button>
       </div>
       {rec.data && (

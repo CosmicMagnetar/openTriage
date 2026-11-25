@@ -121,6 +121,13 @@ export function buildTodo(f: RepoFacts, goals: MaintainerGoal[] = [], now = Date
             action: { kind: "link", url: gh(f.repo, "/issues"), label: "Pick issues" } });
     }
 
+    // Context: the repo map people and agents read first (CNCF / agent-sandbox pattern).
+    if (!f.extras.agents) {
+        add({ id: "context:agents", area: "docs", priority: "low", title: "Add AGENTS.md (a starter is ready)",
+            why: "One file that maps every folder and how to build and test; newcomers and agents read it first.",
+            action: { kind: "link", url: `/dashboard/lens/${f.repo}#context`, label: "See starter" } });
+    }
+
     // Funding
     if (pub && !f.extras.funding) {
         add({ id: "funding:yml", area: "funding", priority: "low", title: "Add FUNDING.yml",

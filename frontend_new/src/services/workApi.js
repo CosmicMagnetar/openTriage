@@ -77,6 +77,10 @@ export const workApi = {
   goals: () => get("/me/goals"),
   saveGoals: (goals) => send("put", "/me/goals", { goals }),
   feedback: (id, action, tags) => send("post", "/me/goals", { id, action, tags }),
+  /** Repo context without AI: map, skills, score, starter AGENTS.md; Change card and test run for a PR. */
+  repoContext: (owner, repo, o) => get(`/context/${enc(owner)}/${enc(repo)}`, fresh(o)),
+  changeCard: (repo, number) => get("/context/change-card", { repo, number }),
+  runTests: (repo, number) => send("post", "/context/change-card", { repo, number }),
   /** Maintainer hub: per-repo to-do, and funding/programs with eligibility per repo. */
   repoTodo: (repo, o) => get("/maintainer/todo", { repo, ...fresh(o) }),
   funding: () => get("/maintainer/funding"),
@@ -111,6 +115,7 @@ export const keys = {
   access: () => `access:${(localStorage.getItem("token") || "").slice(-16)}`,
   goals: () => "goals",
   todo: (repo) => `todo:${repo}`.toLowerCase(),
+  context: (o, r) => `context:${o}/${r}`.toLowerCase(),
   funding: () => "funding",
   recRepos: (params) => `rec:repos:${JSON.stringify(params)}`,
   recOpportunities: () => "rec:opps",

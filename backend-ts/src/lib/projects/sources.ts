@@ -207,7 +207,7 @@ export function mergeProjects(...lists: OssProject[][]): OssProject[] {
 // Search (in memory; ~2k rows)
 // ---------------------------------------------------------------------------
 
-export interface ProjectQuery { q?: string; tag?: string; language?: string; program?: string; foundation?: string }
+export interface ProjectQuery { q?: string; tag?: string; language?: string; program?: string; foundation?: string; contextReady?: boolean }
 
 export function filterProjects(list: OssProject[], f: ProjectQuery): OssProject[] {
     const q = f.q?.toLowerCase().trim();
@@ -220,5 +220,6 @@ export function filterProjects(list: OssProject[], f: ProjectQuery): OssProject[
         && (!tag || p.tags.includes(tag))
         && (!lang || p.languages.includes(lang))
         && (!prog || p.programs.some((x) => x === prog || x.startsWith(`${prog}-`)))
-        && (!fnd || p.foundation === fnd));
+        && (!fnd || p.foundation === fnd)
+        && (!f.contextReady || (p.agentReadiness ?? 0) >= 60));
 }

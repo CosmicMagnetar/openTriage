@@ -177,6 +177,8 @@ export function scoreProject(p: OssProject, me: Me, goals: Goals, fb: Feedback, 
     // Welcome (20)
     const welcome = (p.newcomerUrl ? 6 : 0) + (p.programs.includes("up-for-grabs") ? 6 : 0) + (p.programs.some((x) => x.startsWith("gsoc")) ? 4 : 0) + (p.programs.includes("lfx") ? 4 : 0);
     parts.push([cap(welcome, 20), p.programs.includes("up-for-grabs") ? "Labels issues for newcomers" : null]);
+    // Context-ready repos are faster to understand; promote them (CLOMonitor agent-readiness, 0–100).
+    if ((p.agentReadiness ?? 0) >= 60) parts.push([4, `Agent-ready docs (${p.agentReadiness}/100)`]);
 
     // Health (20): CLOMonitor score if known, else activity + stars.
     const quiet = daysSince(p.lastCommitAt, now);

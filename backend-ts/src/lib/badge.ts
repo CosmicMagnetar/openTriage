@@ -23,6 +23,18 @@ export function badgeText(d: BadgeData): { value: string; color: string } {
 
 export function badgeSvg(d: BadgeData, label = "OpenTriage"): string {
     const { value, color } = badgeText(d);
+    return svgBadge(label, value, color);
+}
+
+/** Context badge: "OpenTriage context | ready" (green), "basic" (amber), "none" (gray). */
+export function contextBadgeSvg(level: "ready" | "basic" | "none" | "private"): string {
+    const color = level === "ready" ? "#2ea043" : level === "basic" ? "#d29922" : "#6e7681";
+    const value = level === "ready" ? "ready" : level === "basic" ? "basic" : level === "private" ? "private repo" : "not yet";
+    return svgBadge("OpenTriage context", value, color);
+}
+
+/** Shields-style two-part badge. */
+export function svgBadge(label: string, value: string, color: string): string {
     const lw = width(label);
     const vw = width(value);
     const w = lw + vw;

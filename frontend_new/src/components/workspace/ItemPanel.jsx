@@ -18,6 +18,7 @@ import { keys, workApi } from '../../services/workApi';
 import { fetchQuery, invalidate, useQuery } from '../../lib/query';
 import { isTypingTarget, useItemPanel } from './useWorkspace';
 import { coAuthorTrailer, firstPrSteps, issueDrafts, prDrafts } from './drafts';
+import { ChangeCardBlock } from './repoContext';
 import {
   ACTION, AVAILABILITY, Baton, Block, Button, CHECKS, Dot, ErrorLine, Evidence, ExtLink, Input, RESPONSIVENESS, REVIEW,
   SkeletonRows, Tag, Textarea, VERDICT, celebrate, timeAgo, waitingOnLabel,
@@ -716,6 +717,10 @@ export function PRDetail({ owner, repo, number, onClose }) {
             </Block>
 
             {role === 'MAINTAINER' && <ContributorBlock owner={owner} repo={repo} login={pr.author?.login} />}
+
+            {pr.state === 'OPEN' && pr.author?.login?.toLowerCase() === user?.username?.toLowerCase() && (
+              <ChangeCardBlock owner={owner} repo={repo} number={number} />
+            )}
 
             <Conversation owner={owner} repo={repo} number={number} />
 

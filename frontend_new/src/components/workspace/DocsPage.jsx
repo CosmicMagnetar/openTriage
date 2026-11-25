@@ -7,6 +7,7 @@
  * GitHub that you don't manage yet sit on top, one click each.
  */
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, ExternalLink, FilePlus2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { keys, workApi } from '../../services/workApi';
@@ -30,6 +31,7 @@ function useTodo(repo) {
 }
 
 function RepoTodo({ repo, onAsk, onDone }) {
+  const navigate = useNavigate();
   const q = useTodo(repo);
   const [all, setAll] = useState(false);
   const d = q.data;
@@ -53,7 +55,9 @@ function RepoTodo({ repo, onAsk, onDone }) {
               </span>
               {i.action.kind === 'create-doc'
                 ? <Button size="sm" onClick={() => onAsk(repo, i)}><FilePlus2 className="w-3.5 h-3.5" /> Add</Button>
-                : <a href={i.action.url} target="_blank" rel="noopener noreferrer"
+                : i.action.url.startsWith('/')
+                  ? <Button size="sm" onClick={() => navigate(i.action.url)}>{i.action.label}</Button>
+                  : <a href={i.action.url} target="_blank" rel="noopener noreferrer"
                     className="ctl-sm shrink-0 px-2.5 rounded-md fs-12 inline-flex items-center gap-1 border border-[var(--line)] hover:bg-[var(--hover)]">
                     {i.action.label} <ExternalLink className="w-3 h-3" />
                   </a>}
