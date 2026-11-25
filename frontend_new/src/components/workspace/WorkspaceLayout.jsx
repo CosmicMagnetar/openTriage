@@ -45,6 +45,7 @@ const loaders = {
   community: () => import('./CommunityPage'),
   docs: () => import('./DocsPage'),
   opportunities: () => import('./OpportunitiesPage'),
+  funding: () => import('./FundingPage'),
 };
 const TodayPage = lazyRetry(loaders.today);
 const FindWorkPage = lazyRetry(loaders.find);
@@ -59,6 +60,7 @@ const TriagePage = lazyRetry(loaders.triage);
 const CommunityPage = lazyRetry(loaders.community);
 const DocsPage = lazyRetry(loaders.docs);
 const OpportunitiesPage = lazyRetry(loaders.opportunities);
+const FundingPage = lazyRetry(loaders.funding);
 
 const idle = (fn) => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 1500 }) : setTimeout(fn, 300));
 
@@ -166,6 +168,7 @@ export default function WorkspaceLayout() {
               <Route path="triage" element={ws === 'maintainer' ? <TriagePage /> : <Navigate to="/dashboard" replace />} />
               <Route path="community" element={ws === 'maintainer' ? <CommunityPage /> : <Navigate to="/dashboard" replace />} />
               <Route path="docs" element={ws === 'maintainer' ? <DocsPage /> : <Navigate to="/dashboard" replace />} />
+              <Route path="funding" element={ws === 'maintainer' ? <FundingPage /> : <Navigate to="/dashboard" replace />} />
               <Route path="opportunities" element={ws === 'contributor' ? <OpportunitiesPage /> : <Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

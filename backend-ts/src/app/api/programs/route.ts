@@ -8,13 +8,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { listPrograms } from "@/lib/programs";
 import { loadOpportunities } from "@/lib/opportunities/store";
 import { lastRun } from "@/lib/opportunities/sync";
+import { RULES } from "@/lib/maintainer/funding";
 
 const list = (v: string | null, max: number) =>
     (v ?? "").split(",").map((s) => s.trim()).filter(Boolean).slice(0, max);
 
 export async function GET(request: NextRequest) {
     const sp = new URL(request.url).searchParams;
-    const { list: source, fromSeed } = await loadOpportunities();
+    const loaded = await loadOpportunities();
+    const fromSeed = loaded.fromSeed;
+    // Foundation paths and maintainer perks only make sense for maintainers (see /api/maintainer/funding).
+    const source = sp.get("audience") === "all"
+        ? loaded.list
+        : loaded.list.filter((p) => !["foundation", "perk"].includes(RULES[p.id]?.kind ?? ""));
     const kinds = new Set(list(sp.get("kind"), 7));
     const programs = listPrograms({
         q: (sp.get("q") ?? "").slice(0, 100),

@@ -101,7 +101,12 @@ describe('issues and inputs', () => {
     });
     it('sanitizes goals from the client', () => {
         expect(sanitizeGoals({ goals: ['paid', 'hack', 'PAID'], foundations: ['cncf', 'evil'], hoursPerWeek: 500, issueSize: 'huge', languages: ['Go', '<x>'] }))
-            .toEqual({ goals: ['paid'], foundations: ['cncf'], hoursPerWeek: 60, issueSize: null, languages: ['go'] });
+            .toMatchObject({ goals: ['paid'], foundations: ['cncf'], hoursPerWeek: 60, issueSize: null, languages: ['go'] });
+    });
+    it('sanitizes maintainer goals and away mode', () => {
+        const m = sanitizeGoals({ maintainer: { goals: ['funding', 'world-domination'], hoursPerWeek: 4, away: { on: true, until: '2026-12-31', message: 'Back <b>soon</b>' } } }).maintainer;
+        expect(m).toEqual({ goals: ['funding'], hoursPerWeek: 4, away: { on: true, until: '2026-12-31', message: 'Back bsoon/b' } });
+        expect(sanitizeGoals({}).maintainer.away.on).toBe(false);
     });
     it('feedback: save then clear removes it; tag affinity stays within ±3', () => {
         let fb = applyFeedback(EMPTY_FEEDBACK, 'a', 'save', ['go']);

@@ -77,6 +77,9 @@ export const workApi = {
   goals: () => get("/me/goals"),
   saveGoals: (goals) => send("put", "/me/goals", { goals }),
   feedback: (id, action, tags) => send("post", "/me/goals", { id, action, tags }),
+  /** Maintainer hub: per-repo to-do, and funding/programs with eligibility per repo. */
+  repoTodo: (repo, o) => get("/maintainer/todo", { repo, ...fresh(o) }),
+  funding: () => get("/maintainer/funding"),
   /** Projects directory and opportunities ranked for you, with reasons. */
   recRepos: (params) => get("/me/recommendations/repos", params),
   recOpportunities: () => get("/me/recommendations/opportunities"),
@@ -107,6 +110,8 @@ export const keys = {
   // Tied to the sign-in, so a fresh sign-in never shows the previous answer.
   access: () => `access:${(localStorage.getItem("token") || "").slice(-16)}`,
   goals: () => "goals",
+  todo: (repo) => `todo:${repo}`.toLowerCase(),
+  funding: () => "funding",
   recRepos: (params) => `rec:repos:${JSON.stringify(params)}`,
   recOpportunities: () => "rec:opps",
 };

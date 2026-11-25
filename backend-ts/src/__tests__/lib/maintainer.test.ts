@@ -110,6 +110,25 @@ describe("aggregateCommunity", () => {
         const empty = aggregateCommunity({ viewer: "me", now: NOW, openIssues: [], openPRs: [], closedPRs: [] });
         expect(empty.mergeRatio).toEqual({ outsideMerged: 0, outsideClosed: 0, ratio: null });
     });
+
+    it("rising contributors: 3+ outside merges in 90 days, maintainers and old merges excluded", () => {
+        const r = aggregateCommunity({
+            viewer: "me", now: NOW, openIssues: [], openPRs: [],
+            closedPRs: [
+                ...[1, 2, 3, 4, 5, 6].map((d) => closed("steady", true, d)),
+                ...[1, 2, 3].map((d) => closed("newer", true, d)),
+                ...[1, 2].map((d) => closed("twice", true, d)),
+                ...[1, 2, 3].map((d) => closed("maint", true, d, "MEMBER")),
+                ...[100, 120, 130].map((d) => closed("old", true, d)),
+                closed("newer", false, 1),
+            ],
+        });
+        expect(r.risingContributors.map((x) => [x.login, x.merged, x.suggestion])).toEqual([
+            ["steady", 6, "Invite as a maintainer"],
+            ["newer", 3, "Ask to review PRs"],
+        ]);
+        expect(r.risingContributors[0].inviteUrl).toBe("https://github.com/o/r/settings/access");
+    });
 });
 
 describe("docs health", () => {

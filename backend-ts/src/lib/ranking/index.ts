@@ -27,9 +27,35 @@ export interface Goals {
     issueSize: (typeof SIZES)[number] | null;
     /** Languages you want to work in, on top of what GitHub shows. */
     languages: string[];
+    /** Maintainer side: what you want for your repos, your time, and away mode. */
+    maintainer: MaintainerGoals;
 }
 
-export const DEFAULT_GOALS: Goals = { goals: [], foundations: [], hoursPerWeek: null, issueSize: null, languages: [] };
+export const MAINTAINER_GOALS = ["contributors", "less-load", "funding", "security", "foundation"] as const;
+export interface MaintainerGoals {
+    goals: Array<(typeof MAINTAINER_GOALS)[number]>;
+    hoursPerWeek: number | null;
+    away: { on: boolean; until: string | null; message: string };
+}
+export const DEFAULT_MAINTAINER: MaintainerGoals = { goals: [], hoursPerWeek: null, away: { on: false, until: null, message: "" } };
+
+export const DEFAULT_GOALS: Goals = { goals: [], foundations: [], hoursPerWeek: null, issueSize: null, languages: [], maintainer: DEFAULT_MAINTAINER };
+
+function sanitizeMaintainer(input: unknown): MaintainerGoals {
+    const m = (input && typeof input === "object" ? input : {}) as Record<string, unknown>;
+    const away = (m.away && typeof m.away === "object" ? m.away : {}) as Record<string, unknown>;
+    const hours = Number(m.hoursPerWeek);
+    const until = typeof away.until === "string" && /^\d{4}-\d{2}-\d{2}$/.test(away.until) ? away.until : null;
+    return {
+        goals: words(m.goals, MAINTAINER_GOALS, MAINTAINER_GOALS.length) as MaintainerGoals["goals"],
+        hoursPerWeek: Number.isFinite(hours) && hours > 0 ? Math.min(60, Math.round(hours)) : null,
+        away: {
+            on: away.on === true,
+            until,
+            message: typeof away.message === "string" ? away.message.replace(/[<>]/g, "").slice(0, 500) : "",
+        },
+    };
+}
 
 export interface Me {
     languages: Array<{ name: string; weight: number }>;
@@ -67,6 +93,7 @@ export function sanitizeGoals(input: unknown): Goals {
         hoursPerWeek: Number.isFinite(hours) && hours > 0 ? Math.min(60, Math.round(hours)) : null,
         issueSize: (SIZES as readonly string[]).includes(s.issueSize as string) ? (s.issueSize as Goals["issueSize"]) : null,
         languages: words(s.languages, null, 6),
+        maintainer: sanitizeMaintainer(s.maintainer),
     };
 }
 

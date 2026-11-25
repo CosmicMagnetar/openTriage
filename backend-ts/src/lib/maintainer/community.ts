@@ -135,7 +135,34 @@ export function aggregateCommunity({ openIssues, openPRs, closedPRs, viewer, now
         ratio: outside.length ? Math.round((outsideMerged / outside.length) * 100) / 100 : null,
     };
 
-    return { newcomersWaiting, activeContributors, staleClaims, mergeRatio };
+    // --- Rising contributors (90 days): repeat outside mergers ----------
+    // People who keep landing PRs are your future reviewers and co-maintainers
+    // (a project run by one person is one burnout away from stalling).
+    type Rise = { login: string; merged: number; repos: Set<string>; lastMergedAt: string };
+    const rise = new Map<string, Rise>();
+    for (const pr of closedPRs) {
+        if (!pr.merged || !pr.mergedAt || pr.mergedAt < cutoff90 || !isOutside(pr.author, viewer)) continue;
+        const k = pr.author.login.toLowerCase();
+        const r = rise.get(k) ?? { login: pr.author.login, merged: 0, repos: new Set<string>(), lastMergedAt: pr.mergedAt };
+        r.merged++;
+        r.repos.add(pr.repo);
+        if (pr.mergedAt > r.lastMergedAt) r.lastMergedAt = pr.mergedAt;
+        rise.set(k, r);
+    }
+    const risingContributors = [...rise.values()]
+        .filter((r) => r.merged >= 3)
+        .sort((a, b) => b.merged - a.merged || b.lastMergedAt.localeCompare(a.lastMergedAt))
+        .slice(0, 10)
+        .map((r) => {
+            const repos = [...r.repos];
+            return {
+                login: r.login, avatarUrl: avatarFor(r.login), merged: r.merged, repos, lastMergedAt: r.lastMergedAt,
+                suggestion: r.merged >= 6 ? "Invite as a maintainer" : "Ask to review PRs",
+                inviteUrl: `https://github.com/${repos[0]}/settings/access`,
+            };
+        });
+
+    return { newcomersWaiting, activeContributors, staleClaims, mergeRatio, risingContributors };
 }
 
 // ---------------------------------------------------------------------------

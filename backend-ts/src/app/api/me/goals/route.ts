@@ -21,7 +21,10 @@ export async function PUT(request: NextRequest) {
     if (error) return error;
     const body = await request.json().catch(() => ({}));
     const current = await getGoals(user!.id);
-    const goals = sanitizeGoals(body?.goals ?? body);
+    // Merge over what is stored: the contributor editor never sends `maintainer`
+    // and the maintainer editor sends only `maintainer`, so neither wipes the other.
+    const incoming = (body?.goals ?? body ?? {}) as Record<string, unknown>;
+    const goals = sanitizeGoals({ ...current.goals, ...incoming });
     await saveGoals(user!.id, goals, current.feedback);
     return NextResponse.json({ goals, feedback: current.feedback, set: true });
 }

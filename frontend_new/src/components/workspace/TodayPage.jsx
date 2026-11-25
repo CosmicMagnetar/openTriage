@@ -25,6 +25,7 @@ import { prBucket } from './prRows';
 import { TODAY_EXTRA_WIDGETS } from './todayWidgets';
 import WelcomeFlow from './WelcomeFlow';
 import { YourGitHubRepos } from './repoAccess';
+import { AwayBanner, WorkloadCard } from './maintainerHub';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -354,6 +355,7 @@ function CommandCenter() {
       actions={<AddRepo onAdded={onTracked} />}>
       <div className="px-6 py-5 space-y-5">
         {!prefs.onboarded && <WelcomeFlow ws="maintainer" setup={<AddRepo onAdded={onTracked} />} />}
+        <AwayBanner />
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
           <Stat label="Waiting on you" value={q.data ? actions.length : null} color={STATE[actions.length ? 'amber' : 'green']} />
           <Stat label="Longest wait (days)" value={q.data ? Math.floor(oldest) : null} hint="How long the oldest item in your queue has waited" />
@@ -402,6 +404,7 @@ function CommandCenter() {
             })}
           </Card>
           <div className="space-y-4">
+            {q.data && <WorkloadCard actions={actions} />}
             <YourGitHubRepos onTracked={onTracked} />
             {side}
           </div>
