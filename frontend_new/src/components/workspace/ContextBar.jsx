@@ -32,7 +32,7 @@ export default function ContextBar({ ws, repoCount = 0, right }) {
 
   return (
     <header className="ctx shrink-0 flex items-center gap-3 px-3 pl-14 lg:pl-4">
-      <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 shrink-0" aria-label="OpenTriage home">
+      <button onClick={() => navigate('/')} className="flex items-center gap-2 shrink-0" aria-label="OpenTriage home page">
         <Logo size="sm" />
         <span className="hidden md:inline fs-13-5 font-semibold">OpenTriage</span>
       </button>

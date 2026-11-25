@@ -2,6 +2,7 @@ import { Github, Zap, Users, BarChart3, GitPullRequest, Bot, BookOpen, ArrowRigh
 import Logo from './Logo';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../stores/authStore';
 import { GITHUB_LOGIN_URL } from '../lib/config';
 
@@ -912,6 +913,7 @@ const OnboardingTutorial = () => {
 // ============================================
 
 const LandingPage = () => {
+    const navigate = useNavigate();
     const { user, role } = useAuthStore();
     const [email, setEmail] = useState('');
     const [emailSubmitted, setEmailSubmitted] = useState(false);
@@ -935,8 +937,9 @@ const LandingPage = () => {
         window.location.href = GITHUB_LOGIN_URL;
     };
 
+    // In-app navigation, so the page fades over instead of reloading the app.
     const goToDashboard = () => {
-        window.location.href = '/dashboard';
+        navigate('/dashboard');
     };
 
     const handleEmailSubmit = (e) => {
